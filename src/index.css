@@ -1,0 +1,493 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.editor-surface {
+  @apply bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+}
+
+.bg-dot-grid {
+  background-color: #f8fafc;
+  background-image: radial-gradient(#cbd5e1 1.25px, transparent 1.25px);
+  background-size: 20px 20px;
+}
+
+.dark .bg-dot-grid {
+  background-color: #090d16;
+  background-image: radial-gradient(#1e293b 1.25px, transparent 1.25px);
+  background-size: 20px 20px;
+}
+
+[contenteditable][data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  @apply text-gray-400 dark:text-gray-500;
+  pointer-events: none;
+}
+
+[contenteditable] {
+  outline: none;
+}
+
+/* Link Styling inside Editor Content */
+[contenteditable] a,
+.be-paragraph a,
+.be-heading a,
+.be-list a,
+.be-quote a,
+.be-pullquote a,
+.be-verse a {
+  color: #2563eb !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+[contenteditable] a:hover,
+.be-paragraph a:hover,
+.be-heading a:hover,
+.be-list a:hover,
+.be-quote a:hover {
+  color: #1d4ed8 !important;
+}
+
+.dark [contenteditable] a,
+.dark .be-paragraph a,
+.dark .be-heading a,
+.dark .be-list a,
+.dark .be-quote a {
+  color: #60a5fa !important;
+}
+
+/* Global Button Cursor Pointer & Interactive Click Rules */
+button,
+[role="button"],
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  cursor: pointer !important;
+  user-select: none;
+}
+
+button:disabled,
+[role="button"][aria-disabled="true"] {
+  cursor: not-allowed !important;
+}
+
+button:active:not(:disabled),
+[role="button"]:active:not(:disabled) {
+  transform: scale(0.97);
+  transition: transform 0.05s ease;
+}
+
+.be-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.be-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.be-scroll::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700;
+  border-radius: 9999px;
+}
+
+.be-scroll::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-600;
+}
+
+.be-dragging {
+  opacity: 0.4;
+}
+
+.be-selected {
+  outline: none;
+}
+
+* {
+  transition-property: background-color, border-color;
+  transition-duration: 150ms;
+}
+
+hr {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+/* ==========================================
+   RESPONSIVE GLOBAL BREAKPOINTS & FLUID LAYOUTS
+   ========================================== */
+
+/* Prevent horizontal scroll & content overflow globally */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body, html {
+  overflow-x: hidden;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Touch Target Minimum (44px) for Mobile Accessibility */
+@media (max-width: 768px) {
+  button, [role="button"], input[type="button"], input[type="submit"] {
+    min-height: 40px;
+  }
+}
+
+/* Fluid Responsive Typography Defaults using clamp() */
+h1, .be-heading-h1 {
+  font-size: clamp(28px, 5vw, 52px);
+  line-height: 1.15;
+}
+
+h2, .be-heading-h2 {
+  font-size: clamp(24px, 4vw, 42px);
+  line-height: 1.2;
+}
+
+h3, .be-heading-h3 {
+  font-size: clamp(20px, 3vw, 32px);
+  line-height: 1.25;
+}
+
+h4, .be-heading-h4 {
+  font-size: clamp(18px, 2.5vw, 24px);
+  line-height: 1.3;
+}
+
+h5, .be-heading-h5 {
+  font-size: clamp(16px, 2vw, 20px);
+  line-height: 1.35;
+}
+
+h6, .be-heading-h6 {
+  font-size: clamp(14px, 1.5vw, 16px);
+  line-height: 1.4;
+}
+
+p, .be-paragraph {
+  font-size: clamp(16px, 2vw, 18px);
+  line-height: 1.65;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* News Section Container Rules */
+.be-container, .be-columns-grid {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-inline: clamp(16px, 4vw, 40px);
+}
+
+/* Desktop & Tablet: 2-column equal 50% / 50% split */
+@media (min-width: 641px) {
+  .be-columns-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 20px !important;
+    align-items: center !important;
+  }
+}
+
+/* Gallery Grid Responsive Overrides & Full Width Image Scaling */
+.be-gallery-grid, .be-gallery-masonry, .be-gallery-item {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.be-gallery-grid img, .be-gallery-item img {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .be-gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .be-gallery-masonry {
+    column-count: 2 !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .be-gallery-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+  .be-gallery-masonry {
+    column-count: 1 !important;
+  }
+}
+
+/* Mobile (<640px): Vertical Up-and-Down Stack Only */
+@media (max-width: 640px) {
+  .be-columns-grid, .be-columns-wrapper, .be-columns {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    width: 100% !important;
+    gap: 16px !important;
+    padding: 16px !important;
+    border-radius: 16px !important;
+  }
+
+  .be-column {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .be-paragraph, .be-heading-h1, .be-heading-h2, .be-heading-h3, h1, h2, h3, h4, h5, h6, p {
+    width: 100% !important;
+    text-align: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .be-cover {
+    padding: 20px 16px !important;
+    min-height: 240px !important;
+    border-radius: 16px !important;
+    text-align: center !important;
+  }
+
+  .be-button {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    margin-top: 12px !important;
+    text-align: center !important;
+  }
+
+  .be-button input, button.be-button, .be-button-link {
+    width: auto !important;
+    max-width: 100% !important;
+    display: inline-block !important;
+    margin: 0 auto !important;
+    text-align: center !important;
+  }
+
+  .be-column button {
+    width: 100% !important;
+  }
+}
+
+/* Slider Responsive Frame Heights & Caption Rows */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .be-slider-frame {
+    height: 330px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .be-slider-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .be-slider-frame {
+    height: 240px !important;
+  }
+
+  .be-slider-caption-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .be-slider-nav-arrows {
+    align-self: flex-end !important;
+    margin-top: 4px;
+  }
+
+  .be-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  .be-group, .be-stack {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .be-spacer {
+    max-height: 24px !important;
+  }
+}
+
+/* 2. Mobile Large & Small (< 480px) */
+@media (max-width: 480px) {
+  .be-slider-frame {
+    max-height: 280px !important;
+    min-height: 180px !important;
+  }
+
+  .be-slider-caption-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .be-slider-nav-arrows {
+    align-self: flex-end !important;
+    margin-top: 4px;
+  }
+
+  .be-table-wrapper td,
+  .be-table-wrapper th {
+    padding: 5px 6px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* 3. Responsive Table Scroll & Word Break */
+.be-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.be-table-wrapper table {
+  min-width: 100%;
+}
+
+.be-table-wrapper td,
+.be-table-wrapper th {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  min-width: 60px;
+}
+
+/* 4. Responsive Images & Media */
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+.be-media-frame {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* ==========================================
+   BLOCK BETWEEN-INSERTER (Gutenberg-style)
+   ========================================== */
+
+/* Ensure blocks have enough bottom spacing for the inserter button */
+[data-block-id] {
+  margin-bottom: 10px !important;
+}
+
+/* Show inserter on last block + add hover area */
+[data-block-id]:last-child {
+  margin-bottom: 24px !important;
+}
+
+/* Block selection highlight */
+[data-block-id].be-selected-block {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Placeholder improvements */
+[contenteditable][data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+  font-style: italic;
+}
+
+.dark [contenteditable][data-placeholder]:empty::before {
+  color: #6b7280;
+}
+
+/* Smooth scroll for editor canvas */
+.be-scroll {
+  scroll-behavior: smooth;
+}
+
+/* Rich text focus styles */
+[contenteditable]:focus {
+  outline: none;
+}
+
+/* Code block responsive */
+pre, code {
+  max-width: 100%;
+  overflow-x: auto;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+/* Drag over visual */
+[data-block-id].be-drag-over {
+  border-top: 2px solid #6366f1;
+  padding-top: 2px;
+}
+
+/* Animation for block insertion */
+@keyframes be-slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+[data-block-id] {
+  animation: be-slide-in 0.15s ease-out;
+}
+
+/* Quote and pullquote styling */
+.be-quote {
+  border-left: 4px solid #6366f1;
+  padding-left: 1rem;
+}
+
+.dark .be-quote {
+  border-left-color: #818cf8;
+}
+
+/* Verse block */
+.be-verse {
+  white-space: pre-wrap;
+  font-family: Georgia, serif;
+}
+
+/* Prevent animation re-trigger for existing blocks */
+[data-block-id]:not(:last-child) {
+  animation: none;
+}
