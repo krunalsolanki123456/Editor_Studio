@@ -58,11 +58,29 @@ export function parseMarkdownToBlocks(markdownText: string): BlockInstance[] {
     }
   };
 
+  let pendingParagraphLines: string[] = [];
+
+  const flushParagraph = () => {
+    if (pendingParagraphLines.length > 0) {
+      const fullText = pendingParagraphLines.join(' ').replace(/\s{2,}/g, ' ').trim();
+      if (fullText) {
+        blocks.push({
+          id: createId(),
+          type: 'paragraph',
+          attributes: { content: parseInlineFormatting(fullText) },
+          innerBlocks: [],
+        });
+      }
+      pendingParagraphLines = [];
+    }
+  };
+
   rawLines.forEach((line) => {
     const trimmed = line.trim();
 
     // Code Fence (```)
     if (trimmed.startsWith('```')) {
+      flushParagraph();
       if (inCodeBlock) {
         blocks.push({
           id: createId(),
@@ -86,6 +104,7 @@ export function parseMarkdownToBlocks(markdownText: string): BlockInstance[] {
     }
 
     if (!trimmed) {
+      flushParagraph();
       flushList();
       return;
     }
@@ -93,6 +112,7 @@ export function parseMarkdownToBlocks(markdownText: string): BlockInstance[] {
     // Markdown Headings (#)
     const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
     if (headingMatch) {
+      flushParagraph();
       flushList();
       blocks.push({
         id: createId(),
@@ -108,6 +128,7 @@ export function parseMarkdownToBlocks(markdownText: string): BlockInstance[] {
 
     // Horizontal Rule (---, ***, ___)
     if (/^(---|[*]{3,}|_{3,})$/.test(trimmed)) {
+      flushParagraph();
       flushList();
       blocks.push({
         id: createId(),
@@ -120,6 +141,7 @@ export function parseMarkdownToBlocks(markdownText: string): BlockInstance[] {
 
     // Blockquote (>)
     if (trimmed.startsWith('>')) {
+      flushParagraph();
       flushList();
       const quoteText = trimmed.replace(/^>\s*/, '');
       blocks.push({
@@ -136,6 +158,7 @@ export function parseMarkdownToBlocks(markdownText: string): BlockInstance[] {
     const isBulleted = /^[-*•+◦▪]\s+/.test(trimmed);
 
     if (isNumbered || isBulleted) {
+      flushParagraph();
       const indentMatch = line.match(/^(\s*)/);
       const spaces = indentMatch ? indentMatch[1].replace(/\t/g, '  ').length : 0;
       const level = Math.min(Math.floor(spaces / 2), 4);
@@ -155,15 +178,11 @@ export function parseMarkdownToBlocks(markdownText: string): BlockInstance[] {
 
     flushList();
 
-    // Default Paragraph
-    blocks.push({
-      id: createId(),
-      type: 'paragraph',
-      attributes: { content: parseInlineFormatting(trimmed) },
-      innerBlocks: [],
-    });
+    // Collect continuous paragraph lines
+    pendingParagraphLines.push(trimmed);
   });
 
+  flushParagraph();
   flushList();
 
   if (inCodeBlock && codeBuffer.length > 0) {

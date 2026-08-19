@@ -83,6 +83,8 @@ export default function BlockWrapper({ block, index, total }: BlockWrapperProps)
     ? 'ring-2 ring-amber-400 dark:ring-amber-500 rounded-2xl bg-amber-50/40 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-600/60 p-3.5 shadow-md backdrop-blur-2xs transition-all my-2'
     : '';
 
+  const openInserterAtIndex = useEditorStore((s) => s.openInserterAtIndex);
+
   const wrapperClasses = 'relative group transition-all mb-2.5 w-full';
 
   return (
@@ -104,6 +106,24 @@ export default function BlockWrapper({ block, index, total }: BlockWrapperProps)
         }
       }}
     >
+      {/* Above-block inserter: "+" on hover */}
+      {!isMultiSelect && (
+        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-40 flex items-center justify-center">
+          <button
+            type="button"
+            title="Insert block above / ઉપર બ્લોક ઉમેરો"
+            onClick={(e) => {
+              e.stopPropagation();
+              openInserterAtIndex(index);
+            }}
+            className="h-6 px-2.5 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/40 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 flex items-center gap-1 shadow-sm transition-all cursor-pointer text-[10px] font-extrabold hover:scale-105"
+          >
+            <Plus size={12} />
+            <span>Above</span>
+          </button>
+        </div>
+      )}
+
       {/* Visual Highlight Badge when Text/Block is Pinned */}
       {isPinnedBlock && (
         <div className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-wide text-amber-900 dark:text-amber-100 bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200 dark:from-amber-900 dark:via-amber-950 dark:to-amber-900 border-2 border-amber-400 dark:border-amber-600 px-3.5 py-1.5 rounded-xl shadow-md select-none w-fit">
@@ -133,6 +153,33 @@ export default function BlockWrapper({ block, index, total }: BlockWrapperProps)
             <Icon size={12} className="text-primary-400" />
             {getBlockLabel(block.type)}
           </span>
+
+          {/* 1-Click Add Above & Below Buttons in Toolbar */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              openInserterAtIndex(index);
+            }}
+            className="px-1.5 py-0.5 rounded text-[10px] font-bold text-gray-300 hover:text-primary-300 hover:bg-white/15 cursor-pointer transition-colors flex items-center gap-0.5"
+            title="Insert block above / ઉપર બ્લોક ઉમેરો"
+          >
+            <Plus size={11} />
+            <span>Above</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              openInserterAtIndex(index + 1);
+            }}
+            className="px-1.5 py-0.5 rounded text-[10px] font-bold text-gray-300 hover:text-primary-300 hover:bg-white/15 cursor-pointer transition-colors flex items-center gap-0.5 pr-1.5 border-r border-white/20"
+            title="Insert block below / નીચે બ્લોક ઉમેરો"
+          >
+            <Plus size={11} />
+            <span>Below</span>
+          </button>
 
           <button
             type="button"
@@ -176,29 +223,20 @@ export default function BlockWrapper({ block, index, total }: BlockWrapperProps)
 
       {isHtmlMode ? <HtmlCodeEditor block={block} /> : <BlockRenderer block={block} selected={selected} />}
 
-      {/* Between-block inserter: Gutenberg-style "+" on hover */}
+      {/* Below-block inserter: "+" on hover */}
       {!isMultiSelect && (
-        <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity z-40 flex items-center justify-center">
+        <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity z-40 flex items-center justify-center">
           <button
             type="button"
-            title="Add block below"
+            title="Insert block below / નીચે બ્લોક ઉમેરો"
             onClick={(e) => {
               e.stopPropagation();
-              const { insertBlock: ins, blocks: allBlocks } = useEditorStore.getState();
-              const idx = allBlocks.findIndex((b) => b.id === block.id);
-              const newId = ins('paragraph', idx !== -1 ? idx + 1 : null);
-              if (newId) {
-                setTimeout(() => {
-                  const el = document.querySelector(
-                    `[data-block-id="${newId}"] [contenteditable], [data-block-id="${newId}"] textarea`
-                  ) as HTMLElement | null;
-                  if (el) el.focus();
-                }, 30);
-              }
+              openInserterAtIndex(index + 1);
             }}
-            className="w-6 h-6 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/30 text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 flex items-center justify-center shadow-sm transition-all cursor-pointer"
+            className="h-6 px-2.5 rounded-full bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-950/40 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 flex items-center gap-1 shadow-sm transition-all cursor-pointer text-[10px] font-extrabold hover:scale-105"
           >
             <Plus size={12} />
+            <span>Below</span>
           </button>
         </div>
       )}

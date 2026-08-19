@@ -689,11 +689,6 @@ export function CoverBlock({ block }: BlockProps) {
         ? 'justify-end text-right'
         : 'justify-center text-center';
 
-  const supportedNestedBlocks = [
-    { type: 'heading', label: 'Heading' },
-    { type: 'paragraph', label: 'Paragraph' },
-  ];
-
   return (
     <div
       id={(a.customId as string) || undefined}
@@ -741,8 +736,26 @@ export function CoverBlock({ block }: BlockProps) {
               ))}
             </div>
           ) : (
-            <div className="py-8 text-center text-xs font-medium border border-dashed border-white/40 rounded-xl bg-black/20 text-white/90">
-              Empty Cover Block. Click below to add content.
+            <div
+              className="py-8 text-center flex flex-col items-center justify-center border border-dashed border-white/30 rounded-xl bg-black/20 text-white/80 cursor-pointer hover:bg-black/30 transition-colors group/empty select-none"
+              onClick={(e) => {
+                e.stopPropagation();
+                const id = useEditorStore.getState().insertBlockInto(block.id, 'heading');
+                if (id) {
+                  setTimeout(() => {
+                    (document.querySelector(`[data-block-id="${id}"] [contenteditable]`) as HTMLElement | null)?.focus();
+                  }, 10);
+                }
+              }}
+            >
+              <button
+                type="button"
+                title="Add block"
+                className="w-7 h-7 rounded-full bg-white/10 text-white/70 group-hover/empty:text-white group-hover/empty:bg-white/20 border border-white/20 flex items-center justify-center transition-all mb-1 cursor-pointer"
+              >
+                <Plus size={13} />
+              </button>
+              <span className="text-xs text-white/70">Empty cover · Click to add heading</span>
             </div>
           )}
 
@@ -893,5 +906,114 @@ export function AudioBlock({ block, selected = false }: BlockProps) {
         />
       )}
     </figure>
+  );
+}
+
+export function MediaTextBlock({ block, selected = false }: BlockProps) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const { isMobile, isTablet } = useResponsive();
+  const a = block.attributes;
+  const mediaUrl = (a.mediaUrl as string) || '';
+  const mediaType = (a.mediaType as 'image' | 'video') || 'image';
+  const mediaPosition = (a.mediaPosition as 'left' | 'right') || 'left';
+  const rawMediaWidth = typeof a.mediaWidth === 'number' ? a.mediaWidth : 50;
+  const verticalAlign = (a.verticalAlign as 'top' | 'center' | 'bottom') || 'center';
+  const imageFill = Boolean(a.imageFill);
+  const stackOnMobile = a.stackOnMobile !== false;
+  const backgroundColor = (a.backgroundColor as string) || '';
+  const textColor = (a.textColor as string) || '';
+  const focalPoint = (a.focalPoint as { x: number; y: number }) || { x: 50, y: 50 };
+
+  const isStacked = isMobile && stackOnMobile;
+
+  const mediaWidth = isStacked
+    ? '100%'
+    : isTablet
+    ? `${Math.min(Math.max(rawMediaWidth, 35), 65)}%`
+    : `${rawMediaWidth}%`;
+
+  const vAlignClass = isStacked
+    ? 'items-stretch'
+    : verticalAlign === 'top'
+    ? 'items-start'
+    : verticalAlign === 'bottom'
+    ? 'items-end'
+    : 'items-center';
+
+  const flexDirClass = isStacked
+    ? mediaPosition === 'right'
+      ? 'flex-col-reverse'
+      : 'flex-col'
+    : mediaPosition === 'right'
+    ? 'flex-row-reverse'
+    : 'flex-row';
+
+  return (
+    <div
+      className={`be-media-text w-full max-w-full rounded-2xl overflow-hidden transition-all ${
+        selected ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-900' : ''
+      }`}
+      style={{
+        backgroundColor: backgroundColor || undefined,
+        color: textColor || undefined,
+      }}
+    >
+      <div
+        className={`flex ${flexDirClass} ${vAlignClass} w-full gap-3.5 sm:gap-4 md:gap-6 p-3 sm:p-4 md:p-6 box-border`}
+      >
+        {/* Media Column */}
+        <div
+          className="w-full relative overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 shrink-0 flex items-center justify-center transition-all box-border"
+          style={{
+            flexBasis: mediaWidth,
+            maxWidth: mediaWidth,
+            minHeight: imageFill ? (isMobile ? '200px' : '280px') : 'auto',
+          }}
+        >
+          {mediaUrl ? (
+            mediaType === 'video' ? (
+              <video
+                controls
+                src={mediaUrl}
+                className="w-full h-full object-cover rounded-xl"
+              />
+            ) : (
+              <img
+                src={mediaUrl}
+                alt={(a.mediaAlt as string) || ''}
+                className={`w-full max-w-full ${imageFill ? 'h-full absolute inset-0 object-cover' : 'h-auto rounded-xl block object-contain'}`}
+                style={imageFill ? { objectPosition: `${focalPoint.x}% ${focalPoint.y}%` } : undefined}
+              />
+            )
+          ) : (
+            <div className="p-4 w-full">
+              <MediaPicker
+                accept="image/*,video/*"
+                label="media"
+                onUpload={(dataUrl) => updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, mediaUrl: dataUrl } }))}
+                onUrl={(u) => updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, mediaUrl: u } }))}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Content Column */}
+        <div className="w-full flex-1 min-w-0 flex flex-col justify-center space-y-2.5 sm:space-y-3 box-border">
+          <RichText
+            value={(a.content as RichTextValue) || []}
+            onChange={(v) => updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, content: v } }))}
+            placeholder="Write content alongside media…"
+            className="be-paragraph text-sm sm:text-base leading-relaxed w-full outline-none"
+            tagName="p"
+            style={{
+              color: textColor || undefined,
+              fontSize: 'clamp(14px, 1.4vw, 17px)',
+              lineHeight: 1.65,
+            }}
+            preserveLineBreaks
+          />
+        </div>
+      </div>
+    </div>
   );
 }

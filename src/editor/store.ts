@@ -17,13 +17,16 @@ interface EditorStore {
   documentTitle: string;
   deviceView: DeviceView;
   inserterOpen: boolean;
+  inserterTargetIndex: number | null;
   settingsSidebarOpen: boolean;
   slashMenu: { open: boolean; blockId: string | null; anchor: { x: number; y: number } | null };
 
   insertBlock: (type: string, index?: number | null) => string | null;
   insertBlockInto: (targetId: string, type: string, index?: number | null) => string | null;
   insertBlockInstance: (block: BlockInstance, index?: number | null) => void;
+  openInserterAtIndex: (index: number | null) => void;
   addBlocks: (newBlocks: BlockInstance[], targetId?: string | null) => void;
+  replaceBlockWithBlocks: (targetId: string, newBlocks: BlockInstance[]) => void;
   updateBlock: (id: string, updater: (b: BlockInstance) => BlockInstance) => void;
   removeBlock: (id: string) => void;
   duplicateBlock: (id: string) => void;
@@ -279,8 +282,11 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   documentTitle: getInitialTitle(),
   deviceView: 'desktop',
   inserterOpen: true,
+  inserterTargetIndex: null,
   settingsSidebarOpen: true,
   slashMenu: { open: false, blockId: null, anchor: null },
+
+  openInserterAtIndex: (index) => set({ inserterOpen: true, inserterTargetIndex: index }),
 
   toggleHtmlMode: (id) => {
     set((state) => {
@@ -468,6 +474,57 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
       return {
         ...pushHistory(state),
         blocks,
+        selectedIds: newBlocks.map((b) => b.id),
+      };
+    });
+  },
+
+  replaceBlockWithBlocks: (targetId, newBlocks) => {
+    if (!newBlocks || newBlocks.length === 0) return;
+    set((state) => {
+      const targetBlock = findBlock(state.blocks, targetId);
+      if (targetBlock && targetBlock.attributes) {
+        const inheritedFontFamily = targetBlock.attributes.fontFamily;
+        const inheritedFontFamilyLabel = targetBlock.attributes.fontFamilyLabel;
+        const inheritedTextColor = targetBlock.attributes.textColor;
+        if (inheritedFontFamily) {
+          newBlocks.forEach((nb) => {
+            if (nb.attributes) {
+              if (!nb.attributes.fontFamily) nb.attributes.fontFamily = inheritedFontFamily;
+              if (!nb.attributes.fontFamilyLabel && inheritedFontFamilyLabel) nb.attributes.fontFamilyLabel = inheritedFontFamilyLabel;
+              if (!nb.attributes.textColor && inheritedTextColor) nb.attributes.textColor = inheritedTextColor;
+            }
+          });
+        }
+      }
+
+      let replaced = false;
+      const replaceInTree = (tree: BlockInstance[]): BlockInstance[] => {
+        const idx = tree.findIndex((b) => b.id === targetId);
+        if (idx !== -1) {
+          replaced = true;
+          const copy = [...tree];
+          copy.splice(idx, 1, ...newBlocks);
+          return copy;
+        }
+        return tree.map((b) => {
+          if (replaced || !b.innerBlocks) return b;
+          return { ...b, innerBlocks: replaceInTree(b.innerBlocks) };
+        });
+      };
+
+      const updated = replaceInTree(state.blocks);
+      if (replaced) {
+        return {
+          ...pushHistory(state),
+          blocks: updated,
+          selectedIds: newBlocks.map((b) => b.id),
+        };
+      }
+
+      return {
+        ...pushHistory(state),
+        blocks: [...state.blocks, ...newBlocks],
         selectedIds: newBlocks.map((b) => b.id),
       };
     });

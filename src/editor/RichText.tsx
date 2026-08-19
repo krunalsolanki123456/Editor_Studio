@@ -284,7 +284,7 @@ export default function RichText({
     if (isRichBlockPaste) {
       const activeBlockEl = ref.current?.closest('[data-block-id]') as HTMLElement | null;
       const blockId = activeBlockEl?.getAttribute('data-block-id');
-      const { blocks, removeBlock, addBlocks } = useEditorStore.getState();
+      const { blocks, addBlocks, replaceBlockWithBlocks } = useEditorStore.getState();
       const blockIdx = blockId ? blocks.findIndex((b) => b.id === blockId) : -1;
       const currentBlock = blockIdx !== -1 ? blocks[blockIdx] : null;
 
@@ -318,18 +318,18 @@ export default function RichText({
           if (blockId) {
             const currentBlock = blocks[blockIdx];
 
-            const isCurrentEmpty = currentBlock && (
-              currentBlock.type === 'paragraph' && (
-                !currentBlock.attributes.content ||
-                (currentBlock.attributes.content as any[]).length === 0 ||
-                !(currentBlock.attributes.content as any[])[0]?.text?.trim()
-              )
-            );
+            const isCurrentEmpty = !currentBlock || (() => {
+              const c = currentBlock.attributes?.content;
+              if (!c) return true;
+              if (Array.isArray(c)) {
+                return c.length === 0 || !c.map((item: any) => item?.text || '').join('').trim();
+              }
+              if (typeof c === 'string') return !c.trim();
+              return false;
+            })();
 
             if (isCurrentEmpty) {
-              removeBlock(blockId);
-              const prevId = blockIdx > 0 ? blocks[blockIdx - 1]?.id : null;
-              addBlocks(generatedBlocks, prevId);
+              replaceBlockWithBlocks(blockId, generatedBlocks);
             } else {
               addBlocks(generatedBlocks, blockId);
             }

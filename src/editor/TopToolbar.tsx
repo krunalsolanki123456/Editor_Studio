@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   FileDown, Eye, X, Monitor, Tablet, Smartphone, Search, Code, Copy, Check,
+  PanelLeftOpen, Sliders,
 } from 'lucide-react';
 import { useEditorStore } from './store';
 import { exportHtml } from './exporter';
@@ -27,19 +28,11 @@ function Tooltip({
         ? 'right-0 translate-x-0'
         : 'left-1/2 -translate-x-1/2';
 
-  const arrowAlignClasses =
-    align === 'left'
-      ? 'left-3'
-      : align === 'right'
-        ? 'right-3'
-        : 'left-1/2 -translate-x-1/2';
-
   return (
     <div className="relative group inline-flex items-center">
       {children}
-      <div className={`absolute top-full mt-1.5 ${alignClasses} hidden group-hover:flex flex-col items-center pointer-events-none z-[110]`}>
-        <div className={`w-2 h-2 bg-gray-900 dark:bg-gray-800 rotate-45 -mb-1 shadow-xs border-t border-l border-gray-700/50 ${arrowAlignClasses}`} />
-        <span className="px-2.5 py-1 text-[11px] font-medium text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-xl border border-gray-700/50 whitespace-nowrap">
+      <div className={`absolute top-full mt-1 ${alignClasses} hidden group-hover:flex flex-col items-center pointer-events-none z-[110]`}>
+        <span className="px-2 py-0.5 text-[10px] font-semibold text-white bg-gray-900/95 dark:bg-gray-800 rounded-md shadow-lg border border-gray-700/40 whitespace-nowrap">
           {text}
         </span>
       </div>
@@ -47,11 +40,15 @@ function Tooltip({
   );
 }
 
-export default function TopToolbar({ onOpenInserter: _onOpenInserter }: TopToolbarProps) {
+export default function TopToolbar({ onOpenInserter }: TopToolbarProps) {
   const blocks = useEditorStore((s) => s.blocks);
   const documentTitle = useEditorStore((s) => s.documentTitle);
   const deviceView = useEditorStore((s) => s.deviceView);
   const setDeviceView = useEditorStore((s) => s.setDeviceView);
+  const inserterOpen = useEditorStore((s) => s.inserterOpen);
+  const setInserterOpen = useEditorStore((s) => s.setInserterOpen);
+  const settingsSidebarOpen = useEditorStore((s) => s.settingsSidebarOpen);
+  const setSettingsSidebarOpen = useEditorStore((s) => s.setSettingsSidebarOpen);
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTab, setPreviewTab] = useState<'visual' | 'code'>('visual');
@@ -71,18 +68,18 @@ export default function TopToolbar({ onOpenInserter: _onOpenInserter }: TopToolb
   };
 
   const renderActionControls = () => (
-    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+    <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
       {/* 1. Expandable Search Input / Button */}
       {searchOpen ? (
         <div className="relative flex items-center transition-all duration-200 ease-out">
-          <Search size={14} className="absolute left-2.5 text-primary-600 dark:text-primary-400 pointer-events-none" />
+          <Search size={13} className="absolute left-2 text-blue-600 dark:text-blue-400 pointer-events-none" />
           <input
             type="text"
             autoFocus
             value={headerSearch}
             onChange={(e) => setHeaderSearch(e.target.value)}
             placeholder="Search..."
-            className="w-28 sm:w-44 md:w-48 lg:w-56 pl-8 pr-7 py-1 text-xs bg-gray-50 dark:bg-gray-800 border border-primary-500/80 rounded-xl text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none shadow-xs focus:ring-2 focus:ring-primary-500/20"
+            className="w-24 sm:w-44 pl-6 pr-5 py-1 text-xs bg-gray-50 dark:bg-gray-800 border border-blue-500/60 rounded-lg text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none shadow-2xs focus:ring-2 focus:ring-blue-500/20"
           />
           <button
             type="button"
@@ -90,10 +87,10 @@ export default function TopToolbar({ onOpenInserter: _onOpenInserter }: TopToolb
               setHeaderSearch('');
               setSearchOpen(false);
             }}
-            className="absolute right-1.5 p-0.5 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+            className="absolute right-1 p-0.5 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer"
             title="Close Search"
           >
-            <X size={13} />
+            <X size={12} />
           </button>
         </div>
       ) : (
@@ -101,107 +98,133 @@ export default function TopToolbar({ onOpenInserter: _onOpenInserter }: TopToolb
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="p-1.5 sm:p-2 rounded-xl text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all cursor-pointer"
+            className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
           >
-            <Search size={17} />
+            <Search size={15} />
           </button>
         </Tooltip>
       )}
 
       {/* 2. Full Page Preview Button */}
-      <Tooltip text="Full Page Preview" align="center">
+      <Tooltip text="Preview" align="center">
         <button
           onClick={() => { setPreviewTab('visual'); setPreviewOpen(true); }}
-          className="p-1.5 sm:p-2 rounded-xl text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all cursor-pointer"
+          className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
         >
-          <Eye size={17} />
+          <Eye size={15} />
         </button>
       </Tooltip>
 
-      {/* 3. View HTML Code Button */}
-      <Tooltip text="View HTML Code" align="center">
-        <button
-          onClick={() => { setPreviewTab('code'); setPreviewOpen(true); }}
-          className="p-1.5 sm:p-2 rounded-xl text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all cursor-pointer"
-        >
-          <Code size={17} />
-        </button>
-      </Tooltip>
+      {/* 3. View HTML Code Button (visible on tablet/desktop) */}
+      <div className="hidden sm:inline-flex">
+        <Tooltip text="HTML Code" align="center">
+          <button
+            onClick={() => { setPreviewTab('code'); setPreviewOpen(true); }}
+            className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+          >
+            <Code size={15} />
+          </button>
+        </Tooltip>
+      </div>
 
       {/* 4. Save as HTML / Download Button */}
-      <Tooltip text="Save as HTML" align="center">
-        <button onClick={handleSaveHtml} className="p-1.5 sm:p-2 rounded-xl text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all cursor-pointer">
-          <FileDown size={17} />
+      <Tooltip text="Export HTML" align="center">
+        <button
+          onClick={handleSaveHtml}
+          className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+        >
+          <FileDown size={15} />
         </button>
       </Tooltip>
 
-      <div className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5" />
-
-      {/* Device Viewport Toggle Buttons */}
-      <div className="flex items-center gap-0.5 bg-gray-100/70 dark:bg-gray-800/50 p-0.5 sm:p-1 rounded-xl border border-gray-200/60 dark:border-gray-700/60">
-        <Tooltip text="Desktop View" align="center">
-          <button
-            onClick={() => setDeviceView('desktop')}
-            className={`p-1 sm:p-1.5 rounded-lg transition-all cursor-pointer ${deviceView === 'desktop'
-              ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/70 dark:text-blue-400 border border-blue-200/80 dark:border-blue-800/80 shadow-2xs'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+      {/* Device Viewport Segmented Control (Visible on sm+ screens) */}
+      <div className="hidden sm:flex items-center gap-1.5">
+        <div className="w-px h-4 bg-gray-200 dark:bg-gray-800 mx-0.5" />
+        <div className="flex items-center bg-gray-100 dark:bg-gray-800/80 p-0.5 rounded-lg border border-gray-200/60 dark:border-gray-700/60">
+          <Tooltip text="Desktop View" align="center">
+            <button
+              onClick={() => setDeviceView('desktop')}
+              className={`p-1 rounded-md transition-all cursor-pointer ${
+                deviceView === 'desktop'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-xs'
+                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
-          >
-            <Monitor size={16} />
-          </button>
-        </Tooltip>
+            >
+              <Monitor size={14} />
+            </button>
+          </Tooltip>
 
-        <Tooltip text="Tablet View" align="center">
-          <button
-            onClick={() => setDeviceView('tablet')}
-            className={`p-1 sm:p-1.5 rounded-lg transition-all cursor-pointer ${deviceView === 'tablet'
-              ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/70 dark:text-blue-400 border border-blue-200/80 dark:border-blue-800/80 shadow-2xs'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+          <Tooltip text="Tablet View" align="center">
+            <button
+              onClick={() => setDeviceView('tablet')}
+              className={`p-1 rounded-md transition-all cursor-pointer ${
+                deviceView === 'tablet'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-xs'
+                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
-          >
-            <Tablet size={16} />
-          </button>
-        </Tooltip>
+            >
+              <Tablet size={14} />
+            </button>
+          </Tooltip>
 
-        <Tooltip text="Mobile View" align="center">
-          <button
-            onClick={() => setDeviceView('mobile')}
-            className={`p-1 sm:p-1.5 rounded-lg transition-all cursor-pointer ${deviceView === 'mobile'
-              ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/70 dark:text-blue-400 border border-blue-200/80 dark:border-blue-800/80 shadow-2xs'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+          <Tooltip text="Mobile View" align="center">
+            <button
+              onClick={() => setDeviceView('mobile')}
+              className={`p-1 rounded-md transition-all cursor-pointer ${
+                deviceView === 'mobile'
+                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-xs'
+                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
-          >
-            <Smartphone size={16} />
-          </button>
-        </Tooltip>
+            >
+              <Smartphone size={14} />
+            </button>
+          </Tooltip>
+        </div>
       </div>
     </div>
   );
 
   return (
-    <header className="sticky top-0 z-50 flex flex-col md:flex-row md:items-center justify-between gap-2 px-3 sm:px-4 py-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur border-b border-gray-200/80 dark:border-gray-800/80 transition-all">
-      {/* Top Main Row for Mobile / Single Row for Desktop */}
-      <div className="flex items-center justify-between w-full md:w-auto gap-2">
-        {/* Logo */}
-        <div className="md:w-72 shrink-0 flex items-center">
-          <div className="w-32 shrink-0">
-            <img
-              src={logo}
-              alt="Editor Studio"
-              className="toolbar-logo"
-            />
-          </div>
-        </div>
+    <header className="sticky top-0 z-50 flex items-center justify-between px-2 sm:px-4 py-1.5 sm:py-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200/80 dark:border-gray-800/80 transition-all">
+      {/* Left: Mobile Blocks Toggle + Logo */}
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        <button
+          type="button"
+          onClick={() => {
+            if (onOpenInserter) onOpenInserter();
+            else setInserterOpen(!inserterOpen);
+          }}
+          className="md:hidden p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+          title="Toggle Blocks"
+        >
+          <PanelLeftOpen size={16} />
+        </button>
 
-        {/* Action Controls on Mobile (<= 767px) */}
-        <div className="flex md:hidden items-center">
-          {renderActionControls()}
+        <div className="shrink-0 flex items-center">
+          <img
+            src={logo}
+            alt="Editor Studio"
+            className="toolbar-logo h-[3rem] max-h-[3rem] sm:h-[3.5rem] sm:max-h-[3.5rem] w-auto object-contain transition-all"
+          />
         </div>
       </div>
 
-      {/* Action Controls on Desktop (>= 768px) */}
-      <div className="hidden md:flex items-center gap-2">
+      {/* Right: Action Controls + Mobile Settings Toggle */}
+      <div className="flex items-center gap-0.5 sm:gap-2">
         {renderActionControls()}
+
+        <button
+          type="button"
+          onClick={() => setSettingsSidebarOpen(!settingsSidebarOpen)}
+          className={`md:hidden p-1.5 rounded-lg transition-colors cursor-pointer ${
+            settingsSidebarOpen
+              ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+              : 'text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
+          }`}
+          title="Toggle Settings"
+        >
+          <Sliders size={15} />
+        </button>
       </div>
 
       {previewOpen && createPortal(

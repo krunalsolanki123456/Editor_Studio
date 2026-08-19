@@ -3,7 +3,7 @@ import {
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   CheckSquare, Image as ImageIcon, Smile, Columns3, Rows3, Table as TableIcon, Link as LinkIcon,
   Undo2, Redo2, Pin, Code2, Eraser, Indent, Outdent, Crop, ExternalLink,
-  Trash2, Video, Highlighter, Strikethrough, Upload, Subtitles, Tag as TagIcon,
+  Trash2, Video, Highlighter, Upload, Subtitles, Tag as TagIcon,
   Columns as ColumnsIcon, Layers, Plus, Copy as CopyIcon, CopyPlus,
   ArrowUp, ArrowDown,
 } from 'lucide-react';
@@ -172,14 +172,62 @@ function BlockTypeSelector({ block }: { block: BlockInstance }) {
   );
 }
 
-function InlineFormattingControls({ execCmd, saveSelection }: Pick<CommonToolbarProps, 'execCmd' | 'saveSelection'>) {
+function InlineFormattingControls({
+  block,
+  execCmd,
+  saveSelection,
+}: {
+  block?: BlockInstance;
+  execCmd: (cmd: string, value?: string) => void;
+  saveSelection: () => void;
+}) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const a = block?.attributes || {};
+
+  const isBold = (a.fontWeight as number) === 700 || a.fontWeight === 'bold';
+  const isItalic = a.fontStyle === 'italic';
+  const isUnderline = a.textDecoration === 'underline';
+  const isStrikethrough = a.textDecoration === 'line-through';
+
+  const handleToggle = (format: 'bold' | 'italic' | 'underline' | 'strikethrough') => {
+    const sel = window.getSelection();
+    const hasTextSelection = sel && !sel.isCollapsed && sel.toString().length > 0;
+    if (hasTextSelection) {
+      execCmd(format === 'strikethrough' ? 'strikeThrough' : format);
+    } else if (block) {
+      if (format === 'bold') {
+        const next = isBold ? 400 : 700;
+        updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, fontWeight: next } }));
+      } else if (format === 'italic') {
+        const next = isItalic ? 'normal' : 'italic';
+        updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, fontStyle: next } }));
+      } else if (format === 'underline') {
+        const next = isUnderline ? 'none' : 'underline';
+        updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, textDecoration: next } }));
+      } else if (format === 'strikethrough') {
+        const next = isStrikethrough ? 'none' : 'line-through';
+        updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, textDecoration: next } }));
+      }
+    } else {
+      execCmd(format === 'strikethrough' ? 'strikeThrough' : format);
+    }
+  };
+
+  const getBtnClass = (active: boolean) =>
+    `w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-xs transition-all cursor-pointer shrink-0 ${
+      active
+        ? 'bg-primary-500 text-white shadow-2xs font-bold'
+        : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40'
+    }`;
+
   return (
-    <>
+    <div className="flex items-center gap-0.5">
       <Tooltip text="Bold (Ctrl+B)">
         <button
+          type="button"
           onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
-          onClick={() => execCmd('bold')}
-          className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+          onClick={() => handleToggle('bold')}
+          className={getBtnClass(isBold)}
         >
           B
         </button>
@@ -187,9 +235,10 @@ function InlineFormattingControls({ execCmd, saveSelection }: Pick<CommonToolbar
 
       <Tooltip text="Italic (Ctrl+I)">
         <button
+          type="button"
           onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
-          onClick={() => execCmd('italic')}
-          className="w-8 h-8 rounded-lg flex items-center justify-center italic font-semibold text-xs text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+          onClick={() => handleToggle('italic')}
+          className={`${getBtnClass(isItalic)} italic`}
         >
           I
         </button>
@@ -197,9 +246,10 @@ function InlineFormattingControls({ execCmd, saveSelection }: Pick<CommonToolbar
 
       <Tooltip text="Underline (Ctrl+U)">
         <button
+          type="button"
           onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
-          onClick={() => execCmd('underline')}
-          className="w-8 h-8 rounded-lg flex items-center justify-center underline font-semibold text-xs text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+          onClick={() => handleToggle('underline')}
+          className={`${getBtnClass(isUnderline)} underline`}
         >
           U
         </button>
@@ -207,9 +257,10 @@ function InlineFormattingControls({ execCmd, saveSelection }: Pick<CommonToolbar
 
       <Tooltip text="Strikethrough">
         <button
+          type="button"
           onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
-          onClick={() => execCmd('strikethrough')}
-          className="w-8 h-8 rounded-lg flex items-center justify-center line-through font-semibold text-xs text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+          onClick={() => handleToggle('strikethrough')}
+          className={`${getBtnClass(isStrikethrough)} line-through`}
         >
           S
         </button>
@@ -217,6 +268,7 @@ function InlineFormattingControls({ execCmd, saveSelection }: Pick<CommonToolbar
 
       <Tooltip text="Subscript (X₂)">
         <button
+          type="button"
           onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
           onClick={() => execCmd('subscript')}
           className="w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-xs text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
@@ -227,6 +279,7 @@ function InlineFormattingControls({ execCmd, saveSelection }: Pick<CommonToolbar
 
       <Tooltip text="Superscript (X²)">
         <button
+          type="button"
           onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
           onClick={() => execCmd('superscript')}
           className="w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-xs text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
@@ -234,7 +287,7 @@ function InlineFormattingControls({ execCmd, saveSelection }: Pick<CommonToolbar
           X<sup>2</sup>
         </button>
       </Tooltip>
-    </>
+    </div>
   );
 }
 
@@ -406,18 +459,8 @@ function ParagraphToolbar({ block, execCmd, saveSelection }: CommonToolbarProps)
   return (
     <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       <BlockTypeSelector block={block} />
-      <InlineFormattingControls execCmd={execCmd} saveSelection={saveSelection} />
+      <InlineFormattingControls block={block} execCmd={execCmd} saveSelection={saveSelection} />
       <ListControls block={block} />
-
-      <Tooltip text="Strikethrough (Ctrl+Shift+X)">
-        <button
-          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
-          onClick={() => execCmd('strikeThrough')}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
-        >
-          <Strikethrough size={15} />
-        </button>
-      </Tooltip>
 
       <Tooltip text="Edit HTML">
         <button
@@ -496,7 +539,7 @@ function HeadingToolbar({ block, execCmd, saveSelection, showNotification }: Com
   return (
     <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       <BlockTypeSelector block={block} />
-      <InlineFormattingControls execCmd={execCmd} saveSelection={saveSelection} />
+      <InlineFormattingControls block={block} execCmd={execCmd} saveSelection={saveSelection} />
       <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" />
       <AlignmentPicker block={block} showNotification={showNotification} />
     </div>
@@ -1652,6 +1695,104 @@ function CoverToolbar({ block, showNotification }: CommonToolbarProps) {
   );
 }
 
+function MediaTextToolbar({ block, showNotification }: CommonToolbarProps) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const a = block.attributes;
+  const mediaPosition = (a.mediaPosition as 'left' | 'right') || 'left';
+  const verticalAlign = (a.verticalAlign as 'top' | 'center' | 'bottom') || 'center';
+  const imageFill = Boolean(a.imageFill);
+
+  const toggleMediaPosition = () => {
+    const next = mediaPosition === 'left' ? 'right' : 'left';
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, mediaPosition: next } }));
+    showNotification(`Media moved to ${next}`);
+  };
+
+  const setVAlign = (val: 'top' | 'center' | 'bottom') => {
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, verticalAlign: val } }));
+    showNotification(`Aligned ${val}`);
+  };
+
+  const toggleImageFill = () => {
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, imageFill: !imageFill } }));
+    showNotification(!imageFill ? 'Crop image to fill column' : 'Natural image size');
+  };
+
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <span className="px-2 py-1 text-xs font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 flex items-center gap-1">
+        Media & Text
+      </span>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      {/* Media Position Toggle */}
+      <Tooltip text={mediaPosition === 'left' ? 'Show media on right' : 'Show media on left'}>
+        <button
+          onClick={toggleMediaPosition}
+          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
+        >
+          {mediaPosition === 'left' ? 'Media on Left' : 'Media on Right'}
+        </button>
+      </Tooltip>
+
+      {/* Vertical Alignment */}
+      <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 p-0.5 rounded-lg border border-gray-200 dark:border-gray-700">
+        <Tooltip text="Align Top">
+          <button
+            onClick={() => setVAlign('top')}
+            className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${
+              verticalAlign === 'top'
+                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs font-bold'
+                : 'text-gray-600 dark:text-gray-400'
+            }`}
+          >
+            ↑
+          </button>
+        </Tooltip>
+        <Tooltip text="Align Center">
+          <button
+            onClick={() => setVAlign('center')}
+            className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${
+              verticalAlign === 'center'
+                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs font-bold'
+                : 'text-gray-600 dark:text-gray-400'
+            }`}
+          >
+            ↕
+          </button>
+        </Tooltip>
+        <Tooltip text="Align Bottom">
+          <button
+            onClick={() => setVAlign('bottom')}
+            className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${
+              verticalAlign === 'bottom'
+                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs font-bold'
+                : 'text-gray-600 dark:text-gray-400'
+            }`}
+          >
+            ↓
+          </button>
+        </Tooltip>
+      </div>
+
+      {/* Crop / Fill container toggle */}
+      <Tooltip text="Crop media to fill entire column">
+        <button
+          onClick={toggleImageFill}
+          className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+            imageFill
+              ? 'bg-primary-500 text-white shadow-2xs'
+              : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-200'
+          }`}
+        >
+          {imageFill ? 'Filled Column' : 'Fit Natural'}
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
 // ==========================================
 // BLOCK TOOLBAR ARCHITECTURE REGISTRY
 // ==========================================
@@ -1667,6 +1808,7 @@ const BLOCK_TOOLBAR_REGISTRY: Record<string, React.ComponentType<CommonToolbarPr
   image: ImageToolbar,
   gallery: GalleryToolbar,
   cover: CoverToolbar,
+  'media-text': MediaTextToolbar,
   video: MediaEmbedToolbar,
   audio: MediaEmbedToolbar,
   youtube: MediaEmbedToolbar,
@@ -2109,7 +2251,10 @@ export default function BlockFormattingToolbar() {
   const supportsInlineLink = blockType === 'paragraph' || blockType === 'heading' || blockType === 'list' || blockType === 'quote';
 
   return (
-    <div className="sticky top-0 z-40 shadow-sm backdrop-blur-md bg-white/95 dark:bg-gray-900/95 ring-1 ring-primary-500/20 border-b border-gray-200/90 dark:border-gray-800 px-3 py-1.5 flex items-center justify-between gap-2 shrink-0 min-h-[46px] overflow-visible transition-all">
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className="sticky top-0 z-40 shadow-sm backdrop-blur-md bg-white/95 dark:bg-gray-900/95 ring-1 ring-primary-500/20 border-b border-gray-200/90 dark:border-gray-800 px-3 py-1.5 flex items-center justify-between gap-2 shrink-0 min-h-[46px] overflow-visible transition-all"
+    >
       {/* Toast Notification */}
       {toast && (
         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-gray-900 text-white text-xs font-semibold rounded-lg shadow-xl z-[110] animate-bounce">

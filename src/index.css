@@ -78,6 +78,62 @@ body {
   color: #60a5fa !important;
 }
 
+/* Custom Bullet List (UL LI) UI */
+.be-list ul:not([class*="list-decimal"]) {
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 8px 16px;
+  list-style: none;
+}
+
+.dark .be-list ul:not([class*="list-decimal"]) {
+  background-color: rgba(30, 41, 59, 0.5);
+  border-color: rgba(55, 65, 81, 0.6);
+}
+
+[contenteditable] ul:not(.no-custom-list) {
+  list-style: none;
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 12px 20px;
+  margin: 12px 0;
+}
+
+[contenteditable] ul:not(.no-custom-list) > li {
+  position: relative;
+  padding: 12px 0 12px 24px;
+  border-bottom: 1px dotted #d1d5db;
+  font-weight: 600;
+  line-height: 1.8;
+  color: #111827;
+}
+
+[contenteditable] ul:not(.no-custom-list) > li:last-child {
+  border-bottom: none;
+}
+
+[contenteditable] ul:not(.no-custom-list) > li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 22px;
+  transform: translateY(-50%);
+  width: 9px;
+  height: 9px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+}
+
+.dark [contenteditable] ul:not(.no-custom-list) {
+  background-color: rgba(30, 41, 59, 0.5);
+}
+
+.dark [contenteditable] ul:not(.no-custom-list) > li {
+  color: #f3f4f6;
+  border-bottom-color: rgba(75, 85, 99, 0.6);
+}
+
 /* Global Button Cursor Pointer & Interactive Click Rules */
 button,
 [role="button"],
@@ -99,6 +155,12 @@ button:active:not(:disabled),
   transition: transform 0.05s ease;
 }
 
+.be-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.6) transparent;
+  scroll-behavior: smooth;
+}
+
 .be-scroll::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -109,12 +171,22 @@ button:active:not(:disabled),
 }
 
 .be-scroll::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-gray-700;
+  background-color: rgba(156, 163, 175, 0.5);
   border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
 .be-scroll::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400 dark:bg-gray-600;
+  background-color: rgba(107, 114, 128, 0.8);
+}
+
+.dark .be-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(75, 85, 99, 0.6);
+}
+
+.dark .be-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.8);
 }
 
 .be-dragging {
@@ -146,8 +218,6 @@ hr {
 
 body, html {
   overflow-x: hidden;
-  word-break: break-word;
-  overflow-wrap: anywhere;
 }
 
 /* Touch Target Minimum (44px) for Mobile Accessibility */
@@ -249,9 +319,7 @@ p, .be-paragraph {
   .be-columns-grid, .be-columns-wrapper, .be-columns {
     display: flex !important;
     flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
+    align-items: stretch !important;
     width: 100% !important;
     gap: 16px !important;
     padding: 16px !important;
@@ -262,16 +330,10 @@ p, .be-paragraph {
     width: 100% !important;
     display: flex !important;
     flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
   }
 
   .be-paragraph, .be-heading-h1, .be-heading-h2, .be-heading-h3, h1, h2, h3, h4, h5, h6, p {
     width: 100% !important;
-    text-align: center !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
   }
 
   .be-cover {
@@ -490,4 +552,31 @@ pre, code {
 /* Prevent animation re-trigger for existing blocks */
 [data-block-id]:not(:last-child) {
   animation: none;
+}
+
+/* ==========================================
+   MEDIA & TEXT RESPONSIVE STYLES
+   ========================================== */
+.be-media-text,
+.wp-block-media-text {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .be-media-text .flex,
+  .wp-block-media-text.is-stacked-on-mobile {
+    flex-direction: column !important;
+    gap: 14px !important;
+    padding: 12px !important;
+  }
+
+  .be-media-text .flex > div,
+  .wp-block-media-text.is-stacked-on-mobile .wp-block-media-text__media,
+  .wp-block-media-text.is-stacked-on-mobile .wp-block-media-text__content {
+    flex-basis: 100% !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }

@@ -7,6 +7,7 @@ import {
   isTwitterUrl,
   normalizeTwitterUrl,
   isInstagramUrl,
+  normalizeInstagramUrl,
   isSpotifyUrl,
   normalizeSpotifyUrl,
 } from '../exporter';
@@ -181,79 +182,59 @@ function ensureInstagramWidgets(): Promise<void> {
   return instagramWidgetsPromise;
 }
 
-function TwitterEmbed({ url }: { url: string }) {
+export function TwitterEmbed({ url }: { url: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const normalizedUrl = normalizeTwitterUrl(url);
-  const [oembedHtml, setOembedHtml] = useState<string | null>(null);
+  const tweetIdMatch = normalizedUrl.match(/status\/(\d+)/i);
+  const tweetId = tweetIdMatch ? tweetIdMatch[1] : null;
 
   useEffect(() => {
     let active = true;
-    setOembedHtml(null);
+    if (!ref.current) return;
 
-    const endpoint = `https://publish.twitter.com/oembed?omit_script=1&url=${encodeURIComponent(normalizedUrl)}`;
-    fetch(endpoint)
-      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Bad response'))))
-      .then((data) => {
-        if (active && typeof data?.html === 'string') setOembedHtml(data.html);
-      })
-      .catch(() => {
-        if (active) setOembedHtml(null);
-      });
+    ref.current.innerHTML = '<div class="text-xs text-gray-400 py-6 text-center animate-pulse">Loading post...</div>';
 
-    return () => {
-      active = false;
-    };
-  }, [normalizedUrl]);
-
-  useEffect(() => {
-    let active = true;
     ensureTwitterWidgets()
       .then(() => {
         if (!active || !ref.current) return;
-        window.twttr?.widgets?.load(ref.current);
+        ref.current.innerHTML = '';
+        const widgets = window.twttr?.widgets as any;
+        if (tweetId && widgets?.createTweet) {
+          widgets.createTweet(tweetId, ref.current, {
+            theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
+            align: 'center',
+            dnt: true,
+          });
+        } else if (widgets?.load) {
+          const bq = document.createElement('blockquote');
+          bq.className = 'twitter-tweet';
+          const a = document.createElement('a');
+          a.href = normalizedUrl;
+          bq.appendChild(a);
+          ref.current.appendChild(bq);
+          window.twttr.widgets.load(ref.current);
+        }
       })
       .catch(() => {
-        // Fall back to the plain blockquote below.
+        if (!active || !ref.current) return;
+        ref.current.innerHTML = `<blockquote class="twitter-tweet p-4 text-sm text-gray-600"><a href="${normalizedUrl}" target="_blank" rel="noopener noreferrer">View Post on X</a></blockquote>`;
       });
 
     return () => {
       active = false;
     };
-  }, [oembedHtml, normalizedUrl]);
+  }, [normalizedUrl, tweetId]);
 
   return (
-    <div ref={ref} className="twitter-embed w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
-      {oembedHtml ? (
-        <div
-          className="px-4 py-4"
-          dangerouslySetInnerHTML={{ __html: oembedHtml }}
-        />
-      ) : (
-        <blockquote className="twitter-tweet px-4 py-4">
-          <a href={normalizedUrl}>View on X</a>
-        </blockquote>
-      )}
-    </div>
+    <div
+      ref={ref}
+      className="twitter-embed w-full min-h-[140px] flex items-center justify-center overflow-hidden rounded-2xl bg-transparent"
+    />
   );
 }
 
-function InstagramEmbed({ url, align = 'center' }: { url: string; align?: 'left' | 'center' | 'right' }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const cleanUrl = url.split('?')[0].replace(/\/$/, '') + '/';
-
-  useEffect(() => {
-    let active = true;
-    ensureInstagramWidgets()
-      .then(() => {
-        if (!active || !ref.current) return;
-        window.instgrm?.Embeds?.process(ref.current);
-      })
-      .catch(() => {});
-
-    return () => {
-      active = false;
-    };
-  }, [cleanUrl]);
+export function InstagramEmbed({ url, align = 'center' }: { url: string; align?: 'left' | 'center' | 'right' }) {
+  const embedUrl = normalizeInstagramUrl(url);
 
   const flexAlignClass =
     align === 'left'
@@ -262,50 +243,18 @@ function InstagramEmbed({ url, align = 'center' }: { url: string; align?: 'left'
         ? 'justify-end'
         : 'justify-center';
 
-  const marginStyle =
-    align === 'left'
-      ? '1px auto 1px 0'
-      : align === 'right'
-        ? '1px 0 1px auto'
-        : '1px auto';
-
   return (
-    <div ref={ref} className={`instagram-embed w-full flex ${flexAlignClass} overflow-hidden`}>
-      <blockquote
-        className="instagram-media"
-        data-instgrm-captioned
-        data-instgrm-permalink={cleanUrl}
-        data-instgrm-version="14"
-        style={{
-          background: '#FFF',
-          border: '0',
-          borderRadius: '16px',
-          boxShadow: '0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)',
-          margin: marginStyle,
-          maxWidth: '540px',
-          minWidth: '280px',
-          padding: '0',
-          width: 'calc(100% - 2px)',
-        }}
-      >
-        <div style={{ padding: '16px' }}>
-          <a
-            href={cleanUrl}
-            style={{
-              background: '#FFFFFF',
-              lineHeight: '0',
-              padding: '0 0',
-              textAlign: 'center',
-              textDecoration: 'none',
-              width: '100%',
-            }}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            View post on Instagram
-          </a>
-        </div>
-      </blockquote>
+    <div className={`instagram-embed w-full flex ${flexAlignClass}`}>
+      <div className="w-full max-w-2xl min-h-[720px] sm:min-h-[820px] h-[860px] rounded-2xl overflow-hidden shadow-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+        <iframe
+          src={embedUrl}
+          className="w-full h-full border-0"
+          allowTransparency
+          allowFullScreen
+          scrolling="auto"
+          title="Instagram Post"
+        />
+      </div>
     </div>
   );
 }

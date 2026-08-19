@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useEditorStore } from './editor/store';
 import TopToolbar from './editor/TopToolbar';
 import EditorCanvas from './editor/EditorCanvas';
@@ -7,20 +7,70 @@ import SettingsSidebar from './editor/SettingsSidebar';
 import InlineToolbar from './editor/InlineToolbar';
 import { blockToHtmlCode } from './editor/utils';
 import { createBlock } from './editor/blocks/registry';
+import type { BlockInstance } from './editor/types';
+import './index.css';
 
-export default function App() {
+export interface EditorStudioProps {
+  initialBlocks?: BlockInstance[];
+  initialTitle?: string;
+  onChange?: (blocks: BlockInstance[]) => void;
+  onSave?: (blocks: BlockInstance[], html: string) => void;
+  theme?: 'light' | 'dark';
+  className?: string;
+  hideToolbar?: boolean;
+}
+
+export function EditorStudio({
+  initialBlocks,
+  initialTitle,
+  onChange,
+  onSave,
+  theme: controlledTheme,
+  className = '',
+  hideToolbar = false,
+}: EditorStudioProps) {
   const theme = useEditorStore((s) => s.theme);
   const inserterOpen = useEditorStore((s) => s.inserterOpen);
   const setInserterOpen = useEditorStore((s) => s.setInserterOpen);
   const insertBlock = useEditorStore((s) => s.insertBlock);
   const blocks = useEditorStore((s) => s.blocks);
+  const setBlocks = useEditorStore((s) => s.setBlocks);
+  const setDocumentTitle = useEditorStore((s) => s.setDocumentTitle);
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
 
   const setSettingsSidebarOpen = useEditorStore((s) => s.setSettingsSidebarOpen);
 
+  // Initialize initial blocks and title if provided
+  useEffect(() => {
+    if (initialBlocks && initialBlocks.length > 0) {
+      setBlocks(initialBlocks);
+    }
+  }, [initialBlocks, setBlocks]);
+
+  useEffect(() => {
+    if (initialTitle) {
+      setDocumentTitle(initialTitle);
+    }
+  }, [initialTitle, setDocumentTitle]);
+
+  // Sync controlled theme
+  useEffect(() => {
+    if (controlledTheme) {
+      useEditorStore.setState({ theme: controlledTheme });
+    }
+  }, [controlledTheme]);
+
+  // Apply dark mode class to root
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
+
+  // Notify parent on change
+  useEffect(() => {
+    if (onChange) {
+      onChange(blocks);
+    }
+  }, [blocks, onChange]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -81,8 +131,15 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col editor-surface">
-      <TopToolbar onOpenInserter={() => { setInsertIndex(blocks.length); setInserterOpen(true); }} />
+    <div className={`h-screen flex flex-col editor-surface ${className}`}>
+      {!hideToolbar && (
+        <TopToolbar
+          onOpenInserter={() => {
+            setInsertIndex(blocks.length);
+            setInserterOpen(true);
+          }}
+        />
+      )}
       <div className="flex-1 flex overflow-hidden">
         <BlockInserter
           open={inserterOpen}
@@ -96,3 +153,5 @@ export default function App() {
     </div>
   );
 }
+
+export default EditorStudio;

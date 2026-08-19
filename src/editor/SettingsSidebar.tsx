@@ -106,6 +106,18 @@ function Section({
   );
 }
 
+function formatColorDisplay(val: string): string {
+  if (!val) return '';
+  const rgbMatch = val.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+  if (rgbMatch) {
+    const r = parseInt(rgbMatch[1], 10).toString(16).padStart(2, '0');
+    const g = parseInt(rgbMatch[2], 10).toString(16).padStart(2, '0');
+    const b = parseInt(rgbMatch[3], 10).toString(16).padStart(2, '0');
+    return `#${r}${g}${b}`.toUpperCase();
+  }
+  return val.toUpperCase();
+}
+
 function ColorPickerControl({
   label,
   value,
@@ -120,19 +132,34 @@ function ColorPickerControl({
   onClear?: () => void;
 }) {
   const isHex = (str?: string) => Boolean(str && /^#([0-9a-f]{3}){1,2}$/i.test(str));
-  const pickerVal = isHex(value) ? value! : (isHex(defaultColor) ? defaultColor : '#ffffff');
+  const hexFromRgb = (str?: string) => {
+    if (!str) return '#ffffff';
+    if (isHex(str)) return str;
+    const m = str.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+    if (m) {
+      const r = parseInt(m[1], 10).toString(16).padStart(2, '0');
+      const g = parseInt(m[2], 10).toString(16).padStart(2, '0');
+      const b = parseInt(m[3], 10).toString(16).padStart(2, '0');
+      return `#${r}${g}${b}`;
+    }
+    return isHex(defaultColor) ? defaultColor : '#ffffff';
+  };
+  const pickerVal = hexFromRgb(value || defaultColor);
   const currentVal = value || defaultColor;
   const isNone = !value && Boolean(onClear);
 
   return (
-    <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50/90 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/60 shadow-2xs">
-      <span className="text-xs font-semibold text-gray-700 dark:text-gray-200">{label}</span>
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50/90 dark:bg-gray-800/50 border border-gray-200/80 dark:border-gray-700/60 shadow-2xs gap-2">
+      <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap shrink-0">{label}</span>
+      <div className="flex items-center gap-2 shrink-0">
         {isNone ? (
-          <span className="text-[11px] font-mono text-gray-400 dark:text-gray-500 italic">None</span>
+          <span className="text-[11px] font-mono text-gray-400 dark:text-gray-500 italic whitespace-nowrap">None</span>
         ) : (
-          <span className="text-[11px] font-mono text-gray-600 dark:text-gray-300 uppercase font-semibold">
-            {currentVal}
+          <span
+            className="text-[11px] font-mono text-gray-600 dark:text-gray-300 font-semibold whitespace-nowrap"
+            title={currentVal}
+          >
+            {formatColorDisplay(currentVal)}
           </span>
         )}
 
@@ -154,7 +181,7 @@ function ColorPickerControl({
           <button
             type="button"
             onClick={onClear}
-            className="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-gray-200/70 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+            className="px-2 py-0.5 text-[11px] font-semibold rounded-md bg-gray-200/70 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
           >
             Clear
           </button>
@@ -458,7 +485,7 @@ export default function SettingsSidebar() {
     return (
       <aside
         onScroll={() => setHoveredSettingsTooltip(null)}
-        className="shrink-0 w-16 min-w-16 border-l border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 py-3.5 px-2 flex flex-col items-center gap-2 overflow-y-auto overflow-x-hidden be-scroll shadow-sm z-20 relative"
+        className="hidden md:flex shrink-0 w-16 min-w-16 border-l border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 py-3.5 px-2 flex-col items-center gap-2 overflow-y-auto overflow-x-hidden be-scroll shadow-sm z-20 relative"
       >
         {/* Toggle Expand Sidebar Button */}
         <div className="flex items-center justify-center">
@@ -605,7 +632,7 @@ export default function SettingsSidebar() {
           onClick={() => setOpen(false)}
         />
       )}
-      <aside className="shrink-0 basis-72 w-72 min-w-72 max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-[100] max-md:w-80 max-md:h-full max-md:shadow-2xl border-l border-gray-200/80 dark:border-gray-800/80 bg-white dark:bg-gray-900 p-3.5 overflow-y-auto be-scroll">
+      <aside className="shrink-0 basis-72 w-72 min-w-72 max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-[100] max-md:w-80 max-sm:w-[88vw] max-md:h-full max-md:shadow-2xl border-l border-gray-200/80 dark:border-gray-800/80 bg-white dark:bg-gray-900 p-3.5 overflow-y-auto be-scroll">
         <div className="flex items-center gap-2.5 mb-4 p-3 rounded-2xl bg-gradient-to-r from-primary-500/10 via-indigo-500/5 to-transparent border border-primary-100 dark:border-primary-900/30">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-sm shrink-0">
             <BlockIcon size={16} />
@@ -1623,7 +1650,7 @@ export default function SettingsSidebar() {
                       defaultColor="#ffffff"
                       onClear={() => {
                         const curr = (a.captionStyle as Record<string, any>) || {};
-                        const { textColor, ...rest } = curr;
+                        const { textColor: _textColor, ...rest } = curr;
                         setAttr('captionStyle', rest);
                       }}
                     />
@@ -1638,7 +1665,7 @@ export default function SettingsSidebar() {
                       defaultColor="#ffffff"
                       onClear={() => {
                         const curr = (a.captionStyle as Record<string, any>) || {};
-                        const { backgroundColor, ...rest } = curr;
+                        const { backgroundColor: _backgroundColor, ...rest } = curr;
                         setAttr('captionStyle', rest);
                       }}
                     />
@@ -1763,6 +1790,157 @@ export default function SettingsSidebar() {
                     className="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none"
                   />
                 </label>
+              </div>
+            </Section>
+          </>
+        )}
+
+        {block && block.type === 'media-text' && (
+          <>
+            {/* Media Settings */}
+            <Section title="Media Settings">
+              <div className="space-y-3 text-xs">
+                {/* Upload & URL */}
+                <div className="space-y-2">
+                  <label className="flex items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/80 cursor-pointer transition-colors">
+                    <Upload size={14} /> Upload Media
+                    <input
+                      type="file"
+                      accept="image/*,video/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const files = Array.from(e.target.files ?? []);
+                        if (files.length > 0) {
+                          const url = await fileToDataUrl(files[0]);
+                          const isVideo = files[0].type.startsWith('video/');
+                          setAttr('mediaUrl', url);
+                          setAttr('mediaType', isVideo ? 'video' : 'image');
+                        }
+                      }}
+                    />
+                  </label>
+
+                  <div className="space-y-1">
+                    <span className="text-gray-500 font-medium block">Media URL</span>
+                    <input
+                      type="text"
+                      value={(a.mediaUrl as string) || ''}
+                      onChange={(e) => setAttr('mediaUrl', e.target.value)}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-xs"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-gray-500 font-medium block">Alternative Text (Alt)</span>
+                    <input
+                      type="text"
+                      value={(a.mediaAlt as string) || ''}
+                      onChange={(e) => setAttr('mediaAlt', e.target.value)}
+                      placeholder="Describe media for accessibility"
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-xs"
+                    />
+                  </div>
+
+                  {Boolean(a.mediaUrl) && (
+                    <button
+                      type="button"
+                      onClick={() => setAttr('mediaUrl', '')}
+                      className="w-full py-1.5 px-3 rounded-lg text-xs font-semibold bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 hover:bg-red-100 transition-colors cursor-pointer"
+                    >
+                      Remove Media
+                    </button>
+                  )}
+                </div>
+
+                <ToggleControl
+                  label="Crop media to fill entire column"
+                  checked={Boolean(a.imageFill)}
+                  onChange={(checked) => setAttr('imageFill', checked)}
+                />
+              </div>
+            </Section>
+
+            {/* Layout & Positioning */}
+            <Section title="Layout & Positioning">
+              <div className="space-y-3 text-xs">
+                {/* Media Position */}
+                <div className="space-y-1">
+                  <span className="text-gray-500 font-semibold block">Media Position</span>
+                  <div className="p-1 bg-white dark:bg-gray-800 rounded-xl flex gap-1 border border-gray-200 dark:border-gray-700">
+                    {[
+                      { label: 'Media on Left', val: 'left' },
+                      { label: 'Media on Right', val: 'right' },
+                    ].map((pos) => (
+                      <button
+                        key={pos.val}
+                        type="button"
+                        onClick={() => setAttr('mediaPosition', pos.val)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${(a.mediaPosition || 'left') === pos.val ? 'bg-primary-500 text-white shadow-2xs' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                      >
+                        {pos.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Media Width Slider */}
+                <RangeSliderControl
+                  label="Media Width"
+                  value={typeof a.mediaWidth === 'number' ? a.mediaWidth : 50}
+                  min={15}
+                  max={85}
+                  unit="%"
+                  onChange={(val) => setAttr('mediaWidth', val)}
+                />
+
+                {/* Vertical Alignment */}
+                <div className="space-y-1">
+                  <span className="text-gray-500 font-semibold block">Vertical Alignment</span>
+                  <div className="p-1 bg-white dark:bg-gray-800 rounded-xl flex gap-1 border border-gray-200 dark:border-gray-700">
+                    {[
+                      { label: 'Top', val: 'top' },
+                      { label: 'Center', val: 'center' },
+                      { label: 'Bottom', val: 'bottom' },
+                    ].map((va) => (
+                      <button
+                        key={va.val}
+                        type="button"
+                        onClick={() => setAttr('verticalAlign', va.val)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${(a.verticalAlign || 'center') === va.val ? 'bg-primary-500 text-white shadow-2xs' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                      >
+                        {va.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Stack on Mobile */}
+                <ToggleControl
+                  label="Stack on Mobile (<= 768px)"
+                  checked={a.stackOnMobile !== false}
+                  onChange={(checked) => setAttr('stackOnMobile', checked)}
+                />
+              </div>
+            </Section>
+
+            {/* Colors */}
+            <Section title="Colors">
+              <div className="space-y-3 text-xs">
+                <ColorPickerControl
+                  label="Text Color"
+                  value={a.textColor as string}
+                  onChange={(v) => setAttr('textColor', v)}
+                  defaultColor="#111827"
+                  onClear={() => setAttr('textColor', '')}
+                />
+                <ColorPickerControl
+                  label="Background Color"
+                  value={a.backgroundColor as string}
+                  onChange={(v) => setAttr('backgroundColor', v)}
+                  defaultColor="#ffffff"
+                  onClear={() => setAttr('backgroundColor', '')}
+                />
               </div>
             </Section>
           </>
@@ -2257,7 +2435,7 @@ export default function SettingsSidebar() {
                       defaultColor="#6b7280"
                       onClear={() => {
                         const curr = (a.captionStyle as Record<string, any>) || {};
-                        const { textColor, ...rest } = curr;
+                        const { textColor: _textColor, ...rest } = curr;
                         setAttr('captionStyle', rest);
                       }}
                     />
@@ -2272,7 +2450,7 @@ export default function SettingsSidebar() {
                       defaultColor="#ffffff"
                       onClear={() => {
                         const curr = (a.captionStyle as Record<string, any>) || {};
-                        const { backgroundColor, ...rest } = curr;
+                        const { backgroundColor: _backgroundColor, ...rest } = curr;
                         setAttr('captionStyle', rest);
                       }}
                     />

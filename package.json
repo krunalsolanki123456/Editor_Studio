@@ -1,21 +1,40 @@
 {
-  "name": "editor-studio",
-  "private": true,
-  "version": "0.0.0",
+  "name": "react-editor-studio",
+  "version": "1.0.1",
+  "description": "Modern, responsive block-based rich content editor with live polls, interactive charts, and multi-embed feeds for React.",
   "type": "module",
+  "main": "./dist/editor-studio.umd.cjs",
+  "module": "./dist/editor-studio.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/editor-studio.js",
+      "require": "./dist/editor-studio.umd.cjs"
+    },
+    "./dist/style.css": "./dist/style.css",
+    "./style.css": "./dist/style.css"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
+    "build:lib": "vite build --config vite.lib.config.ts && tsc -p tsconfig.lib.json",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.app.json"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
     "lucide-react": "^0.344.0",
     "nanoid": "^6.0.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
     "react-range": "^1.10.0",
     "zustand": "^5.0.14"
   },

@@ -117,7 +117,7 @@ export function normalizeSpotifyUrl(url: string): string {
   return url.trim().replace(/open\.spotify\.com\/(track|album|playlist|episode)\//i, 'open.spotify.com/embed/$1/');
 }
 
-function extractEmbedSrc(value: string): string {
+export function extractEmbedSrc(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return '';
   const srcMatch = trimmed.match(/<iframe[^>]*\ssrc=["']([^"']+)["'][^>]*>/i);
@@ -125,6 +125,29 @@ function extractEmbedSrc(value: string): string {
   const dataSrcMatch = trimmed.match(/<iframe[^>]*\sdata-src=["']([^"']+)["'][^>]*>/i);
   if (dataSrcMatch?.[1]) return dataSrcMatch[1];
   return trimmed;
+}
+
+export function extractEmbedList(input: string | string[] | undefined): string[] {
+  if (!input) return [];
+  if (Array.isArray(input)) {
+    return input.flatMap((item) => extractEmbedList(item)).filter(Boolean);
+  }
+  const text = input.trim();
+  if (!text) return [];
+
+  // Check if multiple iframes exist
+  const iframeMatches = text.match(/<iframe[\s\S]*?<\/iframe>|<iframe[\s\S]*?\/>/gi);
+  if (iframeMatches && iframeMatches.length > 1) {
+    return iframeMatches.map((m) => m.trim()).filter(Boolean);
+  }
+
+  // Check if multiple URLs separated by newlines or commas
+  const lines = text.split(/[\r\n]+/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length > 1) {
+    return lines;
+  }
+
+  return [text];
 }
 
 function renderBlock(block: BlockInstance): string {
@@ -782,6 +805,744 @@ function renderBlock(block: BlockInstance): string {
     }
     case 'html':
       return a.content as string;
+    case 'live-updates': {
+      const feedTitle = (a.feedTitle as string) || 'Live Updates';
+      const isLive = a.isLive !== false;
+      const updates = (a.updates as any[]) || [];
+      const badge = isLive
+        ? `<span style="display:inline-flex;align-items:center;gap:6px;background:#dc2626;color:#ffffff;padding:4px 10px;border-radius:9999px;font-size:11px;font-weight:900;letter-spacing:0.05em;text-transform:uppercase;"><span style="width:7px;height:7px;background:#ffffff;border-radius:50%;display:inline-block;"></span>LIVE COVERAGE</span>`
+        : `<span style="background:#6b7280;color:#ffffff;padding:4px 10px;border-radius:9999px;font-size:11px;font-weight:700;">CONCLUDED</span>`;
+
+      const itemsHtml = updates.map((u) => {
+        const pinHtml = u.isPinned ? `<span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-size:10px;font-weight:800;border:1px solid #fde68a;">📌 PINNED</span>` : '';
+        const timeHtml = u.time ? `<span style="color:#6b7280;font-size:13px;font-weight:500;">${escapeHtml(u.time)}</span>` : '';
+        const alignJustify = u.mediaAlign === 'left' ? 'flex-start' : u.mediaAlign === 'right' ? 'flex-end' : 'center';
+        const mediaMaxWidth = u.mediaAlign === 'left' || u.mediaAlign === 'right' ? '75%' : '100%';
+
+        let mediaHtml = '';
+        const embedList = extractEmbedList(u.embedCodes || u.embedCode);
+        if (embedList.length > 0) {
+          const embedsHtml = embedList.map((rawEmbed) => {
+            const raw = (rawEmbed || '').trim();
+            if (isTwitterUrl(raw)) {
+              const tweetUrl = normalizeTwitterUrl(raw);
+              return `<div style="max-width:550px;width:100%;margin-bottom:12px;"><blockquote class="twitter-tweet"><a href="${escapeHtml(tweetUrl)}"></a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></div>`;
+            } else if (isInstagramUrl(raw)) {
+              const igEmbedUrl = normalizeInstagramUrl(raw);
+              return `<div style="max-width:650px;width:100%;min-height:720px;height:860px;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.12);margin-bottom:16px;"><iframe src="${escapeHtml(igEmbedUrl)}" width="100%" height="860" style="border:0;width:100%;height:100%;min-height:720px;" allowtransparency="true" allowfullscreen scrolling="auto"></iframe></div>`;
+            } else if (isSpotifyUrl(raw)) {
+              const spotifyUrl = normalizeSpotifyUrl(raw);
+              return `<div style="max-width:560px;width:100%;margin-bottom:12px;"><iframe src="${escapeHtml(spotifyUrl)}" width="100%" height="152" style="border:0;border-radius:12px;" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe></div>`;
+            } else {
+              const src = extractEmbedSrc(raw);
+              return `<div style="max-width:580px;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 2px 6px rgba(0,0,0,0.15);margin-bottom:12px;">
+                <iframe src="${escapeHtml(src)}" style="width:100%;height:100%;border:0;" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+              </div>`;
+            }
+          }).join('\n');
+
+          mediaHtml = `<div style="display:flex;flex-direction:column;align-items:${alignJustify};margin-top:10px;width:100%;">
+            ${embedsHtml}
+          </div>`;
+        } else if (u.mediaUrl) {
+          if (u.mediaType === 'pdf') {
+            mediaHtml = `<div style="display:flex;justify-content:${alignJustify};margin-top:10px;width:100%;">
+              <div style="max-width:520px;width:100%;border:1px solid #fecaca;background:linear-gradient(to right, #fef2f2, #ffffff);border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
+                  <div style="width:38px;height:38px;border-radius:10px;background:#dc2626;color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;letter-spacing:0.05em;flex-shrink:0;">PDF</div>
+                  <div style="min-width:0;flex:1;">
+                    <div style="font-size:13px;font-weight:700;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(u.mediaFileName || 'Official Document.pdf')}</div>
+                    <div style="font-size:11px;color:#dc2626;margin-top:2px;font-weight:600;">PDF Document ${u.mediaFileSize ? `· <span style="color:#6b7280">${escapeHtml(u.mediaFileSize)}</span>` : ''}</div>
+                  </div>
+                </div>
+                <a href="${escapeHtml(u.mediaUrl)}" download="${escapeHtml(u.mediaFileName || 'document.pdf')}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#dc2626;color:#ffffff;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;text-decoration:none;flex-shrink:0;box-shadow:0 1px 2px rgba(220,38,38,0.2);">Download PDF</a>
+              </div>
+            </div>`;
+          } else if (u.mediaType === 'video') {
+            mediaHtml = `<div style="display:flex;justify-content:${alignJustify};margin-top:10px;width:100%;"><div style="max-width:${mediaMaxWidth};width:100%;border-radius:12px;overflow:hidden;background:#000;"><video src="${escapeHtml(u.mediaUrl)}" controls playsinline style="width:100%;height:auto;max-height:540px;display:block;margin:0 auto;border-radius:12px;"></video></div></div>`;
+          } else {
+            mediaHtml = `<div style="display:flex;justify-content:${alignJustify};margin-top:10px;width:100%;"><div style="max-width:${mediaMaxWidth};width:100%;border-radius:12px;overflow:hidden;"><img src="${escapeHtml(u.mediaUrl)}" alt="${escapeHtml(u.title || '')}" style="width:100%;height:auto;max-height:600px;object-fit:contain;display:block;border-radius:12px;" /></div></div>`;
+          }
+        }
+
+        return `<div style="position:relative;margin-bottom:24px;text-align:left;">
+          <span style="position:absolute;left:-28px;top:4px;width:10px;height:10px;background:#ef4444;border-radius:50%;border:2px solid #ffffff;box-shadow:0 1px 2px rgba(0,0,0,0.1);display:inline-block;"></span>
+          <h3 style="margin:0 0 4px 0;font-size:16px;font-weight:700;color:#111827;line-height:1.35;text-align:left;">${escapeHtml(u.title || '')}</h3>
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;text-align:left;">
+            ${pinHtml}
+            ${timeHtml}
+          </div>
+          ${u.content && u.content.trim() !== u.embedCode?.trim() && u.content.trim() !== u.mediaUrl?.trim() ? `<p style="margin:0 0 10px 0;font-size:14px;line-height:1.65;color:#374151;white-space:pre-wrap;text-align:left;">${escapeHtml(u.content)}</p>` : ''}
+          ${mediaHtml}
+        </div>`;
+      }).join('\n');
+
+      return `<div class="be-live-updates-feed" style="border:1px solid #e5e7eb;border-radius:16px;padding:16px 18px;margin:20px 0;background:#ffffff;box-sizing:border-box;max-width:100%;">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:18px;border-bottom:1px solid #f3f4f6;padding-bottom:12px;">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;flex:1;min-width:180px;">
+            ${badge}
+            <h2 style="margin:0;font-size:17px;font-weight:900;color:#111827;line-height:1.3;">${escapeHtml(feedTitle)}</h2>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:#ef4444;background:#fef2f2;padding:2px 8px;border-radius:9999px;border:1px solid #fee2e2;white-space:nowrap;">${updates.length} Updates</span>
+        </div>
+        <div style="padding-left:22px;border-left:2px dashed #d1d5db;box-sizing:border-box;">
+          ${itemsHtml}
+        </div>
+      </div>`;
+    }
+    case 'election': {
+      const title = (block.attributes.title as string) || 'Live Charts & Results / લાઈવ ચાર્ટ અને પરિણામ';
+      const activeMode = (block.attributes.mode as string) || 'tally-bar';
+      const totalSeats = Number(block.attributes.totalSeats) || 182;
+      const majoritySeats = Number(block.attributes.majoritySeats) || 92;
+      const isLive = block.attributes.isLive !== false;
+      const parties = (block.attributes.parties as any[]) || [];
+      const battle = (block.attributes.battle as any) || {};
+      const widgetId = `election_${block.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const countedSeats = parties.reduce((sum, p) => sum + (Number(p.lead) || 0) + (Number(p.won) || 0), 0);
+      const counted = countedSeats;
+
+      const badge = isLive
+        ? `<span style="background:#dc2626;color:#ffffff;padding:3px 9px;border-radius:9999px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;">● LIVE TRENDS</span>`
+        : `<span style="background:#059669;color:#ffffff;padding:3px 9px;border-radius:9999px;font-size:10px;font-weight:900;text-transform:uppercase;white-space:nowrap;">✓ FINAL RESULTS</span>`;
+
+      // 1. CANDIDATE BATTLE HTML
+      const battlesList: any[] = Array.isArray(block.attributes.battles) && block.attributes.battles.length > 0
+        ? block.attributes.battles
+        : [
+            {
+              constituency: battle.constituency || 'Ghatlodia / ઘાટલોડિયા (અમદાવાદ)',
+              roundInfo: battle.roundInfo || 'Round 8 of 14 Completed',
+              candidates: Array.isArray(battle.candidates) && battle.candidates.length > 0
+                ? battle.candidates
+                : [
+                    { name: battle.candidate1?.name || 'Candidate 1', party: battle.candidate1?.party || 'BJP', color: battle.candidate1?.color || '#f97316', photoUrl: battle.candidate1?.photoUrl || '', votes: Number(battle.candidate1?.votes) || 84520 },
+                    { name: battle.candidate2?.name || 'Candidate 2', party: battle.candidate2?.party || 'INC', color: battle.candidate2?.color || '#0284c7', photoUrl: battle.candidate2?.photoUrl || '', votes: Number(battle.candidate2?.votes) || 60170 }
+                  ]
+            }
+          ];
+
+      const battleHtml = battlesList.map((bItem, bIdx) => {
+        const rawCandidates: any[] = bItem.candidates || [];
+        const maxVotes = Math.max(...rawCandidates.map((c) => Number(c.votes) || 0));
+        const sortedVotes = [...rawCandidates.map((c) => Number(c.votes) || 0)].sort((x, y) => y - x);
+        const secondMax = sortedVotes[1] || 0;
+        const leadMargin = maxVotes - secondMax;
+
+        const candCardsHtml = rawCandidates.map((c) => {
+          const candVotes = Number(c.votes) || 0;
+          const computedLeading = maxVotes > 0 && candVotes === maxVotes;
+          const currentStatus = c.statusOverride || (computedLeading ? 'leading' : 'trailing');
+          const isLeading = currentStatus === 'leading' || currentStatus === 'won';
+          const photoHtml = c.photoUrl
+            ? `<img src="${escapeHtml(c.photoUrl)}" alt="${escapeHtml(c.name)}" style="width:40px;height:40px;border-radius:10px;object-fit:cover;border:1.5px solid ${isLeading ? '#10b981' : '#cbd5e1'};flex-shrink:0;" />`
+            : `<div style="width:40px;height:40px;border-radius:10px;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;color:#64748b;flex-shrink:0;">👤</div>`;
+
+          let statusBadgeHtml = '';
+          if (currentStatus === 'won') {
+            statusBadgeHtml = `<span style="display:inline-flex;align-items:center;height:20px;background:#f59e0b;color:#fff;padding:0 6px;border-radius:6px;font-size:9px;font-weight:900;">🏆 WON</span>`;
+          } else if (currentStatus === 'leading') {
+            statusBadgeHtml = `<span style="display:inline-flex;align-items:center;height:20px;background:#10b981;color:#fff;padding:0 6px;border-radius:6px;font-size:9px;font-weight:900;">● LEADING</span>`;
+          } else if (currentStatus === 'lost') {
+            statusBadgeHtml = `<span style="display:inline-flex;align-items:center;height:20px;background:#e11d48;color:#fff;padding:0 6px;border-radius:6px;font-size:9px;font-weight:900;">LOST</span>`;
+          } else {
+            statusBadgeHtml = `<span style="display:inline-flex;align-items:center;height:20px;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;padding:0 6px;border-radius:6px;font-size:9px;font-weight:900;">TRAILING</span>`;
+          }
+
+          return `<div style="border:${isLeading ? '2px solid #10b981;background:#ffffff;' : '1px solid #e2e8f0;background:#ffffff;'}border-radius:12px;padding:10px;box-sizing:border-box;">
+            <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
+              ${photoHtml}
+              <div style="min-width:0;flex:1;">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;">
+                  <span style="display:inline-flex;align-items:center;gap:4px;height:20px;background:#f1f5f9;border:1px solid #e2e8f0;padding:0 6px;border-radius:6px;font-size:9.5px;font-weight:900;color:#0f172a;">
+                    <span style="width:7px;height:7px;border-radius:9999px;background:${c.color || '#f97316'};display:inline-block;"></span>
+                    ${escapeHtml(c.party || '')}
+                  </span>
+                  ${statusBadgeHtml}
+                </div>
+                <div style="font-size:13px;font-weight:800;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(c.name || '')}</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f1f5f9;padding-top:6px;font-size:11px;">
+              <div style="color:#64748b;font-weight:700;">Votes: <strong style="color:#0f172a;font-size:12px;">${candVotes.toLocaleString()}</strong></div>
+              <div style="text-align:right;">
+                ${isLeading && leadMargin > 0
+                  ? `<span style="color:#059669;font-weight:900;background:#ecfdf5;padding:1px 5px;border-radius:4px;font-size:10px;">+${leadMargin.toLocaleString()} Lead</span>`
+                  : !isLeading && maxVotes > candVotes
+                  ? `<span style="color:#dc2626;font-weight:700;background:#fef2f2;padding:1px 5px;border-radius:4px;font-size:10px;">-${(maxVotes - candVotes).toLocaleString()} Behind</span>`
+                  : ''
+                }
+              </div>
+            </div>
+          </div>`;
+        }).join('\n');
+
+        return `
+          <div style="border:1px solid #e2e8f0;border-radius:14px;padding:14px;margin-bottom:12px;background:#f8fafc;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="background:#4f46e5;color:#fff;font-size:10px;font-weight:900;padding:2px 6px;border-radius:4px;">VIP</span>
+                <strong style="font-size:14px;color:#0f172a;">${escapeHtml(bItem.constituency || `Ward #${bIdx + 1}`)}</strong>
+              </div>
+              <span style="font-size:11px;color:#64748b;font-weight:600;">${escapeHtml(bItem.roundInfo || 'Counting in progress')}</span>
+            </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:10px;">
+                ${candCardsHtml}
+              </div>
+            </div>
+          `;
+        }).join('\n');
+
+        const renderExportedChart = (chartType: string) => {
+          if (chartType === 'donut') {
+            let currentAngle = -Math.PI / 2;
+            const cx = 150;
+            const cy = 150;
+            const rOut = 120;
+            const rIn = 70;
+
+            const paths = activeParties.map((p) => {
+              const total = (Number(p.lead) || 0) + (Number(p.won) || 0);
+              if (total <= 0) return '';
+              const span = (total / (totalSeats || 182)) * (2 * Math.PI);
+              const startA = currentAngle;
+              const endA = currentAngle + span;
+              currentAngle = endA;
+
+              const x1 = cx + rOut * Math.cos(startA);
+              const y1 = cy + rOut * Math.sin(startA);
+              const x2 = cx + rOut * Math.cos(endA);
+              const y2 = cy + rOut * Math.sin(endA);
+              const x3 = cx + rIn * Math.cos(endA);
+              const y3 = cy + rIn * Math.sin(endA);
+              const x4 = cx + rIn * Math.cos(startA);
+              const y4 = cy + rIn * Math.sin(startA);
+
+              const largeArc = span > Math.PI ? 1 : 0;
+              const d = `M ${x1},${y1} A ${rOut},${rOut} 0 ${largeArc},1 ${x2},${y2} L ${x3},${y3} A ${rIn},${rIn} 0 ${largeArc},0 ${x4},${y4} Z`;
+              return `<path d="${d}" fill="${p.color}" stroke="#ffffff" stroke-width="2" />`;
+            }).join('\n');
+
+            return `
+              <div style="text-align:center;">
+                <svg viewBox="0 0 300 300" style="max-width:200px;width:100%;height:auto;margin:0 auto;display:block;">
+                  ${paths}
+                  <circle cx="150" cy="150" r="66" fill="#ffffff" />
+                  <text x="150" y="142" text-anchor="middle" font-size="22" font-weight="900" fill="#0f172a" font-family="sans-serif">${countedSeats}</text>
+                  <text x="150" y="162" text-anchor="middle" font-size="10" font-weight="700" fill="#94a3b8" font-family="sans-serif">of ${totalSeats} Declared</text>
+                </svg>
+              </div>
+            `;
+          } else if (chartType === 'pie') {
+            let currentAngle = -Math.PI / 2;
+            const cx = 150;
+            const cy = 150;
+            const r = 120;
+
+            const paths = activeParties.map((p) => {
+              const total = (Number(p.lead) || 0) + (Number(p.won) || 0);
+              if (total <= 0) return '';
+              const span = (total / (totalSeats || 182)) * (2 * Math.PI);
+              const startA = currentAngle;
+              const endA = currentAngle + span;
+              currentAngle = endA;
+
+              const x1 = cx + r * Math.cos(startA);
+              const y1 = cy + r * Math.sin(startA);
+              const x2 = cx + r * Math.cos(endA);
+              const y2 = cy + r * Math.sin(endA);
+
+              const largeArc = span > Math.PI ? 1 : 0;
+              const d = `M ${cx},${cy} L ${x1},${y1} A ${r},${r} 0 ${largeArc},1 ${x2},${y2} Z`;
+              return `<path d="${d}" fill="${p.color}" stroke="#ffffff" stroke-width="2" />`;
+            }).join('\n');
+
+            return `
+              <div style="text-align:center;">
+                <svg viewBox="0 0 300 300" style="max-width:200px;width:100%;height:auto;margin:0 auto;display:block;">
+                  ${paths}
+                </svg>
+              </div>
+            `;
+          } else if (chartType === 'bar') {
+            const barWidth = Math.min(44, (280 / activeParties.length) - 12);
+            const gap = (280 - barWidth * activeParties.length) / (activeParties.length + 1);
+            const majY = 140 - (majoritySeats / (totalSeats || 182)) * 120;
+
+            const bars = activeParties.map((p, idx) => {
+              const total = (Number(p.lead) || 0) + (Number(p.won) || 0);
+              const barHeight = Math.max(4, (total / (totalSeats || 182)) * 120);
+              const x = 45 + gap + idx * (barWidth + gap);
+              const y = 140 - barHeight;
+
+              return `
+                <rect x="${x}" y="${y}" width="${barWidth}" height="${barHeight}" fill="${p.color}" rx="6" />
+                <text x="${x + barWidth / 2}" y="${y - 5}" text-anchor="middle" fill="#0f172a" font-size="10" font-weight="900" font-family="sans-serif">${total}</text>
+                <text x="${x + barWidth / 2}" y="156" text-anchor="middle" fill="#475569" font-size="9.5" font-weight="700" font-family="sans-serif">${escapeHtml(p.shortName)}</text>
+              `;
+            }).join('\n');
+
+            return `
+              <div style="text-align:center;">
+                <svg viewBox="0 0 340 180" style="max-width:380px;width:100%;height:auto;margin:0 auto;display:block;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;">
+                  <line x1="40" y1="20" x2="330" y2="20" stroke="#e2e8f0" stroke-dasharray="3,3" />
+                  <line x1="40" y1="60" x2="330" y2="60" stroke="#e2e8f0" stroke-dasharray="3,3" />
+                  <line x1="40" y1="100" x2="330" y2="100" stroke="#e2e8f0" stroke-dasharray="3,3" />
+                  <line x1="40" y1="140" x2="330" y2="140" stroke="#cbd5e1" stroke-width="1.5" />
+                  <line x1="40" y1="${majY}" x2="330" y2="${majY}" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,4" />
+                  <text x="330" y="${majY - 4}" text-anchor="end" fill="#f59e0b" font-size="8.5" font-weight="900" font-family="sans-serif">Majority (${majoritySeats})</text>
+                  ${bars}
+                </svg>
+              </div>
+            `;
+          } else if (chartType === 'horizontal-bar') {
+            const hBars = activeParties.map((p) => {
+              const total = (Number(p.lead) || 0) + (Number(p.won) || 0);
+              const pct = totalSeats > 0 ? ((total / totalSeats) * 100).toFixed(1) : '0';
+              const isMajority = total >= majoritySeats;
+
+              return `
+                <div style="margin-bottom:8px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;font-size:11.5px;font-weight:700;margin-bottom:3px;">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                      <span style="width:8px;height:8px;border-radius:50%;background:${p.color};"></span>
+                      <span>${escapeHtml(p.shortName)}</span>
+                      ${isMajority ? `<span style="font-size:8.5px;background:#f59e0b;color:#fff;padding:1px 4px;border-radius:3px;">WIN</span>` : ''}
+                    </div>
+                    <div><strong>${total}</strong> <span style="color:#94a3b8;font-weight:normal;font-size:10px;">(${pct}%)</span></div>
+                  </div>
+                  <div style="width:100%;height:10px;background:#f1f5f9;border-radius:9999px;overflow:hidden;">
+                    <div style="width:${Math.min(100, (total / (totalSeats || 182)) * 100)}%;height:100%;background:${p.color};border-radius:9999px;"></div>
+                  </div>
+                </div>
+              `;
+            }).join('\n');
+
+            return `<div style="max-width:380px;margin:0 auto;">${hBars}</div>`;
+          } else if (chartType === 'stacked-bar') {
+            const segments = activeParties.map((p) => {
+              const total = (Number(p.lead) || 0) + (Number(p.won) || 0);
+              const width = totalSeats > 0 ? (total / totalSeats) * 100 : 0;
+              if (width <= 0) return '';
+              return `<div style="width:${width}%;background:${p.color};height:100%;color:#fff;font-weight:900;font-size:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${width >= 10 ? `${escapeHtml(p.shortName)} ${total}` : ''}</div>`;
+            }).join('\n');
+
+            const majLeft = (majoritySeats / (totalSeats || 182)) * 100;
+
+            return `
+              <div style="max-width:380px;margin:0 auto;position:relative;padding-top:18px;">
+                <div style="position:absolute;top:0;left:${majLeft}%;transform:translateX(-50%);text-align:center;">
+                  <span style="background:#f59e0b;color:#fff;font-size:8px;font-weight:900;padding:1px 4px;border-radius:3px;">Maj (${majoritySeats})</span>
+                  <div style="width:2px;height:34px;background:#f59e0b;margin:0 auto;"></div>
+                </div>
+                <div style="width:100%;height:30px;background:#f1f5f9;border-radius:8px;overflow:hidden;display:flex;border:1px solid #e2e8f0;">
+                  ${segments}
+                </div>
+              </div>
+            `;
+          } else if (chartType === 'line') {
+            const polylines = activeParties.map((p) => {
+              const total = (Number(p.lead) || 0) + (Number(p.won) || 0);
+              const p1 = 150 - ((total * 0.25) / (totalSeats || 182)) * 130;
+              const p2 = 150 - ((total * 0.55) / (totalSeats || 182)) * 130;
+              const p3 = 150 - ((total * 0.8) / (totalSeats || 182)) * 130;
+              const p4 = 150 - (total / (totalSeats || 182)) * 130;
+              const points = `45,${p1} 130,${p2} 220,${p3} 310,${p4}`;
+
+              return `
+                <polyline fill="none" stroke="${p.color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" points="${points}" />
+                <circle cx="310" cy="${p4}" r="4" fill="${p.color}" stroke="#ffffff" stroke-width="2" />
+                <text x="310" y="${p4 - 6}" text-anchor="middle" fill="#0f172a" font-size="9" font-weight="900">${total}</text>
+              `;
+            }).join('\n');
+
+            return `
+              <div style="text-align:center;">
+                <svg viewBox="0 0 340 180" style="max-width:380px;width:100%;height:auto;margin:0 auto;display:block;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;">
+                  <line x1="30" y1="30" x2="330" y2="30" stroke="#e2e8f0" stroke-dasharray="3,3" />
+                  <line x1="30" y1="80" x2="330" y2="80" stroke="#e2e8f0" stroke-dasharray="3,3" />
+                  <line x1="30" y1="130" x2="330" y2="130" stroke="#e2e8f0" stroke-dasharray="3,3" />
+                  <line x1="30" y1="150" x2="330" y2="150" stroke="#cbd5e1" stroke-width="1.5" />
+                  ${polylines}
+                  <text x="45" y="165" text-anchor="middle" fill="#94a3b8" font-size="8">R1</text>
+                  <text x="130" y="165" text-anchor="middle" fill="#94a3b8" font-size="8">R5</text>
+                  <text x="220" y="165" text-anchor="middle" fill="#94a3b8" font-size="8">R10</text>
+                  <text x="310" y="165" text-anchor="middle" fill="#94a3b8" font-size="8">Now</text>
+                </svg>
+              </div>
+            `;
+          } else if (chartType === 'area') {
+            const gradients = activeParties.map((p) => `
+              <linearGradient id="area_grad_exp_${p.id}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="${p.color}" stop-opacity="0.6" />
+                <stop offset="100%" stop-color="${p.color}" stop-opacity="0.05" />
+              </linearGradient>
+            `).join('\n');
+
+            const curves = activeParties.map((p) => {
+              const total = (Number(p.lead) || 0) + (Number(p.won) || 0);
+              const yPeak = 150 - (total / (totalSeats || 182)) * 125;
+              const d = `M 30,150 C 90,140 120,${yPeak} 180,${yPeak} C 240,${yPeak} 270,145 330,150 Z`;
+
+              return `
+                <path d="${d}" fill="url(#area_grad_exp_${p.id})" />
+                <path d="M 30,150 C 90,140 120,${yPeak} 180,${yPeak} C 240,${yPeak} 270,145 330,150" fill="none" stroke="${p.color}" stroke-width="2.5" />
+                <circle cx="180" cy="${yPeak}" r="4" fill="${p.color}" stroke="#ffffff" stroke-width="2" />
+                <text x="180" y="${yPeak - 6}" text-anchor="middle" fill="#0f172a" font-size="9" font-weight="900">${escapeHtml(p.shortName)} (${total})</text>
+              `;
+            }).join('\n');
+
+            return `
+              <div style="text-align:center;">
+                <svg viewBox="0 0 340 180" style="max-width:380px;width:100%;height:auto;margin:0 auto;display:block;background:#f8fafc;border-radius:12px;border:1px solid #e2e8f0;">
+                  <defs>${gradients}</defs>
+                  <line x1="30" y1="150" x2="330" y2="150" stroke="#cbd5e1" stroke-width="1.5" />
+                  ${curves}
+                </svg>
+              </div>
+            `;
+          } else if (chartType === 'gauge') {
+            const leader = [...parties].sort((a, b) => ((Number(b.lead) || 0) + (Number(b.won) || 0)) - ((Number(a.lead) || 0) + (Number(a.won) || 0)))[0];
+            const leaderTotal = leader ? (Number(leader.lead) || 0) + (Number(leader.won) || 0) : 0;
+            const ratio = Math.min(1, Math.max(0, leaderTotal / (totalSeats || 182)));
+            const needleAngle = Math.PI - ratio * Math.PI;
+            const nx = 150 + 80 * Math.cos(needleAngle);
+            const ny = 150 - 80 * Math.sin(needleAngle);
+
+            const majRatio = Math.min(1, Math.max(0, majoritySeats / (totalSeats || 182)));
+            const majAngle = Math.PI - majRatio * Math.PI;
+            const mx = 150 + 105 * Math.cos(majAngle);
+            const my = 150 - 105 * Math.sin(majAngle);
+
+            return `
+              <div style="text-align:center;">
+                <svg viewBox="0 0 300 165" style="max-width:240px;width:100%;height:auto;margin:0 auto;display:block;">
+                  <path d="M 35,150 A 115,115 0 0,1 265,150" fill="none" stroke="#e2e8f0" stroke-width="24" stroke-linecap="round" />
+                  ${leader ? `<path d="M 35,150 A 115,115 0 0,1 ${150 + 115 * Math.cos(needleAngle)},${150 - 115 * Math.sin(needleAngle)}" fill="none" stroke="${leader.color}" stroke-width="24" stroke-linecap="round" />` : ''}
+                  <line x1="${mx}" y1="${my}" x2="${150 + 125 * Math.cos(majAngle)}" y2="${150 - 125 * Math.sin(majAngle)}" stroke="#f59e0b" stroke-width="3" />
+                  <line x1="150" y1="150" x2="${nx}" y2="${ny}" stroke="#0f172a" stroke-width="3" stroke-linecap="round" />
+                  <circle cx="150" cy="150" r="7" fill="#0f172a" />
+                  <text x="150" y="115" text-anchor="middle" font-size="18" font-weight="900" fill="#0f172a" font-family="sans-serif">${leader ? `${escapeHtml(leader.shortName)}: ${leaderTotal}` : 'No Data'}</text>
+                  <text x="150" y="135" text-anchor="middle" font-size="9.5" font-weight="700" fill="#94a3b8" font-family="sans-serif">${leaderTotal >= majoritySeats ? `🏆 Majority Won (+${leaderTotal - majoritySeats})` : `${majoritySeats - leaderTotal} to Majority`}</text>
+                </svg>
+              </div>
+            `;
+          } else if (chartType === 'table') {
+            const rows = parties.map((p) => {
+              const total = (Number(p.lead) || 0) + (Number(p.won) || 0);
+              const share = totalSeats > 0 ? ((total / totalSeats) * 100).toFixed(1) : '0';
+
+              return `
+                <tr style="border-bottom:1px solid #f1f5f9;font-size:11px;">
+                  <td style="padding:6px 8px;font-weight:700;display:flex;align-items:center;gap:4px;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:${p.color};"></span>
+                    <span>${escapeHtml(p.shortName)}</span>
+                  </td>
+                  <td style="padding:6px 8px;text-align:center;color:#475569;">${p.lead}</td>
+                  <td style="padding:6px 8px;text-align:center;color:#059669;font-weight:700;">${p.won}</td>
+                  <td style="padding:6px 8px;text-align:center;font-weight:900;color:#0f172a;">${total}</td>
+                  <td style="padding:6px 8px;text-align:center;color:#64748b;">${share}%</td>
+                </tr>
+              `;
+            }).join('\n');
+
+            return `
+              <div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:10px;">
+                <table style="width:100%;border-collapse:collapse;font-size:11px;text-align:left;">
+                  <thead style="background:#f8fafc;border-bottom:1px solid #e2e8f0;color:#475569;">
+                    <tr>
+                      <th style="padding:6px 8px;">Party</th>
+                      <th style="padding:6px 8px;text-align:center;">Lead</th>
+                      <th style="padding:6px 8px;text-align:center;">Won</th>
+                      <th style="padding:6px 8px;text-align:center;">Total</th>
+                      <th style="padding:6px 8px;text-align:center;">Share</th>
+                    </tr>
+                  </thead>
+                  <tbody>${rows}</tbody>
+                </table>
+              </div>
+            `;
+          } else {
+            // Default: parliament-arch
+            let currentAngle = Math.PI;
+            const radius = 120;
+            const cx = 150;
+            const cy = 150;
+            const paths = activeParties.map((p) => {
+              const total = (Number(p.lead) || 0) + (Number(p.won) || 0);
+              if (total <= 0) return '';
+              const angleSpan = (total / totalSeats) * Math.PI;
+              const startA = currentAngle;
+              const endA = currentAngle - angleSpan;
+              currentAngle = endA;
+              const x1 = cx + radius * Math.cos(startA);
+              const y1 = cy - radius * Math.sin(startA);
+              const x2 = cx + radius * Math.cos(endA);
+              const y2 = cy - radius * Math.sin(endA);
+              return `<path d="M ${x1},${y1} A ${radius},${radius} 0 0,1 ${x2},${y2}" fill="none" stroke="${p.color}" stroke-width="28" stroke-linecap="butt" />`;
+            }).join('\n');
+
+            return `
+              <div style="text-align:center;">
+                <svg viewBox="0 0 300 160" style="max-width:280px;width:100%;height:auto;margin:0 auto;display:block;">
+                  <path d="M 30,150 A 120,120 0 0,1 270,150" fill="none" stroke="#e2e8f0" stroke-width="28" stroke-linecap="round" />
+                  ${paths}
+                  <text x="150" y="125" text-anchor="middle" font-size="22" font-weight="900" fill="#0f172a" font-family="sans-serif">${totalSeats}</text>
+                  <text x="150" y="145" text-anchor="middle" font-size="10" font-weight="700" fill="#94a3b8" font-family="sans-serif">Total Seats</text>
+                </svg>
+              </div>
+            `;
+          }
+        };
+
+        const activeParties = parties.filter((p) => ((Number(p.lead) || 0) + (Number(p.won) || 0)) > 0);
+        const rawCharts = (block.attributes.charts as string[]) || (block.attributes.chartType ? [block.attributes.chartType as string] : ['parliament-arch']);
+        const chartsList = rawCharts.length > 0 ? rawCharts : ['parliament-arch'];
+        const chartsHtml = chartsList.map((cType) => `
+          <div style="padding:14px;background:#ffffff;border:1px solid #e2e8f0;border-radius:14px;box-sizing:border-box;">
+            ${renderExportedChart(cType)}
+          </div>
+        `).join('\n');
+        const legends = parties.map((p) => {
+          const total = (Number(p.lead) || 0) + (Number(p.won) || 0);
+          const pct = totalSeats > 0 ? ((total / totalSeats) * 100).toFixed(1) : '0';
+          return `<div style="display:flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;font-size:11px;font-weight:700;">
+            <span style="width:8px;height:8px;border-radius:50%;background:${p.color};"></span>
+            <span>${escapeHtml(p.shortName)}:</span>
+            <strong>${total}</strong>
+            <span style="color:#94a3b8;font-weight:normal;">(${pct}%)</span>
+          </div>`;
+        }).join('\n');
+        const archHtml = `
+          <div style="display:grid;grid-template-columns:${chartsList.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(280px, 1fr))'};gap:14px;margin-bottom:14px;">
+            ${chartsHtml}
+          </div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;">${legends}</div>
+        `;
+
+        const shareRows = parties.map((p) => {
+          const share = Number(p.voteSharePercent) || 0;
+          return `<div style="margin-bottom:10px;border:1px solid #e2e8f0;border-radius:10px;padding:10px;background:#ffffff;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;font-size:12px;font-weight:700;">
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:${p.color};"></span>
+                <span>${escapeHtml(p.name)} (${escapeHtml(p.shortName)})</span>
+              </div>
+              <strong style="font-size:13px;color:#0f172a;">${share}%</strong>
+            </div>
+            <div style="height:7px;background:#f1f5f9;border-radius:9999px;overflow:hidden;">
+              <div style="height:100%;background:${p.color};width:${Math.min(100, share)}%;"></div>
+            </div>
+          </div>`;
+        }).join('\n');
+        const shareHtml = `<div style="max-width:600px;margin:0 auto;">${shareRows}</div>`;
+
+        const segments = parties.map((p) => {
+          const total = (Number(p.lead) || 0) + (Number(p.won) || 0);
+          const pct = totalSeats > 0 ? (total / totalSeats) * 100 : 0;
+          if (pct <= 0) return '';
+          return `<div style="width:${pct}%;background:${p.color};height:100%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:11px;overflow:hidden;box-sizing:border-box;">
+            ${pct >= 14 ? `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 3px;">${escapeHtml(p.shortName)} ${total}</span>` : ''}
+          </div>`;
+        }).join('\n');
+        const cards = parties.map((p) => {
+          const total = (Number(p.lead) || 0) + (Number(p.won) || 0);
+          const isMaj = total >= majoritySeats;
+          return `<div style="border:${isMaj ? '2px solid #fbbf24;background:#fffbeb;' : '1px solid #e2e8f0;background:#ffffff;'}border-radius:12px;padding:10px 12px;box-sizing:border-box;min-width:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+              <div style="display:flex;align-items:center;gap:5px;min-width:0;">
+                <span style="width:8px;height:8px;border-radius:50%;background:${p.color};flex-shrink:0;"></span>
+                <span style="font-weight:900;font-size:13px;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(p.shortName)}</span>
+              </div>
+              ${isMaj ? `<span style="font-size:10px;">🏆</span>` : ''}
+            </div>
+            <div style="font-size:24px;font-weight:900;color:#0f172a;margin-bottom:4px;line-height:1.1;">${total}</div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;border-top:1px solid #f1f5f9;padding-top:4px;">
+              <span>Lead: <strong style="color:#0f172a;">${p.lead || 0}</strong></span>
+              <span style="color:#059669;font-weight:700;">Won: ${p.won || 0}</span>
+            </div>
+          </div>`;
+        }).join('\n');
+        const safeLeft = Math.min(88, Math.max(12, totalSeats > 0 ? (majoritySeats / totalSeats) * 100 : 50));
+        const tallyHtml = `
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px;margin-bottom:12px;font-size:11px;color:#64748b;">
+            <span>Declared / Trends: <strong style="color:#0f172a;">${counted} / ${totalSeats}</strong></span>
+            <span style="background:#fef3c7;color:#92400e;padding:2px 7px;border-radius:9999px;font-weight:700;">Majority: ${majoritySeats}</span>
+          </div>
+          <div style="position:relative;margin:22px 0 16px 0;">
+            <div style="position:absolute;top:-18px;left:${safeLeft}%;transform:translateX(-50%);z-index:2;display:flex;flex-direction:column;align-items:center;pointer-events:none;">
+              <span style="background:#0f172a;color:#ffffff;font-size:9px;font-weight:900;padding:1px 5px;border-radius:4px;white-space:nowrap;">Majority: ${majoritySeats}</span>
+            </div>
+            <div style="height:32px;border-radius:8px;overflow:hidden;display:flex;background:#f1f5f9;border:1px solid #cbd5e1;box-sizing:border-box;">
+              ${segments}
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));gap:8px;">
+            ${cards}
+          </div>
+        `;
+
+        return `
+          <div id="${widgetId}" class="be-election-widget" style="border:1px solid #e2e8f0;border-radius:16px;padding:16px 18px;margin:20px 0;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.05);box-sizing:border-box;max-width:100%;">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:16px;border-bottom:1px solid #f1f5f9;padding-bottom:12px;">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;flex:1;min-width:180px;">
+                ${badge}
+                <h2 style="margin:0;font-size:17px;font-weight:900;color:#0f172a;line-height:1.3;">${escapeHtml(title)}</h2>
+              </div>
+              <div style="display:flex;align-items:center;background:#f1f5f9;border-radius:10px;padding:3px;gap:2px;overflow-x:auto;">
+                <button type="button" onclick="switchElectionTab('${widgetId}', 'tally-bar')" data-tab="tally-bar" style="padding:4px 10px;font-size:11.5px;font-weight:700;border-radius:7px;border:none;cursor:pointer;transition:all 0.2s ease;${activeMode === 'tally-bar' ? 'background:#ffffff;color:#4f46e5;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#64748b;'}">📊 Chart</button>
+                <button type="button" onclick="switchElectionTab('${widgetId}', 'parliament-arch')" data-tab="parliament-arch" style="padding:4px 10px;font-size:11.5px;font-weight:700;border-radius:7px;border:none;cursor:pointer;transition:all 0.2s ease;${activeMode === 'parliament-arch' ? 'background:#ffffff;color:#4f46e5;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#64748b;'}">🏛️ Arch</button>
+                <button type="button" onclick="switchElectionTab('${widgetId}', 'candidate-battle')" data-tab="candidate-battle" style="padding:4px 10px;font-size:11.5px;font-weight:700;border-radius:7px;border:none;cursor:pointer;transition:all 0.2s ease;${activeMode === 'candidate-battle' ? 'background:#ffffff;color:#4f46e5;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#64748b;'}">👥 Battle</button>
+                <button type="button" onclick="switchElectionTab('${widgetId}', 'vote-share')" data-tab="vote-share" style="padding:4px 10px;font-size:11.5px;font-weight:700;border-radius:7px;border:none;cursor:pointer;transition:all 0.2s ease;${activeMode === 'vote-share' ? 'background:#ffffff;color:#4f46e5;box-shadow:0 1px 2px rgba(0,0,0,0.08);' : 'background:transparent;color:#64748b;'}">🧱 Share %</button>
+              </div>
+            </div>
+            <div id="${widgetId}_tab_tally-bar" class="election-tab-panel" style="display:${activeMode === 'tally-bar' ? 'block' : 'none'};">${tallyHtml}</div>
+            <div id="${widgetId}_tab_parliament-arch" class="election-tab-panel" style="display:${activeMode === 'parliament-arch' ? 'block' : 'none'};">${archHtml}</div>
+            <div id="${widgetId}_tab_candidate-battle" class="election-tab-panel" style="display:${activeMode === 'candidate-battle' ? 'block' : 'none'};">${battleHtml}</div>
+            <div id="${widgetId}_tab_vote-share" class="election-tab-panel" style="display:${activeMode === 'vote-share' ? 'block' : 'none'};">${shareHtml}</div>
+            <script>
+              (function() {
+                window.switchElectionTab = window.switchElectionTab || function(wId, targetMode) {
+                  var widget = document.getElementById(wId);
+                  if (!widget) return;
+                  var panels = widget.querySelectorAll('.election-tab-panel');
+                  panels.forEach(function(p) { p.style.display = 'none'; });
+                  var targetP = document.getElementById(wId + '_tab_' + targetMode);
+                  if (targetP) targetP.style.display = 'block';
+                  var btns = widget.querySelectorAll('button[data-tab]');
+                  btns.forEach(function(b) {
+                    if (b.getAttribute('data-tab') === targetMode) {
+                      b.style.background = '#ffffff';
+                      b.style.color = '#4f46e5';
+                      b.style.boxShadow = '0 1px 2px rgba(0,0,0,0.08)';
+                    } else {
+                      b.style.background = 'transparent';
+                      b.style.color = '#64748b';
+                      b.style.boxShadow = 'none';
+                    }
+                  });
+                };
+              })();
+            </script>
+          </div>
+        `;
+    }
+    case 'poll': {
+      const question = (block.attributes.question as string) || '';
+      const description = (block.attributes.description as string) || '';
+      const isClosed = Boolean(block.attributes.isClosed);
+      const options = (block.attributes.options as Array<{ id: string; text: string; votes: number; color: string }>) || [];
+
+      if (!question && options.length === 0) {
+        return '';
+      }
+
+      const totalVotes = options.reduce((sum, opt) => sum + (Number(opt.votes) || 0), 0);
+      const pollId = `poll_${block.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+      const optionsHtml = options.map((opt) => {
+        const votes = Number(opt.votes) || 0;
+        const pct = totalVotes > 0 ? ((votes / totalVotes) * 100).toFixed(1) : '0';
+
+        return `
+          <div
+            class="poll-option"
+            data-opt-id="${opt.id}"
+            data-votes="${votes}"
+            data-color="${opt.color}"
+            ${isClosed ? '' : `onclick="handlePollVote('${pollId}', '${opt.id}')"`}
+            style="position:relative;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:10px;padding:12px 14px;cursor:${isClosed ? 'default' : 'pointer'};background:${isClosed ? '#f8fafc' : '#ffffff'};overflow:hidden;transition:all 0.2s ease;box-sizing:border-box;"
+          >
+            <div class="poll-bar" style="position:absolute;top:0;bottom:0;left:0;width:${pct}%;background:${opt.color};opacity:${isClosed ? '0.18' : '0.14'};transition:width 0.5s ease;pointer-events:none;"></div>
+            <div style="position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;z-index:2;">
+              <div style="display:flex;align-items:center;gap:8px;min-width:0;flex:1;">
+                ${isClosed ? `<span style="width:8px;height:8px;border-radius:50%;background:${opt.color};flex-shrink:0;"></span>` : `<span class="poll-radio" style="width:16px;height:16px;border-radius:50%;border:2px solid #cbd5e1;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-sizing:border-box;background:transparent;"></span>`}
+                <span style="font-size:13px;font-weight:700;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(opt.text)}</span>
+              </div>
+              <div style="text-align:right;flex-shrink:0;">
+                <span class="poll-votes-text" style="font-size:12px;font-weight:900;color:#0f172a;">${votes} Votes</span>
+                <span class="poll-pct-text" style="font-size:11px;font-weight:700;color:#64748b;margin-left:2px;">(${pct}%)</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('\n');
+
+      return `
+        <div id="${pollId}" class="be-poll-widget" style="border:1px solid #e2e8f0;border-radius:16px;padding:18px;margin:20px 0;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.05);box-sizing:border-box;max-width:100%;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;border-bottom:1px solid #f1f5f9;padding-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:10.5px;font-weight:900;text-transform:uppercase;color:#4f46e5;background:#eef2ff;padding:3px 8px;border-radius:6px;">🗳️ Poll & Voting</span>
+              ${isClosed ? `<span style="font-size:10px;font-weight:900;color:#e11d48;background:#ffe4e6;padding:2px 7px;border-radius:6px;">🔴 Poll Closed</span>` : ''}
+            </div>
+            <span class="poll-total-votes" style="font-size:11px;font-weight:700;color:#64748b;">Total: <strong>${totalVotes}</strong> votes</span>
+          </div>
+
+          ${isClosed ? `<div style="margin-bottom:12px;padding:8px 12px;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;font-size:11.5px;font-weight:700;color:#92400e;">⚠️ આ મતદાન પૂર્ણ થયેલ છે. આખરી પરિણામ નીચે મુજબ છે.</div>` : ''}
+
+          <h3 style="margin:0 0 4px 0;font-size:16px;font-weight:900;color:#0f172a;line-height:1.3;">${escapeHtml(question)}</h3>
+          ${description ? `<p style="margin:0 0 14px 0;font-size:12px;color:#64748b;">${escapeHtml(description)}</p>` : '<div style="margin-bottom:14px;"></div>'}
+
+          <div class="poll-options-container">
+            ${optionsHtml}
+          </div>
+
+          <script>
+            (function() {
+              window.handlePollVote = window.handlePollVote || function(pId, optId) {
+                var pollEl = document.getElementById(pId);
+                if (!pollEl) return;
+                var options = pollEl.querySelectorAll('.poll-option');
+                var prevVote = pollEl.getAttribute('data-voted-id');
+                var total = 0;
+
+                options.forEach(function(opt) {
+                  var id = opt.getAttribute('data-opt-id');
+                  var v = parseInt(opt.getAttribute('data-votes') || '0', 10);
+                  if (id === optId) {
+                    if (prevVote !== optId) v += 1;
+                  } else if (prevVote === id) {
+                    v = Math.max(0, v - 1);
+                  }
+                  opt.setAttribute('data-votes', v);
+                  total += v;
+                });
+
+                pollEl.setAttribute('data-voted-id', optId);
+                var totalEl = pollEl.querySelector('.poll-total-votes strong');
+                if (totalEl) totalEl.textContent = total;
+
+                options.forEach(function(opt) {
+                  var id = opt.getAttribute('data-opt-id');
+                  var v = parseInt(opt.getAttribute('data-votes') || '0', 10);
+                  var pct = total > 0 ? ((v / total) * 100).toFixed(1) : '0';
+                  var bar = opt.querySelector('.poll-bar');
+                  if (bar) bar.style.width = pct + '%';
+                  var vText = opt.querySelector('.poll-votes-text');
+                  if (vText) vText.textContent = v + ' Votes';
+                  var pText = opt.querySelector('.poll-pct-text');
+                  if (pText) pText.textContent = '(' + pct + '%)';
+                  var radio = opt.querySelector('.poll-radio');
+                  if (radio) {
+                    if (id === optId) {
+                      radio.style.borderColor = '#4f46e5';
+                      radio.style.backgroundColor = '#4f46e5';
+                      radio.innerHTML = '<span style="color:#fff;font-size:10px;line-height:1;">✓</span>';
+                      opt.style.borderColor = '#6366f1';
+                    } else {
+                      radio.style.borderColor = '#cbd5e1';
+                      radio.style.backgroundColor = 'transparent';
+                      radio.innerHTML = '';
+                      opt.style.borderColor = '#e2e8f0';
+                    }
+                  }
+                });
+              };
+            })();
+          </script>
+        </div>
+      `;
+    }
     default:
       return '';
   }
@@ -963,9 +1724,7 @@ export function exportHtml(blocks: BlockInstance[], documentTitle?: string): str
       .be-columns-grid, .be-columns-wrapper, .be-columns {
         display: flex !important;
         flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        text-align: center !important;
+        align-items: stretch !important;
         width: 100% !important;
         gap: 16px !important;
         padding: 16px !important;
@@ -975,15 +1734,9 @@ export function exportHtml(blocks: BlockInstance[], documentTitle?: string): str
         width: 100% !important;
         display: flex !important;
         flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        text-align: center !important;
       }
       .be-paragraph, h1, h2, h3, h4, h5, h6, p {
         width: 100% !important;
-        text-align: center !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
       }
       .be-cover {
         padding: 20px 16px !important;

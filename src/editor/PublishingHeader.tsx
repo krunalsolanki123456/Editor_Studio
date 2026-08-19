@@ -54,7 +54,6 @@ export default function PublishingHeader() {
   const [slug, setSlug] = useState('');
   const [category, setCategory] = useState('');
   const [featuredIn, setFeaturedIn] = useState('');
-  const [location, setLocation] = useState('');
   const [tags, setTags] = useState('');
   const [layout, setLayout] = useState('');
   const [summary, setSummary] = useState('');
@@ -192,7 +191,6 @@ export default function PublishingHeader() {
   // Convert raw PCM16 LE bytes → WAV Blob so browser can play it
   const pcm16ToWavBlob = (pcmBase64: string, sampleRate = 24000, channels = 1): Blob => {
     const pcmBytes = Uint8Array.from(atob(pcmBase64), (c) => c.charCodeAt(0));
-    const numSamples = pcmBytes.byteLength / 2;
     const wavBuffer = new ArrayBuffer(44 + pcmBytes.byteLength);
     const view = new DataView(wavBuffer);
     const write = (off: number, str: string) => { for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)); };
@@ -439,7 +437,7 @@ export default function PublishingHeader() {
                 <CustomSelect
                   size="sm"
                   value={category}
-                  onChange={setCategory}
+                  onChange={(val) => setCategory(String(val))}
                   placeholder="Select category..."
                   options={[
                     { value: 'politics', label: 'Politics' },
@@ -460,7 +458,7 @@ export default function PublishingHeader() {
                 <CustomSelect
                   size="sm"
                   value={featuredIn}
-                  onChange={setFeaturedIn}
+                  onChange={(val) => setFeaturedIn(String(val))}
                   placeholder="Select featured in..."
                   options={[
                     { value: 'top-news', label: 'Top News' },
@@ -479,7 +477,7 @@ export default function PublishingHeader() {
                 <CustomSelect
                   size="sm"
                   value={location}
-                  onChange={setLocation}
+                  onChange={(val) => setLocation(String(val))}
                   placeholder="Select location..."
                   options={[
                     { value: 'ahmedabad', label: 'Ahmedabad' },
@@ -499,7 +497,7 @@ export default function PublishingHeader() {
                 <CustomSelect
                   size="sm"
                   value={tags}
-                  onChange={setTags}
+                  onChange={(val) => setTags(String(val))}
                   placeholder="Select tags..."
                   options={[
                     { value: 'gujarat-news', label: 'Gujarat News' },
@@ -518,7 +516,7 @@ export default function PublishingHeader() {
                 <CustomSelect
                   size="sm"
                   value={layout}
-                  onChange={setLayout}
+                  onChange={(val) => setLayout(String(val))}
                   placeholder="Select layout..."
                   options={[
                     { value: 'standard', label: 'Standard Article' },
@@ -1007,6 +1005,9 @@ export default function PublishingHeader() {
                     <p className="text-xs text-indigo-700 dark:text-indigo-300">
                       Preview the generated audio. You can regenerate or save settings.
                     </p>
+                    {generatedAudioUrl && (
+                      <audio controls src={generatedAudioUrl} className="w-full mt-2 h-8" />
+                    )}
                   </div>
                 </div>
 

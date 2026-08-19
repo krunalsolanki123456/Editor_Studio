@@ -4,7 +4,7 @@ import { useEditorStore } from './store';
 import BlockWrapper from './BlockWrapper';
 import SlashMenu from './SlashMenu';
 import BlockFormattingToolbar from './BlockFormattingToolbar';
-import PublishingHeader from './PublishingHeader';
+// import PublishingHeader from './PublishingHeader';
 import { parseRichPasteToBlocks } from './richPasteEngine';
 import { detectContentPattern, applyAISmartStructure } from './aiSmartPaste';
 import { focusBlockId } from './utils';
@@ -28,12 +28,12 @@ export default function EditorCanvas() {
   const getCanvasContainerClass = () => {
     switch (deviceView) {
       case 'tablet':
-        return 'max-w-[768px] mx-auto py-6 px-4 sm:px-6 w-full my-6 bg-white dark:bg-gray-900 border border-gray-200/90 dark:border-gray-800/90 rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out min-h-[calc(100vh-7rem)]';
+        return 'max-w-[768px] mx-auto py-5 sm:py-6 px-3 sm:px-6 w-full my-3 sm:my-6 bg-white dark:bg-gray-900 border border-gray-200/90 dark:border-gray-800/90 rounded-xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out min-h-[calc(100vh-7rem)]';
       case 'mobile':
-        return 'max-w-[390px] mx-auto py-5 px-3 w-full my-6 bg-white dark:bg-gray-900 border-4 border-gray-300 dark:border-gray-800 rounded-3xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out min-h-[calc(100vh-7rem)]';
+        return 'max-w-[390px] mx-auto py-5 px-3 w-full my-3 sm:my-6 bg-white dark:bg-gray-900 border-4 border-gray-300 dark:border-gray-800 rounded-3xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out min-h-[calc(100vh-7rem)]';
       case 'desktop':
       default:
-        return 'max-w-[1200px] mx-auto py-8 px-4 sm:px-8 w-full my-6 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800/80 rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out min-h-[calc(100vh-7rem)]';
+        return 'max-w-[1200px] mx-auto py-4 sm:py-8 px-2 sm:px-6 md:px-8 w-full my-2 sm:my-6 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800/80 rounded-xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out min-h-[calc(100vh-7rem)]';
     }
   };
 
@@ -166,10 +166,25 @@ export default function EditorCanvas() {
             const smartResult = applyAISmartStructure(generatedBlocks, detectedPattern);
 
             const activeBlockEl = active ? (active as HTMLElement).closest('[data-block-id]') : null;
-            const targetId = activeBlockEl ? activeBlockEl.getAttribute('data-block-id') : null;
+            const targetId = activeBlockEl ? activeBlockEl.getAttribute('data-block-id') : (selectedIds.length > 0 ? selectedIds[0] : null);
 
-            const { addBlocks } = useEditorStore.getState();
-            addBlocks(smartResult.blocks, targetId);
+            const { blocks, addBlocks, replaceBlockWithBlocks } = useEditorStore.getState();
+            const targetBlock = targetId ? blocks.find((b) => b.id === targetId) : null;
+            const isTargetEmpty = targetBlock && (() => {
+              const c = targetBlock.attributes?.content;
+              if (!c) return true;
+              if (Array.isArray(c)) {
+                return c.length === 0 || !c.map((item: any) => item?.text || '').join('').trim();
+              }
+              if (typeof c === 'string') return !c.trim();
+              return false;
+            })();
+
+            if (targetId && isTargetEmpty) {
+              replaceBlockWithBlocks(targetId, smartResult.blocks);
+            } else {
+              addBlocks(smartResult.blocks, targetId);
+            }
 
             setAiPasteToast({
               pattern: smartResult.patternType,
@@ -204,8 +219,9 @@ export default function EditorCanvas() {
 
     const isBlock = target.closest('[data-block-id]');
     const isControl = target.closest('button, input, textarea, a, select, [contenteditable="true"]');
+    const isToolbar = target.closest('.sticky, header, nav, .be-toolbar, [role="toolbar"]');
 
-    if (isBlock || isControl) return;
+    if (isBlock || isControl || isToolbar) return;
 
     if (blocks.length === 0) {
       e.stopPropagation();
@@ -227,10 +243,10 @@ export default function EditorCanvas() {
         className="flex-1 overflow-y-auto be-scroll"
         onClick={handleCanvasClick}
       >
-        <PublishingHeader />
+        {/* <PublishingHeader /> */}
         <BlockFormattingToolbar />
-        <div className="p-4 sm:p-6">
-          <div className={`${getCanvasContainerClass()} cursor-text`} onClick={handleCanvasClick}>
+        <div className="p-4 sm:p-6 pb-48">
+          <div className={`${getCanvasContainerClass()} cursor-text mb-20`} onClick={handleCanvasClick}>
             <div>
               {blocks.map((block, index) => (
                 <BlockWrapper key={block.id} block={block} index={index} total={blocks.length} />

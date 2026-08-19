@@ -33,6 +33,9 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
   const setInserterOpen = useEditorStore((s) => s.setInserterOpen);
   const blocks = useEditorStore((s) => s.blocks);
   const selectedIds = useEditorStore((s) => s.selectedIds);
+  const inserterTargetIndex = useEditorStore((s) => s.inserterTargetIndex);
+  const openInserterAtIndex = useEditorStore((s) => s.openInserterAtIndex);
+
   const selectedBlock = findBlock(blocks, selectedIds[0]);
   const activeBlockType = selectedBlock?.type;
   const activeCategory = selectedBlock ? BLOCK_DEFINITIONS.find((b) => b.type === selectedBlock.type)?.category : null;
@@ -76,7 +79,7 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
     return (
       <aside
         onScroll={() => setHoveredTooltip(null)}
-        className="shrink-0 w-16 min-w-16 border-r border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 py-3.5 px-2 flex flex-col items-center gap-2 overflow-y-auto overflow-x-hidden be-scroll shadow-sm z-20 relative"
+        className="hidden md:flex shrink-0 w-16 min-w-16 border-r border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 py-3.5 px-2 flex-col items-center gap-2 overflow-y-auto overflow-x-hidden be-scroll shadow-sm z-20 relative"
       >
         {/* Top Expand Inserter Button */}
         <div className="mb-1 flex items-center justify-center">
@@ -154,6 +157,9 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
     );
   }
 
+  const selectedIndex = selectedBlock ? blocks.findIndex((b) => b.id === selectedBlock.id) : -1;
+  const isInsertingAbove = inserterTargetIndex !== null && selectedIndex !== -1 && inserterTargetIndex <= selectedIndex;
+
   return (
     <>
       {open && (
@@ -168,7 +174,7 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
         bg-[#f8fafc] dark:bg-gray-900
         border-r border-gray-200/90 dark:border-gray-800
         flex flex-col shadow-2xl xl:shadow-none
-        max-xl:fixed max-xl:inset-y-0 max-xl:left-0 max-xl:z-[100] max-xl:w-80 max-xl:h-full
+        max-xl:fixed max-xl:inset-y-0 max-xl:left-0 max-xl:z-[100] max-xl:w-80 max-sm:w-[88vw] max-xl:h-full
         ${open ? 'max-xl:translate-x-0 xl:w-72' : 'max-xl:-translate-x-full xl:w-0 xl:overflow-hidden'}
         `}
       >
@@ -187,6 +193,42 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
               <PanelLeftClose size={18} />
             </button>
           </div>
+
+          {/* Position Selector when a Block is Selected in Canvas */}
+          {selectedBlock && selectedIndex !== -1 && (
+            <div className="p-2 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] font-bold text-blue-900 dark:text-blue-200">
+                <span>Insert Position / સ્થિતિ:</span>
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold truncate max-w-[120px]">
+                  {selectedBlock.type}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 p-0.5 bg-white dark:bg-gray-800 rounded-lg border border-blue-200/60 dark:border-blue-800/40">
+                <button
+                  type="button"
+                  onClick={() => openInserterAtIndex(selectedIndex)}
+                  className={`py-1 px-2 rounded text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    isInsertingAbove
+                      ? 'bg-blue-600 text-white shadow-2xs'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                  }`}
+                >
+                  <span>⬆️ Above (ઉપર)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openInserterAtIndex(selectedIndex + 1)}
+                  className={`py-1 px-2 rounded text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    !isInsertingAbove
+                      ? 'bg-blue-600 text-white shadow-2xs'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                  }`}
+                >
+                  <span>⬇️ Below (નીચે)</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="relative flex items-center">
             <Search className="absolute left-3 text-gray-400 pointer-events-none" size={15} />

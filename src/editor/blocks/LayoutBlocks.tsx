@@ -30,27 +30,10 @@ export function ColumnBlock({ block, selected = false }: BlockProps) {
   const inner = block.innerBlocks ?? [];
   const insertBlockInto = useEditorStore((s) => s.insertBlockInto);
   const selectBlock = useEditorStore((s) => s.selectBlock);
-  const [showAddMenu, setShowAddMenu] = useState(false);
 
   const parentContext = useContext(NestedBlockContext);
   const isCover = parentContext.isCover;
   const a = block.attributes || {};
-
-  const supportedNestedBlocks = [
-    { type: 'paragraph', label: 'Paragraph' },
-    { type: 'heading', label: 'Heading' },
-    { type: 'button', label: 'Button' },
-    { type: 'image', label: 'Image' },
-    { type: 'video', label: 'Video' },
-    { type: 'table', label: 'Table' },
-    { type: 'embed', label: 'Embed' },
-    { type: 'gallery', label: 'Gallery' },
-    { type: 'quote', label: 'Quote' },
-    { type: 'list', label: 'List' },
-    { type: 'group', label: 'Group' },
-    { type: 'spacer', label: 'Spacer' },
-    { type: 'separator', label: 'Separator' },
-  ];
 
   // Column specific styling
   const isEmpty = inner.length === 0;
@@ -109,97 +92,22 @@ export function ColumnBlock({ block, selected = false }: BlockProps) {
             ))}
           </div>
         ) : (
-          /* EMPTY COLUMN PLACEHOLDER WITH DIRECT IMAGE & BLOCK BUTTONS */
-          <div className="flex-1 flex flex-col items-center justify-center p-3 text-center w-full min-h-[110px] gap-2">
-            <span className="text-[11px] font-semibold text-gray-400 dark:text-gray-500 block">
-              Column Empty — Select a block type:
-            </span>
-
-            <div className="flex flex-wrap items-center justify-center gap-1.5 w-full">
-              {/* Image Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  const id = insertBlockInto(block.id, 'image');
-                  if (id) focusBlock(id);
-                }}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl font-bold text-xs text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 shadow-2xs transition-all cursor-pointer hover:scale-105"
-              >
-                <span>🖼️ Image</span>
-              </button>
-
-              {/* Paragraph Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  const id = insertBlockInto(block.id, 'paragraph');
-                  if (id) focusBlock(id);
-                }}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl font-bold text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/60 shadow-2xs transition-all cursor-pointer hover:scale-105"
-              >
-                <span>📝 Text</span>
-              </button>
-
-              {/* Heading Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  const id = insertBlockInto(block.id, 'heading');
-                  if (id) focusBlock(id);
-                }}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl font-bold text-xs text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 shadow-2xs transition-all cursor-pointer hover:scale-105"
-              >
-                <span>🔤 Heading</span>
-              </button>
-
-              {/* Button Block Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  const id = insertBlockInto(block.id, 'button');
-                  if (id) focusBlock(id);
-                }}
-                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl font-bold text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/60 shadow-2xs transition-all cursor-pointer hover:scale-105"
-              >
-                <span>🔘 Button</span>
-              </button>
-            </div>
-
-            {/* Dropdown for All Blocks */}
-            <div className="relative mt-1">
-              <button
-                type="button"
-                onClick={() => setShowAddMenu(!showAddMenu)}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-              >
-                <Plus size={12} />
-                <span>More blocks…</span>
-              </button>
-
-              {showAddMenu && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-48 p-1.5 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 grid grid-cols-1 gap-1 z-[150] max-h-60 overflow-y-auto be-scroll">
-                  {supportedNestedBlocks.map((item) => (
-                    <button
-                      key={item.type}
-                      type="button"
-                      onClick={() => {
-                        const id = insertBlockInto(block.id, item.type);
-
-                        if (id) {
-                          focusBlock(id);
-                        }
-
-                        setShowAddMenu(false);
-                      }}
-                      className="px-2.5 py-1.5 text-xs text-left font-medium rounded-lg text-gray-700 dark:text-gray-200 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer flex items-center gap-2 transition-colors"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+          /* SUBTLE EMPTY COLUMN AFFORDANCE */
+          <div
+            className="flex-1 flex flex-col items-center justify-center p-3 text-center w-full min-h-[80px] cursor-pointer hover:bg-slate-500/5 rounded-lg transition-colors group/empty select-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              const id = insertBlockInto(block.id, 'paragraph');
+              if (id) focusBlock(id);
+            }}
+          >
+            <button
+              type="button"
+              title="Add block"
+              className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover/empty:text-blue-500 group-hover/empty:bg-blue-50 dark:group-hover/empty:bg-blue-950/40 border border-slate-200 dark:border-slate-700 flex items-center justify-center transition-all cursor-pointer"
+            >
+              <Plus size={13} />
+            </button>
           </div>
         )}
       </NestedBlockContext.Provider>
@@ -347,7 +255,6 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
   const { isMobile, isTablet } = useResponsive();
 
   const [isEditing, setIsEditing] = useState(false);
-  const [showAddMenu, setShowAddMenu] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
 
   const a = block.attributes || {};
@@ -361,22 +268,6 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isEditing]);
-
-  const supportedNestedBlocks = [
-    { type: 'paragraph', label: 'Paragraph' },
-    { type: 'heading', label: 'Heading' },
-    { type: 'button', label: 'Button' },
-    { type: 'image', label: 'Image' },
-    { type: 'video', label: 'Video' },
-    { type: 'table', label: 'Table' },
-    { type: 'embed', label: 'Embed' },
-    { type: 'gallery', label: 'Gallery' },
-    { type: 'quote', label: 'Quote' },
-    { type: 'list', label: 'List' },
-    { type: 'group', label: 'Group' },
-    { type: 'spacer', label: 'Spacer' },
-    { type: 'separator', label: 'Separator' },
-  ];
 
   const paddingPx = isMobile ? '12px' : isTablet ? '16px' : typeof a.padding === 'number' ? `${a.padding}px` : (a.padding as string) || '24px';
   const gapPx = isMobile ? '12px' : typeof a.gap === 'number' ? `${a.gap}px` : (a.gap as string) || '16px';
@@ -582,33 +473,24 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
             ))}
           </div>
         ) : (
-          <div className="py-8 px-4 text-center w-full max-w-xl mx-auto flex flex-col items-center">
-            <div className="mb-6 space-y-1">
-              <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 block">
-                Type <kbd className="px-1.5 py-0.5 font-mono text-[11px] bg-gray-100 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300">/</kbd> to choose a block or select a layout preset below
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full">
-              {GROUP_LAYOUT_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => applyPreset(preset.id)}
-                  className="group flex flex-col items-center justify-center p-3.5 rounded-2xl bg-white dark:bg-gray-800/80 border border-gray-200/90 dark:border-gray-700/80 hover:border-blue-500 dark:hover:border-blue-500 hover:ring-2 hover:ring-blue-500/20 hover:shadow-xl transition-all cursor-pointer text-center"
-                >
-                  <div className="text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:scale-105 transition-all mb-2">
-                    {preset.icon}
-                  </div>
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 block truncate w-full">
-                    {preset.title}
-                  </span>
-                  <span className="text-[10px] text-gray-400 dark:text-gray-500 block truncate w-full mt-0.5">
-                    {preset.desc}
-                  </span>
-                </button>
-              ))}
-            </div>
+          <div
+            className="py-6 px-4 text-center w-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-500/5 rounded-xl transition-colors group/empty select-none"
+            onClick={(e) => {
+              e.stopPropagation();
+              const id = insertBlockInto(block.id, 'paragraph');
+              if (id) focusBlock(id);
+            }}
+          >
+            <button
+              type="button"
+              title="Add block"
+              className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover/empty:text-blue-500 group-hover/empty:bg-blue-50 dark:group-hover/empty:bg-blue-950/40 border border-slate-200 dark:border-slate-700 flex items-center justify-center transition-all cursor-pointer mb-1"
+            >
+              <Plus size={13} />
+            </button>
+            <span className="text-xs text-slate-400 dark:text-slate-500">
+              Empty group · Click or type <kbd className="px-1 py-0.5 font-mono text-[10px] bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 text-slate-500">/</kbd>
+            </span>
           </div>
         )}
       </NestedBlockContext.Provider>
@@ -1115,11 +997,23 @@ export function StackBlock({ block }: BlockProps) {
       {inner.length > 0 ? (
         inner.map((b, idx) => <BlockWrapper key={b.id} block={b} index={idx} total={inner.length} />)
       ) : (
-        <p className="text-xs text-gray-400 text-center py-4 border border-dashed border-gray-200 dark:border-gray-800 rounded-lg">
-          Empty stack
-        </p>
+        <div
+          className="py-4 px-3 text-center w-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-500/5 rounded-lg transition-colors group/empty select-none"
+          onClick={(e) => {
+            e.stopPropagation();
+            const id = insertBlockInto(block.id, 'paragraph');
+            if (id) focusBlock(id);
+          }}
+        >
+          <button
+            type="button"
+            title="Add block"
+            className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover/empty:text-blue-500 group-hover/empty:bg-blue-50 dark:group-hover/empty:bg-blue-950/40 border border-slate-200 dark:border-slate-700 flex items-center justify-center transition-all cursor-pointer"
+          >
+            <Plus size={13} />
+          </button>
+        </div>
       )}
-
     </div>
   );
 }
