@@ -18,6 +18,7 @@ export interface EditorStudioProps extends BlockFilterOptions {
   theme?: 'light' | 'dark';
   className?: string;
   hideToolbar?: boolean;
+  autoSave?: boolean;
 }
 
 export function EditorStudio({
@@ -28,6 +29,7 @@ export function EditorStudio({
   theme: controlledTheme,
   className = '',
   hideToolbar = false,
+  autoSave = true,
   allowedBlocks,
   disabledBlocks,
   allowedCategories,
@@ -82,18 +84,40 @@ export function EditorStudio({
     enableTables,
   ]);
 
-  // Initialize initial blocks and title if provided
+  // Prevent initialBlocks from overwriting autosaved state on page reload
   useEffect(() => {
+    if (autoSave) {
+      try {
+        const saved = localStorage.getItem('be-autosave');
+        if (saved !== null) {
+          // A saved session exists (even if empty after deleting blocks) - do not overwrite with initialBlocks
+          return;
+        }
+      } catch {
+        /* fallback to initialBlocks */
+      }
+    }
+
     if (initialBlocks && initialBlocks.length > 0) {
       setBlocks(initialBlocks);
     }
-  }, [initialBlocks, setBlocks]);
+  }, [initialBlocks, setBlocks, autoSave]);
 
   useEffect(() => {
     if (initialTitle) {
+      if (autoSave) {
+        try {
+          const savedTitle = localStorage.getItem('be-title');
+          if (savedTitle && savedTitle.trim() && savedTitle !== 'Untitled Document') {
+            return;
+          }
+        } catch {
+          /* fallback */
+        }
+      }
       setDocumentTitle(initialTitle);
     }
-  }, [initialTitle, setDocumentTitle]);
+  }, [initialTitle, setDocumentTitle, autoSave]);
 
   // Sync controlled theme
   useEffect(() => {

@@ -66,11 +66,18 @@ export default function App() {
 
 | Prop | Type | Default | Description |
 |---|---|---|---|
-| `initialBlocks` | `BlockInstance[]` | `[]` | Pre-load existing editor blocks (e.g. from database) |
+| `initialBlocks` | `BlockInstance[]` | `[]` | Pre-load initial blocks (e.g. from database or template) |
 | `initialTitle` | `string` | `""` | Initial document/article title |
 | `theme` | `'light' \| 'dark'` | `'light'` | Editor color theme |
-| `onChange` | `(blocks: BlockInstance[]) => void` | `undefined` | Callback fired on every real-time block mutation |
-| `onSave` | `(blocks: BlockInstance[], html: string) => void` | `undefined` | Callback triggered when user saves |
+| `onChange` | `(blocks: BlockInstance[]) => void` | `undefined` | Callback fired on real-time block mutations |
+| `onSave` | `(blocks: BlockInstance[], html: string) => void` | `undefined` | Callback triggered when user clicks Save / Export |
+| `autoSave` | `boolean` | `true` | Persist editor state automatically across page reloads (localStorage + IndexedDB) |
+| `enableLiveUpdates` | `boolean` | `true` | Enable/Disable Live Updates Timeline Feed block |
+| `enableEmbeds` | `boolean` | `true` | Enable/Disable YouTube, Vimeo & rich social media embeds |
+| `enablePolls` | `boolean` | `true` | Enable/Disable Live Opinion Polls & Voting block |
+| `enableCharts` | `boolean` | `true` | Enable/Disable Live Trackers & Election Charts |
+| `allowedBlocks` | `string[]` | `undefined` | Optional whitelist of allowed block types |
+| `disabledBlocks` | `string[]` | `undefined` | Optional blacklist of disabled block types |
 | `className` | `string` | `""` | Custom CSS wrapper class |
 | `hideToolbar` | `boolean` | `false` | Hide top header toolbar if embedding in custom UI |
 

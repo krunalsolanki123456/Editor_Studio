@@ -240,16 +240,14 @@ function sanitizeBlocks(blocks: any[]): BlockInstance[] {
 function getInitialBlocks(): BlockInstance[] {
   try {
     const saved = localStorage.getItem('be-autosave');
-    if (saved) {
+    if (saved !== null) {
       const data = JSON.parse(saved);
       if (Array.isArray(data.blocks)) {
-        const cleaned = sanitizeBlocks(data.blocks);
-        if (cleaned.length > 0) return cleaned;
+        return sanitizeBlocks(data.blocks);
       }
     }
   } catch { /* ignore */ }
-  const defaultBlock = createBlock('paragraph');
-  return defaultBlock ? [defaultBlock] : [{ id: 'default-p', type: 'paragraph', attributes: { content: [{ text: '' }] }, innerBlocks: [] }];
+  return [];
 }
 
 function getInitialTitle(): string {

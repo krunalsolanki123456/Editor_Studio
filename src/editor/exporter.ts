@@ -158,28 +158,58 @@ function renderBlock(block: BlockInstance): string {
     case 'heading':
       return `<h${a.level} style="text-align:${a.align};${styleObjectToString(getTypographyStyle('heading', a))}">${richTextToHtml(a.content as RichTextValue)}</h${a.level}>`;
     case 'list': {
+      const isBullet = a.style === 'bullet' || !a.style;
       const isChecklist = a.style === 'checklist';
-      const tag = a.style === 'bullet' || isChecklist ? 'ul' : 'ol';
+      const tag = isBullet || isChecklist ? 'ul' : 'ol';
       const listStyleBase = listStyleCss(a.style as string);
+      const rawItems = (a.items as { id?: string; content: RichTextValue; level?: number; checked?: boolean }[]) || [];
 
-      const items = (a.items as { content: RichTextValue; level?: number; checked?: boolean }[]).map((item) => {
-        const itemLevel = item.level || 0;
-        const marginLeft = itemLevel > 0 ? `margin-left:${itemLevel * 20}px;` : '';
+      if (isBullet) {
+        const items = rawItems.map((item, index) => {
+          const itemLevel = item.level || 0;
+          const marginLeft = itemLevel > 0 ? `margin-left:${itemLevel * 20}px;` : '';
+          const isLast = index === rawItems.length - 1;
+          const borderBottom = isLast ? '' : 'border-bottom:1px dotted #d1d5db;';
 
-        if (isChecklist) {
+          return `<li style="list-style:none;position:relative;display:flex;align-items:flex-start;gap:12px;padding:12px 4px;box-sizing:border-box;${borderBottom}${marginLeft}">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.55);flex-shrink:0;margin-top:8px;" aria-hidden="true"></span>
+            <div style="flex:1;min-width:0;font-size:16px;font-weight:600;line-height:1.75;color:#111827;">${richTextToHtml(item.content)}</div>
+          </li>`;
+        }).join('');
+
+        return `<div class="be-list-wrapper" style="margin:16px 0;width:100%;">
+          <ul style="background-color:#f8f9fa;border:1px solid #e5e7eb;border-radius:12px;padding:10px 20px;margin:0;list-style:none;box-shadow:0 1px 2px 0 rgba(0,0,0,0.05);text-align:${a.align || 'left'};${styleObjectToString(getTypographyStyle('list', a))}">
+            ${items}
+          </ul>
+        </div>`;
+      }
+
+      if (isChecklist) {
+        const items = rawItems.map((item) => {
+          const itemLevel = item.level || 0;
+          const marginLeft = itemLevel > 0 ? `margin-left:${itemLevel * 20}px;` : '';
           const checkedAttr = item.checked ? 'checked' : '';
           const lineThrough = item.checked ? 'text-decoration:line-through;opacity:0.6;' : '';
-          return `<li style="list-style-type:none;${marginLeft}margin-bottom:6px;display:flex;align-items:flex-start;gap:8px"><input type="checkbox" ${checkedAttr} disabled style="margin-top:4px" /><span style="${lineThrough}">${richTextToHtml(item.content)}</span></li>`;
-        }
+          return `<li style="list-style:none;${marginLeft}margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;">
+            <input type="checkbox" ${checkedAttr} disabled style="margin-top:4px;width:16px;height:16px;accent-color:#2563eb;" />
+            <span style="${lineThrough}flex:1;line-height:1.6;">${richTextToHtml(item.content)}</span>
+          </li>`;
+        }).join('');
 
+        return `<ul style="padding-left:0;list-style:none;text-align:${a.align || 'left'};${styleObjectToString(getTypographyStyle('list', a))}">${items}</ul>`;
+      }
+
+      const items = rawItems.map((item) => {
+        const itemLevel = item.level || 0;
+        const marginLeft = itemLevel > 0 ? `margin-left:${itemLevel * 20}px;` : '';
         const currentListStyle = itemLevel > 0
-          ? (a.style === 'bullet' ? (itemLevel % 2 === 1 ? 'circle' : 'square') : (itemLevel % 2 === 1 ? 'lower-alpha' : 'lower-roman'))
+          ? (itemLevel % 2 === 1 ? 'lower-alpha' : 'lower-roman')
           : listStyleBase;
 
-        return `<li style="list-style-type:${currentListStyle};${marginLeft}margin-bottom:6px">${richTextToHtml(item.content)}</li>`;
+        return `<li style="list-style-type:${currentListStyle};${marginLeft}margin-bottom:8px;line-height:1.6;">${richTextToHtml(item.content)}</li>`;
       }).join('');
 
-      return `<${tag} style="padding-left:24px;text-align:${a.align};${styleObjectToString(getTypographyStyle('list', a))}">${items}</${tag}>`;
+      return `<${tag} style="padding-left:24px;text-align:${a.align || 'left'};${styleObjectToString(getTypographyStyle('list', a))}">${items}</${tag}>`;
     }
     case 'quote': {
       const cite = (a.citation as RichTextValue)?.length ? `<figcaption style="margin-top:8px;font-size:14px;font-weight:600;color:#4b5563">— ${richTextToHtml(a.citation as RichTextValue)}</figcaption>` : '';

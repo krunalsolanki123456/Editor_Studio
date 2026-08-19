@@ -234,6 +234,30 @@ export default function EditorCanvas() {
       }
     } else {
       clearSelection();
+      // If clicking in empty area below last block
+      const lastBlock = blocks[blocks.length - 1];
+      if (lastBlock) {
+        if (lastBlock.type === 'paragraph') {
+          const text = Array.isArray(lastBlock.attributes?.content)
+            ? (lastBlock.attributes.content as any[]).map((s: any) => s.text || '').join('').trim()
+            : typeof lastBlock.attributes?.content === 'string'
+              ? (lastBlock.attributes.content as string).trim()
+              : '';
+          if (text === '') {
+            useEditorStore.getState().selectBlock(lastBlock.id);
+            const el = document.querySelector(`[data-block-id="${lastBlock.id}"] [contenteditable]`) as HTMLElement | null;
+            if (el) el.focus({ preventScroll: true });
+            return;
+          }
+        }
+        const id = insertBlock('paragraph', blocks.length);
+        if (id) {
+          setTimeout(() => {
+            const el = document.querySelector(`[data-block-id="${id}"] [contenteditable]`) as HTMLElement | null;
+            if (el) el.focus({ preventScroll: true });
+          }, 30);
+        }
+      }
     }
   };
 
