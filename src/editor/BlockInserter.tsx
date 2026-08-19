@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { BLOCK_DEFINITIONS, BLOCK_CATEGORIES, getBlockIcon } from './blocks/registry';
+import { useState, useMemo } from 'react';
+import { BLOCK_CATEGORIES, getBlockIcon, getFilteredBlockDefinitions } from './blocks/registry';
 import { useEditorStore, findBlock } from './store';
 import {
   Search,
@@ -35,10 +35,15 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const inserterTargetIndex = useEditorStore((s) => s.inserterTargetIndex);
   const openInserterAtIndex = useEditorStore((s) => s.openInserterAtIndex);
+  const filterOptions = useEditorStore((s) => s.filterOptions);
+
+  const availableDefinitions = useMemo(() => {
+    return getFilteredBlockDefinitions(filterOptions);
+  }, [filterOptions]);
 
   const selectedBlock = findBlock(blocks, selectedIds[0]);
   const activeBlockType = selectedBlock?.type;
-  const activeCategory = selectedBlock ? BLOCK_DEFINITIONS.find((b) => b.type === selectedBlock.type)?.category : null;
+  const activeCategory = selectedBlock ? availableDefinitions.find((b) => b.type === selectedBlock.type)?.category : null;
 
   const [hoveredTooltip, setHoveredTooltip] = useState<{
     label: string;
@@ -62,16 +67,18 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
     }));
   };
 
-  const filteredBlocks = BLOCK_DEFINITIONS.filter((b) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      b.label.toLowerCase().includes(q) ||
-      b.type.toLowerCase().includes(q) ||
-      b.description.toLowerCase().includes(q) ||
-      (b.keywords && b.keywords.some((k) => k.toLowerCase().includes(q)))
-    );
-  });
+  const filteredBlocks = useMemo(() => {
+    return availableDefinitions.filter((b) => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        b.label.toLowerCase().includes(q) ||
+        b.type.toLowerCase().includes(q) ||
+        b.description.toLowerCase().includes(q) ||
+        (b.keywords && b.keywords.some((k) => k.toLowerCase().includes(q)))
+      );
+    });
+  }, [availableDefinitions, search]);
 
   const isSearching = search.trim().length > 0;
 
@@ -101,11 +108,11 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
           </button>
         </div>
 
-        <div className="w-8 h-px bg-gray-200/80 dark:bg-gray-800 my-0.5" />
+        <div className="w-8 h-px bg-gray-200/80 dark:border-gray-800 my-0.5" />
 
-        {/* Render ALL BLOCKS from BLOCK_DEFINITIONS with active state */}
+        {/* Render filtered definitions with active state */}
         <div className="flex-1 flex flex-col items-center gap-2 w-full">
-          {BLOCK_DEFINITIONS.map((def) => {
+          {availableDefinitions.map((def) => {
             const Icon = getBlockIcon(def.type);
             const isActive = activeBlockType === def.type;
 

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { BlockInstance } from './types';
-import { createBlock } from './blocks/registry';
+import { createBlock, BlockFilterOptions } from './blocks/registry';
 import { cloneBlock, deepClone, createId } from './utils';
 import { parseRichPasteToBlocks } from './richPasteEngine';
 
@@ -20,7 +20,9 @@ interface EditorStore {
   inserterTargetIndex: number | null;
   settingsSidebarOpen: boolean;
   slashMenu: { open: boolean; blockId: string | null; anchor: { x: number; y: number } | null };
+  filterOptions?: BlockFilterOptions;
 
+  setFilterOptions: (options?: BlockFilterOptions) => void;
   insertBlock: (type: string, index?: number | null) => string | null;
   insertBlockInto: (targetId: string, type: string, index?: number | null) => string | null;
   insertBlockInstance: (block: BlockInstance, index?: number | null) => void;
@@ -285,7 +287,9 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   inserterTargetIndex: null,
   settingsSidebarOpen: true,
   slashMenu: { open: false, blockId: null, anchor: null },
+  filterOptions: undefined,
 
+  setFilterOptions: (options) => set({ filterOptions: options }),
   openInserterAtIndex: (index) => set({ inserterOpen: true, inserterTargetIndex: index }),
 
   toggleHtmlMode: (id) => {

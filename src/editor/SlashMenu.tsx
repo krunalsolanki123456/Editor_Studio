@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { BLOCK_DEFINITIONS, getBlockIcon, createBlock } from './blocks/registry';
+import { getBlockIcon, createBlock, getFilteredBlockDefinitions } from './blocks/registry';
 import { useEditorStore } from './store';
 import { blockToHtmlCode } from './utils';
 
@@ -16,19 +16,24 @@ export default function SlashMenu({ open, blockId, anchor, onClose }: SlashMenuP
   const insertBlock = useEditorStore((s) => s.insertBlock);
   const removeBlock = useEditorStore((s) => s.removeBlock);
   const blocks = useEditorStore((s) => s.blocks);
+  const filterOptions = useEditorStore((s) => s.filterOptions);
   const listRef = useRef<HTMLDivElement>(null);
+
+  const availableDefinitions = useMemo(() => {
+    return getFilteredBlockDefinitions(filterOptions);
+  }, [filterOptions]);
 
   useEffect(() => {
     if (open) { setQuery(''); setHighlighted(0); }
   }, [open]);
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return BLOCK_DEFINITIONS;
+    if (!query.trim()) return availableDefinitions;
     const q = query.toLowerCase();
-    return BLOCK_DEFINITIONS.filter((b) =>
+    return availableDefinitions.filter((b) =>
       b.label.toLowerCase().includes(q) || b.keywords.some((k: string) => k.includes(q)),
     );
-  }, [query]);
+  }, [availableDefinitions, query]);
 
   useEffect(() => { setHighlighted(0); }, [query]);
 

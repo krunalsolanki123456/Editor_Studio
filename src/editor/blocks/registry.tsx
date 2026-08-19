@@ -470,6 +470,58 @@ export function createBlock(
   };
 }
 
+export interface BlockFilterOptions {
+  allowedBlocks?: string[];
+  disabledBlocks?: string[];
+  allowedCategories?: string[];
+  enablePolls?: boolean;
+  enableLiveUpdates?: boolean;
+  enableCharts?: boolean;
+  enableEmbeds?: boolean;
+  enableCode?: boolean;
+  enableLayout?: boolean;
+  enableMedia?: boolean;
+  enableTables?: boolean;
+}
+
+export function isBlockAllowed(type: string, options?: BlockFilterOptions): boolean {
+  if (!options) return true;
+  const def = BLOCK_MAP[type];
+  if (!def) return true;
+
+  // Explicit feature booleans
+  if (options.enablePolls === false && type === 'poll') return false;
+  if (options.enableLiveUpdates === false && type === 'live-updates') return false;
+  if (options.enableCharts === false && type === 'election') return false;
+  if (options.enableCode === false && (type === 'code' || type === 'html' || type === 'preformatted')) return false;
+  if (options.enableEmbeds === false && (type === 'youtube' || type === 'vimeo' || type === 'embed')) return false;
+  if (options.enableLayout === false && def.category === 'layout') return false;
+  if (options.enableMedia === false && def.category === 'media') return false;
+  if (options.enableTables === false && type === 'table') return false;
+
+  // Category filter
+  if (options.allowedCategories && options.allowedCategories.length > 0) {
+    if (!options.allowedCategories.includes(def.category)) return false;
+  }
+
+  // Allowed list (whitelist)
+  if (options.allowedBlocks && options.allowedBlocks.length > 0) {
+    if (!options.allowedBlocks.includes(type)) return false;
+  }
+
+  // Disabled list (blacklist)
+  if (options.disabledBlocks && options.disabledBlocks.length > 0) {
+    if (options.disabledBlocks.includes(type)) return false;
+  }
+
+  return true;
+}
+
+export function getFilteredBlockDefinitions(options?: BlockFilterOptions): BlockDefinition[] {
+  if (!options) return BLOCK_DEFINITIONS;
+  return BLOCK_DEFINITIONS.filter((def) => isBlockAllowed(def.type, options));
+}
+
 export function getBlockLabel(type: string): string {
   return BLOCK_MAP[type]?.label ?? type;
 }

@@ -7,9 +7,11 @@ import {
 import { useEditorStore } from './store';
 import { exportHtml } from './exporter';
 import logo from "../assets/logo-Editor-Studio.png";
+import type { BlockInstance } from './types';
 
 export interface TopToolbarProps {
   onOpenInserter?: () => void;
+  onSave?: (blocks: BlockInstance[], html: string) => void;
 }
 
 function Tooltip({
@@ -40,9 +42,12 @@ function Tooltip({
   );
 }
 
-export default function TopToolbar({ onOpenInserter }: TopToolbarProps) {
+export default function TopToolbar({ onOpenInserter, onSave }: TopToolbarProps) {
   const blocks = useEditorStore((s) => s.blocks);
+  const theme = useEditorStore((s) => s.theme);
+  const toggleTheme = useEditorStore((s) => s.toggleTheme);
   const documentTitle = useEditorStore((s) => s.documentTitle);
+  const setDocumentTitle = useEditorStore((s) => s.setDocumentTitle);
   const deviceView = useEditorStore((s) => s.deviceView);
   const setDeviceView = useEditorStore((s) => s.setDeviceView);
   const inserterOpen = useEditorStore((s) => s.inserterOpen);
@@ -58,6 +63,9 @@ export default function TopToolbar({ onOpenInserter }: TopToolbarProps) {
 
   const handleSaveHtml = () => {
     const html = exportHtml(blocks);
+    if (onSave) {
+      onSave(blocks, html);
+    }
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

@@ -6,11 +6,11 @@ import BlockInserter from './editor/BlockInserter';
 import SettingsSidebar from './editor/SettingsSidebar';
 import InlineToolbar from './editor/InlineToolbar';
 import { blockToHtmlCode } from './editor/utils';
-import { createBlock } from './editor/blocks/registry';
+import { createBlock, BlockFilterOptions } from './editor/blocks/registry';
 import type { BlockInstance } from './editor/types';
 import './index.css';
 
-export interface EditorStudioProps {
+export interface EditorStudioProps extends BlockFilterOptions {
   initialBlocks?: BlockInstance[];
   initialTitle?: string;
   onChange?: (blocks: BlockInstance[]) => void;
@@ -28,6 +28,17 @@ export function EditorStudio({
   theme: controlledTheme,
   className = '',
   hideToolbar = false,
+  allowedBlocks,
+  disabledBlocks,
+  allowedCategories,
+  enablePolls,
+  enableLiveUpdates,
+  enableCharts,
+  enableEmbeds,
+  enableCode,
+  enableLayout,
+  enableMedia,
+  enableTables,
 }: EditorStudioProps) {
   const theme = useEditorStore((s) => s.theme);
   const inserterOpen = useEditorStore((s) => s.inserterOpen);
@@ -36,9 +47,40 @@ export function EditorStudio({
   const blocks = useEditorStore((s) => s.blocks);
   const setBlocks = useEditorStore((s) => s.setBlocks);
   const setDocumentTitle = useEditorStore((s) => s.setDocumentTitle);
+  const setFilterOptions = useEditorStore((s) => s.setFilterOptions);
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
 
   const setSettingsSidebarOpen = useEditorStore((s) => s.setSettingsSidebarOpen);
+
+  // Sync block filter options
+  useEffect(() => {
+    setFilterOptions({
+      allowedBlocks,
+      disabledBlocks,
+      allowedCategories,
+      enablePolls,
+      enableLiveUpdates,
+      enableCharts,
+      enableEmbeds,
+      enableCode,
+      enableLayout,
+      enableMedia,
+      enableTables,
+    });
+  }, [
+    setFilterOptions,
+    allowedBlocks,
+    disabledBlocks,
+    allowedCategories,
+    enablePolls,
+    enableLiveUpdates,
+    enableCharts,
+    enableEmbeds,
+    enableCode,
+    enableLayout,
+    enableMedia,
+    enableTables,
+  ]);
 
   // Initialize initial blocks and title if provided
   useEffect(() => {
@@ -134,6 +176,7 @@ export function EditorStudio({
     <div className={`h-screen flex flex-col editor-surface ${className}`}>
       {!hideToolbar && (
         <TopToolbar
+          onSave={onSave}
           onOpenInserter={() => {
             setInsertIndex(blocks.length);
             setInserterOpen(true);

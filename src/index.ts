@@ -22,7 +22,10 @@ export {
   getBlockLabel,
   getBlockIcon,
   createBlock,
+  isBlockAllowed,
+  getFilteredBlockDefinitions,
 } from './editor/blocks/registry';
+export type { BlockFilterOptions } from './editor/blocks/registry';
 
 // Exporters & Parsers
 export {

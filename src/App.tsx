@@ -1,98 +1,56 @@
-import { useEffect, useState } from 'react';
-import { useEditorStore } from './editor/store';
-import TopToolbar from './editor/TopToolbar';
-import EditorCanvas from './editor/EditorCanvas';
-import BlockInserter from './editor/BlockInserter';
-import SettingsSidebar from './editor/SettingsSidebar';
-import InlineToolbar from './editor/InlineToolbar';
-import { blockToHtmlCode } from './editor/utils';
-import { createBlock } from './editor/blocks/registry';
+import { useState } from 'react';
+import { EditorStudio } from './EditorStudio';
+import type { BlockInstance } from './editor/types';
+
+const defaultBlocks: BlockInstance[] = [
+  {
+    id: 'demo-heading',
+    type: 'heading',
+    attributes: { content: [{ text: 'Breaking News: Today Live Election & Updates' }], level: 1 },
+  },
+  {
+    id: 'demo-paragraph',
+    type: 'paragraph',
+    attributes: { content: [{ text: 'Welcome to React Editor Studio. Edit this content or insert new blocks from the sidebar.' }] },
+  },
+  {
+    id: 'demo-poll',
+    type: 'poll',
+    attributes: {
+      question: 'Do you find this new block configuration useful?',
+      options: [
+        { id: 'opt-1', text: 'Yes, absolutely! 🚀', votes: 12 },
+        { id: 'opt-2', text: 'Needs more features 💡', votes: 3 },
+      ],
+      totalVotes: 15,
+      allowMultiple: false,
+    },
+  },
+];
 
 export default function App() {
-  const theme = useEditorStore((s) => s.theme);
-  const inserterOpen = useEditorStore((s) => s.inserterOpen);
-  const setInserterOpen = useEditorStore((s) => s.setInserterOpen);
-  const insertBlock = useEditorStore((s) => s.insertBlock);
-  const blocks = useEditorStore((s) => s.blocks);
-  const [insertIndex, setInsertIndex] = useState<number | null>(null);
-
-  const setSettingsSidebarOpen = useEditorStore((s) => s.setSettingsSidebarOpen);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, [theme]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 1024) {
-        setInserterOpen(false);
-        setSettingsSidebarOpen(false);
-      }
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [setInserterOpen, setSettingsSidebarOpen]);
-
-  const selectedIds = useEditorStore((s) => s.selectedIds);
-
-  const handleInsert = (type: string) => {
-    const storeTargetIndex = useEditorStore.getState().inserterTargetIndex;
-    let targetIndex: number | null = insertIndex ?? storeTargetIndex;
-
-    if (targetIndex === null && selectedIds.length > 0) {
-      const idx = blocks.findIndex((b) => b.id === selectedIds[0]);
-      if (idx !== -1) {
-        const selectedBlock = blocks[idx];
-        if (type === 'code' || type === 'preformatted') {
-          const codeText = blockToHtmlCode(selectedBlock);
-          useEditorStore.getState().updateBlock(selectedBlock.id, (b) => ({
-            ...b,
-            type,
-            attributes: {
-              ...createBlock(type)?.attributes,
-              content: codeText,
-            },
-          }));
-          setTimeout(() => {
-            const el = document.querySelector(
-              `[data-block-id="${selectedBlock.id}"] [contenteditable], [data-block-id="${selectedBlock.id}"] textarea`
-            ) as HTMLElement | null;
-            if (el) el.focus();
-          }, 50);
-          return;
-        }
-        targetIndex = idx + 1;
-      }
-    }
-
-    const newId = insertBlock(type, targetIndex);
-    setInsertIndex(null);
-    useEditorStore.setState({ inserterTargetIndex: null });
-
-    if (newId) {
-      setTimeout(() => {
-        const el = document.querySelector(
-          `[data-block-id="${newId}"] [contenteditable], [data-block-id="${newId}"] textarea, [data-block-id="${newId}"] input`
-        ) as HTMLElement | null;
-        if (el) el.focus();
-      }, 50);
-    }
-  };
+  const [blocks, setBlocks] = useState<BlockInstance[]>(defaultBlocks);
 
   return (
-    <div className="h-screen flex flex-col editor-surface">
-      <TopToolbar onOpenInserter={() => { setInsertIndex(blocks.length); setInserterOpen(true); }} />
-      <div className="flex-1 flex overflow-hidden">
-        <BlockInserter
-          open={inserterOpen}
-          onClose={() => setInserterOpen(false)}
-          onInsert={handleInsert}
-        />
-        <EditorCanvas />
-        <SettingsSidebar />
-      </div>
-      <InlineToolbar />
+    <div className="h-screen w-screen overflow-hidden">
+      <EditorStudio
+        initialTitle="Breaking Story"
+        initialBlocks={blocks}
+        onChange={(updatedBlocks) => setBlocks(updatedBlocks)}
+        onSave={(savedBlocks, html) => {
+          console.log('Saved blocks:', savedBlocks);
+          console.log('Exported HTML:', html);
+        }}
+        // 🎯 4 Blocks Controlled by True/False Flags:
+        enableLiveUpdates={true}  // 🔴 Live Updates Feed (false = Hide)
+        enableEmbeds={true}       // 🎥 YouTube / Vimeo / Embeds (false = Hide)
+        enablePolls={true}        // 🗳️ Live Polls & Voting (false = Hide)
+        enableCharts={true}       // 📊 Election & Live Trackers Charts (false = Hide)
+
+        // (Baki sabhi blocks: Text, Heading, Paragraph, List, Quote, Code, Images, Gallery, Tables, Layouts By-Default hamesha aayenge)
+      />
     </div>
   );
 }
+
+
