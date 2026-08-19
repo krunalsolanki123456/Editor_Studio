@@ -2,6 +2,14 @@
 
 A modern, responsive, block-based rich text and interactive media editor built with **React**, **TypeScript**, and **Tailwind CSS**.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/krunalsolanki123456/Editor_Studio/main/screenshots/screen-short-1.png" alt="React Editor Studio Preview 1" width="100%" />
+</p>
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/krunalsolanki123456/Editor_Studio/main/screenshots/screen-short-2.png" alt="React Editor Studio Preview 2" width="100%" />
+</p>
+
 Features full support for:
 - 🗳️ **Public Opinion Polls & Live Voting**
 - 🔴 **Live Updates Timeline Feed (YouTube, Twitter/X, Instagram, Spotify, PDF & Video)**
@@ -100,3 +108,4 @@ npm publish --access public
 
 ## 📄 License
 MIT © 2026 Editor Studio
+
