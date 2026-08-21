@@ -2099,17 +2099,15 @@ function MobileTwoRowToolbar({
       <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageReplace} className="hidden" />
 
       {/* 1. PRIMARY ROW (Essential Controls) */}
-      <div className="flex items-center justify-between gap-1.5 w-full bg-slate-50 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
+      <div className="flex items-center justify-between gap-1.5 w-full bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 shadow-xs backdrop-blur-md">
         {/* Block Badge */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 font-bold text-xs shadow-2xs border border-slate-200/60 dark:border-slate-600 shrink-0">
-          <BlockIcon size={14} className="shrink-0" />
-          <span className="truncate max-w-[70px]">{blockLabel}</span>
+        <div className="h-8 flex items-center gap-1.5 px-2.5 rounded-xl bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold text-xs shadow-xs border border-black/5 dark:border-white/5 shrink-0">
+          <BlockIcon size={14} className="text-blue-500 shrink-0" />
+          <span className="truncate max-w-[76px]">{blockLabel}</span>
         </div>
 
-        <span className="w-px h-4 bg-slate-200 dark:bg-slate-700 shrink-0" />
-
         {/* Alignment Segmented Control */}
-        <div className="flex items-center bg-white dark:bg-slate-700 p-0.5 rounded-xl border border-slate-200/60 dark:border-slate-600 shrink-0">
+        <div className="h-8 flex items-center bg-slate-200/70 dark:bg-slate-700/70 p-0.5 rounded-xl gap-0.5 shrink-0">
           {(['left', 'center', 'right', 'justify'] as TextAlign[]).map((al) => {
             const Icon = al === 'left' ? AlignLeft : al === 'center' ? AlignCenter : al === 'right' ? AlignRight : AlignJustify;
             const isActive = align === al;
@@ -2118,10 +2116,10 @@ function MobileTwoRowToolbar({
                 key={al}
                 type="button"
                 onClick={() => handleAlign(al)}
-                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
                   isActive
-                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
+                    ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs font-bold'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
                 }`}
                 title={`Align ${al}`}
               >
@@ -2145,6 +2143,7 @@ function MobileTwoRowToolbar({
               ]}
               onChange={handleWidth}
               size="sm"
+              buttonClassName="!h-8 !py-0 !rounded-xl !border-black/5 dark:!border-white/5 !shadow-xs !bg-white dark:!bg-slate-700 font-bold text-xs"
             />
           </div>
         ) : blockType === 'heading' ? (
@@ -2164,13 +2163,14 @@ function MobileTwoRowToolbar({
                 showNotification(`Heading Level ${val}`);
               }}
               size="sm"
+              buttonClassName="!h-8 !py-0 !rounded-xl !border-black/5 dark:!border-white/5 !shadow-xs !bg-white dark:!bg-slate-700 font-bold text-xs"
             />
           </div>
         ) : (
           <button
             type="button"
             onClick={() => setSettingsSidebarOpen(true)}
-            className="px-2 py-1 rounded-xl bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200/60 dark:border-slate-600 shadow-2xs cursor-pointer flex items-center gap-1 shrink-0"
+            className="h-8 px-2.5 rounded-xl bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-xs border border-black/5 dark:border-white/5 flex items-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-650 transition-colors cursor-pointer shrink-0"
           >
             <Sliders size={12} className="text-blue-500" />
             <span>Styles</span>
@@ -2181,7 +2181,7 @@ function MobileTwoRowToolbar({
         <button
           type="button"
           onClick={() => setMoreMenuOpen(true)}
-          className="w-7.5 h-7.5 rounded-xl flex items-center justify-center bg-white dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-700 dark:text-slate-200 hover:text-blue-600 border border-slate-200/60 dark:border-slate-600 shadow-2xs transition-colors cursor-pointer shrink-0"
+          className="w-8 h-8 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-xs border border-black/5 dark:border-white/5 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer shrink-0"
           title="More options"
         >
           <MoreVertical size={15} />
@@ -2189,16 +2189,16 @@ function MobileTwoRowToolbar({
       </div>
 
       {/* 2. SECONDARY ROW (Quick Actions Cards) */}
-      <div className="flex items-center gap-2 overflow-x-auto be-scroll pb-1 w-full shrink-0">
+      <div className="flex items-center gap-1.5 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] py-0.5 w-full shrink-0">
         {blockType === 'image' && (
           <>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-1 min-w-[70px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 transition-all cursor-pointer shrink-0 active:scale-95"
+              className="flex flex-col items-center justify-center gap-1 min-w-[62px] h-[52px] rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer shrink-0 active:scale-95"
             >
-              <Upload size={17} className="text-blue-500" />
-              <span className="text-[10px] font-bold">Replace</span>
+              <Upload size={16} className="text-blue-500" />
+              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 tracking-tight">Replace</span>
             </button>
 
             <button
@@ -2208,28 +2208,28 @@ function MobileTwoRowToolbar({
                 updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, aspectRatio: nextRatio } }));
                 showNotification(`Aspect ratio: ${nextRatio}`);
               }}
-              className="flex flex-col items-center justify-center gap-1 min-w-[70px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 transition-all cursor-pointer shrink-0 active:scale-95"
+              className="flex flex-col items-center justify-center gap-1 min-w-[62px] h-[52px] rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer shrink-0 active:scale-95"
             >
-              <Crop size={17} className="text-indigo-500" />
-              <span className="text-[10px] font-bold">Crop</span>
+              <Crop size={16} className="text-indigo-500" />
+              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 tracking-tight">Crop</span>
             </button>
 
             <button
               type="button"
               onClick={() => setLinkDialogOpen(true)}
-              className="flex flex-col items-center justify-center gap-1 min-w-[70px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 transition-all cursor-pointer shrink-0 active:scale-95"
+              className="flex flex-col items-center justify-center gap-1 min-w-[62px] h-[52px] rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer shrink-0 active:scale-95"
             >
-              <LinkIcon size={17} className="text-emerald-500" />
-              <span className="text-[10px] font-bold">Link</span>
+              <LinkIcon size={16} className="text-emerald-500" />
+              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 tracking-tight">Link</span>
             </button>
 
             <button
               type="button"
               onClick={() => setAltDialogOpen(true)}
-              className="flex flex-col items-center justify-center gap-1 min-w-[70px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 transition-all cursor-pointer shrink-0 active:scale-95"
+              className="flex flex-col items-center justify-center gap-1 min-w-[62px] h-[52px] rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 hover:border-blue-300 dark:hover:border-blue-700 transition-all cursor-pointer shrink-0 active:scale-95"
             >
-              <TagIcon size={17} className="text-amber-500" />
-              <span className="text-[10px] font-bold">Alt Text</span>
+              <TagIcon size={16} className="text-amber-500" />
+              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 tracking-tight">Alt Text</span>
             </button>
           </>
         )}
@@ -2240,48 +2240,48 @@ function MobileTwoRowToolbar({
               type="button"
               onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
               onClick={() => execCmd('bold')}
-              className="flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+              className="flex flex-col items-center justify-center gap-1 min-w-[58px] h-[52px] rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 hover:border-blue-300 transition-all cursor-pointer shrink-0 active:scale-95"
             >
-              <Bold size={16} className="text-blue-500" />
-              <span className="text-[10px] font-bold">Bold</span>
+              <Bold size={15} className="text-blue-500" />
+              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 tracking-tight">Bold</span>
             </button>
 
             <button
               type="button"
               onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
               onClick={() => execCmd('italic')}
-              className="flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+              className="flex flex-col items-center justify-center gap-1 min-w-[58px] h-[52px] rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 hover:border-blue-300 transition-all cursor-pointer shrink-0 active:scale-95"
             >
-              <Italic size={16} className="text-indigo-500" />
-              <span className="text-[10px] font-bold">Italic</span>
+              <Italic size={15} className="text-indigo-500" />
+              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 tracking-tight">Italic</span>
             </button>
 
             <button
               type="button"
               onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
               onClick={() => execCmd('underline')}
-              className="flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+              className="flex flex-col items-center justify-center gap-1 min-w-[58px] h-[52px] rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 hover:border-blue-300 transition-all cursor-pointer shrink-0 active:scale-95"
             >
-              <Underline size={16} className="text-purple-500" />
-              <span className="text-[10px] font-bold">Underline</span>
+              <Underline size={15} className="text-purple-500" />
+              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 tracking-tight">Underline</span>
             </button>
 
             <button
               type="button"
               onClick={openLinkPopover}
-              className="flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+              className="flex flex-col items-center justify-center gap-1 min-w-[58px] h-[52px] rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 hover:border-blue-300 transition-all cursor-pointer shrink-0 active:scale-95"
             >
-              <LinkIcon size={16} className="text-emerald-500" />
-              <span className="text-[10px] font-bold">Link</span>
+              <LinkIcon size={15} className="text-emerald-500" />
+              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 tracking-tight">Link</span>
             </button>
 
             <button
               type="button"
               onClick={() => setSettingsSidebarOpen(true)}
-              className="flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+              className="flex flex-col items-center justify-center gap-1 min-w-[58px] h-[52px] rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/40 hover:border-blue-300 transition-all cursor-pointer shrink-0 active:scale-95"
             >
-              <Highlighter size={16} className="text-amber-500" />
-              <span className="text-[10px] font-bold">Color</span>
+              <Highlighter size={15} className="text-amber-500" />
+              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 tracking-tight">Color</span>
             </button>
           </>
         )}
@@ -2293,10 +2293,10 @@ function MobileTwoRowToolbar({
             duplicateBlock(block.id);
             showNotification('Block duplicated');
           }}
-          className="flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+          className="flex flex-col items-center justify-center gap-1 min-w-[58px] h-[52px] rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer shrink-0 active:scale-95"
         >
-          <CopyPlus size={16} className="text-sky-500" />
-          <span className="text-[10px] font-bold">Duplicate</span>
+          <CopyPlus size={15} className="text-sky-500" />
+          <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 tracking-tight">Duplicate</span>
         </button>
 
         <button
@@ -2305,10 +2305,10 @@ function MobileTwoRowToolbar({
             moveBlock(block.id, 'up');
             showNotification('Moved up');
           }}
-          className="flex flex-col items-center justify-center gap-1 min-w-[60px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+          className="flex flex-col items-center justify-center gap-1 min-w-[54px] h-[52px] rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer shrink-0 active:scale-95"
         >
-          <ArrowUp size={16} className="text-slate-500" />
-          <span className="text-[10px] font-bold">Up</span>
+          <ArrowUp size={15} className="text-slate-500" />
+          <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 tracking-tight">Up</span>
         </button>
 
         <button
@@ -2317,10 +2317,10 @@ function MobileTwoRowToolbar({
             moveBlock(block.id, 'down');
             showNotification('Moved down');
           }}
-          className="flex flex-col items-center justify-center gap-1 min-w-[60px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+          className="flex flex-col items-center justify-center gap-1 min-w-[54px] h-[52px] rounded-xl bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 shadow-xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 transition-all cursor-pointer shrink-0 active:scale-95"
         >
-          <ArrowDown size={16} className="text-slate-500" />
-          <span className="text-[10px] font-bold">Down</span>
+          <ArrowDown size={15} className="text-slate-500" />
+          <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 tracking-tight">Down</span>
         </button>
 
         <button
@@ -2329,10 +2329,10 @@ function MobileTwoRowToolbar({
             removeBlock(block.id);
             showNotification('Block deleted');
           }}
-          className="flex flex-col items-center justify-center gap-1 min-w-[60px] h-[58px] rounded-2xl bg-red-50/60 dark:bg-red-950/40 border border-red-200/60 dark:border-red-800/60 shadow-2xs text-red-600 dark:text-red-400 hover:bg-red-100 transition-all cursor-pointer shrink-0 active:scale-95"
+          className="flex flex-col items-center justify-center gap-1 min-w-[54px] h-[52px] rounded-xl bg-red-50/80 dark:bg-red-950/40 border border-red-200/70 dark:border-red-800/70 shadow-xs text-red-600 dark:text-red-400 hover:bg-red-100 transition-all cursor-pointer shrink-0 active:scale-95"
         >
-          <Trash2 size={16} className="text-red-500" />
-          <span className="text-[10px] font-bold">Delete</span>
+          <Trash2 size={15} className="text-red-500" />
+          <span className="text-[10px] font-bold tracking-tight">Delete</span>
         </button>
       </div>
 
@@ -2403,11 +2403,10 @@ function MobileTwoRowToolbar({
                               handleWidth(w);
                               setShowWidthDropdown(false);
                             }}
-                            className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                              width === w
+                            className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${width === w
                                 ? 'bg-blue-600 text-white shadow-2xs'
                                 : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-blue-50'
-                            }`}
+                              }`}
                           >
                             {w}
                           </button>
@@ -2449,11 +2448,10 @@ function MobileTwoRowToolbar({
                                 setShowRatioDropdown(false);
                                 showNotification(`Aspect Ratio: ${r}`);
                               }}
-                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                                isAct
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${isAct
                                   ? 'bg-blue-600 text-white shadow-2xs'
                                   : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-blue-50'
-                              }`}
+                                }`}
                             >
                               {r}
                             </button>
