@@ -461,19 +461,6 @@ function ParagraphToolbar({ block, execCmd, saveSelection }: CommonToolbarProps)
       <InlineFormattingControls block={block} execCmd={execCmd} saveSelection={saveSelection} />
       <ListControls block={block} />
 
-      <Tooltip text="Edit HTML">
-        <button
-          onClick={() => {
-            const { toggleHtmlMode, selectedIds } = useEditorStore.getState();
-            toggleHtmlMode(block?.id || selectedIds[0]);
-          }}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
-          title="Edit HTML"
-        >
-          <Code2 size={15} />
-        </button>
-      </Tooltip>
-
       <Tooltip text="Highlight (Ctrl+Shift+H)">
         <button
           onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
@@ -2252,7 +2239,7 @@ export default function BlockFormattingToolbar() {
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="sticky top-0 z-40 shadow-xs backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border-b border-slate-200/90 dark:border-slate-800 px-3 sm:px-4 py-1.5 sm:py-2 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-1.5 xl:gap-2 shrink-0 transition-all select-none w-full overflow-visible"
+      className="sticky top-0 z-40 shadow-xs backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border-b border-slate-200/90 dark:border-slate-800 px-3 sm:px-4 py-1.5 sm:py-2 flex flex-col shrink-0 transition-all select-none w-full overflow-visible"
     >
       {/* Toast Notification */}
       {toast && (
@@ -2261,8 +2248,8 @@ export default function BlockFormattingToolbar() {
         </div>
       )}
 
-      {/* Mobile Bar: Block Info & Open/Close Format Tools Button (Visible below 1280px) */}
-      <div className="xl:hidden flex items-center justify-between gap-2 w-full py-0.5">
+      {/* Mobile Bar: Block Info & Open/Close Format Tools Button (Visible below 576px / xs) */}
+      <div className="xs:hidden flex items-center justify-between gap-2 w-full py-0.5">
         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
           <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
           <span className="truncate">{block ? getBlockLabel(blockType) : 'Document Tools'}</span>
@@ -2281,10 +2268,10 @@ export default function BlockFormattingToolbar() {
         </button>
       </div>
 
-      {/* Formatting & Controls Area (Collapsible on mobile < xl, always open on desktop xl) */}
-      <div className={`${mobileExpanded ? 'flex' : 'hidden xl:flex'} flex-col xl:flex-row items-stretch xl:items-center justify-between gap-1.5 xl:gap-2 w-full animate-in fade-in zoom-in-95 duration-150`}>
-        {/* Upper Section / Row 1: Formatting & Content Controls */}
-        <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap w-full xl:w-auto">
+      {/* Unified Single Row Toolbar */}
+      <div className={`${mobileExpanded ? 'flex' : 'hidden xs:flex'} items-center justify-between gap-2 flex-wrap w-full animate-in fade-in zoom-in-95 duration-150`}>
+        {/* Left Side: Content & Block Formatting Tools */}
+        <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
           {selectedIds.length > 1 ? (
             <MultiSelectToolbar selectedIds={selectedIds} showNotification={showNotification} />
           ) : block ? (
@@ -2295,13 +2282,13 @@ export default function BlockFormattingToolbar() {
               showNotification={showNotification}
             />
           ) : (
-            <div className="text-xs text-gray-400">Select a block to format</div>
+            <div className="text-xs text-gray-400 py-1">Select a block to format</div>
           )}
         </div>
 
-        {/* Lower Section / Row 2 (100% width below 1280px, right-aligned on desktop xl): Actions & History */}
-        <div className="flex items-center justify-between xl:justify-end gap-1.5 flex-wrap w-full xl:w-auto pt-1.5 xl:pt-0 border-t border-slate-100 dark:border-slate-800/80 xl:border-t-0">
-          <div className="flex items-center gap-1 flex-wrap">
+        {/* Right Side: Global Block Actions (Link, HTML, Move, Duplicate, Delete, Pin) */}
+        {(block || supportsInlineLink) && (
+          <div className="flex items-center gap-1 flex-wrap ml-auto">
             {supportsInlineLink && (
               <div className="relative inline-flex items-center shrink-0">
                 <Tooltip text="Insert / Edit Link (Ctrl+K)">
@@ -2314,7 +2301,7 @@ export default function BlockFormattingToolbar() {
                   </button>
                 </Tooltip>
                 {showLink && (
-                  <div className="absolute top-full left-0 xl:right-0 xl:left-auto mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
+                  <div className="absolute top-full right-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
                     <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                       {linkUrl ? 'Edit Link' : 'Insert Link'}
                     </span>
@@ -2440,34 +2427,34 @@ export default function BlockFormattingToolbar() {
                 </Tooltip>
               </>
             )}
-          </div>
 
-          {/* Pin Block Toggle Button */}
-          {block && (
-            <div className="flex items-center gap-1">
-              <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
-              <Tooltip text={block.attributes?.pinned ? 'Unpin Block' : 'Pin Block'}>
-                <button
-                  onClick={() => {
-                    const isCurrentlyPinned = Boolean(block.attributes?.pinned);
-                    updateBlock(block.id, (b) => ({
-                      ...b,
-                      attributes: { ...b.attributes, pinned: !isCurrentlyPinned },
-                    }));
-                    showNotification(!isCurrentlyPinned ? 'Block pinned to top' : 'Block unpinned');
-                  }}
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 ${block.attributes?.pinned
-                    ? 'bg-amber-500 text-white shadow-md ring-2 ring-amber-400 font-bold'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40'
-                    }`}
-                  title="Pin / Unpin this block"
-                >
-                  <Pin size={15} className={block.attributes?.pinned ? 'rotate-45 text-white' : ''} />
-                </button>
-              </Tooltip>
-            </div>
-          )}
-        </div>
+            {/* Pin Block Toggle Button */}
+            {block && (
+              <>
+                <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+                <Tooltip text={block.attributes?.pinned ? 'Unpin Block' : 'Pin Block'}>
+                  <button
+                    onClick={() => {
+                      const isCurrentlyPinned = Boolean(block.attributes?.pinned);
+                      updateBlock(block.id, (b) => ({
+                        ...b,
+                        attributes: { ...b.attributes, pinned: !isCurrentlyPinned },
+                      }));
+                      showNotification(!isCurrentlyPinned ? 'Block pinned to top' : 'Block unpinned');
+                    }}
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 ${block.attributes?.pinned
+                      ? 'bg-amber-500 text-white shadow-md ring-2 ring-amber-400 font-bold'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                      }`}
+                    title="Pin / Unpin this block"
+                  >
+                    <Pin size={15} className={block.attributes?.pinned ? 'rotate-45 text-white' : ''} />
+                  </button>
+                </Tooltip>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
