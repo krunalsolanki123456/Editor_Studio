@@ -1,6 +1,6 @@
 {
   "name": "react-editor-studio",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Modern, responsive block-based rich content editor with live polls, interactive charts, and multi-embed feeds for React.",
   "type": "module",
   "main": "./dist/editor-studio.umd.cjs",

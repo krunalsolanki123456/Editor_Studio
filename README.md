@@ -33,9 +33,43 @@ pnpm add react-editor-studio
 
 ## ⚡ Quick Start
 
+### React (JavaScript / JSX)
+
+```jsx
+import React, { useState } from 'react';
+import { EditorStudio } from 'react-editor-studio';
+import 'react-editor-studio/dist/style.css';
+
+export default function App() {
+  const [blocks, setBlocks] = useState([]);
+
+  const handleSave = (savedBlocks, html) => {
+    console.log('Saved Blocks JSON:', savedBlocks);
+    console.log('Exported Clean HTML:', html);
+  };
+
+  return (
+    <div style={{ height: '100vh', width: '100vw' }}>
+      <EditorStudio
+        theme="light"
+        initialTitle="My Breaking News Story"
+        onChange={(currentBlocks) => setBlocks(currentBlocks)}
+        onSave={handleSave}
+        enableLiveUpdates={true}
+        enableEmbeds={true}
+        enablePolls={true}
+        enableCharts={true}
+      />
+    </div>
+  );
+}
+```
+
+### TypeScript (TSX)
+
 ```tsx
 import React, { useState } from 'react';
-import { EditorStudio, exportToHtml, type BlockInstance } from 'react-editor-studio';
+import { EditorStudio, type BlockInstance } from 'react-editor-studio';
 import 'react-editor-studio/dist/style.css';
 
 export default function App() {
