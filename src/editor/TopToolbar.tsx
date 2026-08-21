@@ -24,22 +24,51 @@ function Tooltip({
   children: React.ReactNode;
   align?: 'center' | 'left' | 'right';
 }) {
-  const alignClasses =
-    align === 'left'
-      ? 'left-0 translate-x-0'
-      : align === 'right'
-        ? 'right-0 translate-x-0'
-        : 'left-1/2 -translate-x-1/2';
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseEnter = () => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      let left = rect.left + rect.width / 2;
+      if (align === 'left') left = rect.left + 12;
+      else if (align === 'right') left = rect.right - 12;
+      setCoords({
+        top: rect.bottom + 8,
+        left: Math.max(70, Math.min(left, window.innerWidth - 70)),
+      });
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setCoords(null);
+  };
 
   return (
-    <div className="relative group inline-flex items-center">
+    <div
+      ref={triggerRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className="relative inline-flex items-center shrink-0"
+    >
       {children}
-      <div className={`absolute top-full mt-2 ${alignClasses} hidden group-hover:flex flex-col items-center pointer-events-none z-[9999999]`}>
-        <div className="w-2 h-2 bg-slate-900 dark:bg-slate-800 rotate-45 -mb-1 border-t border-l border-slate-700/60 shadow-xs" />
-        <span className="px-2.5 py-1 text-[11px] font-semibold text-white bg-slate-900 dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-700/60 whitespace-nowrap block">
-          {text}
-        </span>
-      </div>
+      {coords && typeof document !== 'undefined' && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: `${coords.top}px`,
+            left: `${coords.left}px`,
+            transform: 'translateX(-50%)',
+          }}
+          className="pointer-events-none z-[99999999] flex flex-col items-center animate-in fade-in duration-100"
+        >
+          <div className="w-2 h-2 bg-slate-900 dark:bg-slate-800 rotate-45 -mb-1 shadow-xs border-t border-l border-slate-700/60" />
+          <span className="px-2.5 py-1 text-[11px] font-semibold text-white bg-slate-900 dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-700/60 whitespace-nowrap block">
+            {text}
+          </span>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
