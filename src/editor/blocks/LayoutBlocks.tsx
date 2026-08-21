@@ -401,7 +401,7 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
             </button>
 
             {showLayoutMenu && (
-              <div className="absolute top-full left-0 mt-2.5 w-60 p-2 bg-[#0f172a] text-slate-100 border border-slate-700/90 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] grid grid-cols-1 gap-1 z-[500] animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 xs:left-0 xs:translate-x-0 mt-2.5 w-60 max-w-[calc(100vw-2rem)] p-2 bg-[#0f172a] text-slate-100 border border-slate-700/90 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] grid grid-cols-1 gap-1 z-[500] animate-in fade-in zoom-in-95 duration-100">
                 {GROUP_LAYOUT_PRESETS.map((p) => (
                   <button
                     key={p.id}
@@ -800,7 +800,7 @@ export function RowBlock({ block, selected = false }: BlockProps) {
             </button>
 
             {showLayoutMenu && (
-              <div className="absolute top-full left-0 mt-2.5 w-64 p-2 bg-[#0f172a] text-slate-100 border border-slate-700/90 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] grid grid-cols-1 gap-1.5 z-[500] animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 xs:left-0 xs:translate-x-0 mt-2.5 w-64 max-w-[calc(100vw-2rem)] p-2 bg-[#0f172a] text-slate-100 border border-slate-700/90 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] grid grid-cols-1 gap-1.5 z-[500] animate-in fade-in zoom-in-95 duration-100">
                 <div className="px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase text-slate-400 border-b border-slate-800 pb-1.5 mb-0.5">
                   Select Layout Preset
                 </div>

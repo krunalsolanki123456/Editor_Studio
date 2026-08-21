@@ -97,8 +97,11 @@ export default function SlashMenu({ open, blockId, anchor, onClose }: SlashMenuP
   };
 
   return (
-    <div className="fixed z-50 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-scale-in"
-      style={{ left: Math.min(anchor.x, window.innerWidth - 300), top: anchor.y + 10 }}>
+    <div className="fixed z-50 w-72 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden animate-scale-in"
+      style={{
+        left: Math.max(12, Math.min(anchor.x, window.innerWidth - 300)),
+        top: Math.max(10, Math.min(anchor.y + 10, window.innerHeight - 340)),
+      }}>
       <div className="p-2 border-b border-gray-200 dark:border-gray-700">
         <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={handleKeyDown}
           placeholder="Search for a block…"
