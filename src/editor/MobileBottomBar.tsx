@@ -70,7 +70,7 @@ export default function MobileBottomBar() {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`flex items-center gap-2.5 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:bg-blue-50 dark:hover:bg-blue-950/40 ${accent || 'text-slate-700 dark:text-slate-200 hover:text-blue-600'}`}
+      className={`flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed hover:bg-blue-50 dark:hover:bg-blue-950/40 ${accent || 'text-slate-700 dark:text-slate-200 hover:text-blue-600'}`}
     >
       {icon}
       <span>{label}</span>

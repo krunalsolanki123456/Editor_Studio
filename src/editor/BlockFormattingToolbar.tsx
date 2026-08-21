@@ -2817,7 +2817,7 @@ export default function BlockFormattingToolbar() {
                   <button
                     onMouseDown={(e) => { e.preventDefault(); }}
                     onClick={openLinkPopover}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
                   >
                     <LinkIcon size={15} />
                   </button>
@@ -2876,7 +2876,7 @@ export default function BlockFormattingToolbar() {
               <Tooltip text="Edit HTML">
                 <button
                   onClick={() => toggleHtmlMode(block.id)}
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${htmlModeBlockIds.includes(block.id)
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors cursor-pointer shrink-0 ${htmlModeBlockIds.includes(block.id)
                     ? 'bg-blue-600 text-white shadow-xs'
                     : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40'
                     }`}
@@ -2896,7 +2896,7 @@ export default function BlockFormattingToolbar() {
                       moveBlock(block.id, 'up');
                       showNotification('Moved block up');
                     }}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
                   >
                     <ArrowUp size={15} />
                   </button>
@@ -2908,7 +2908,7 @@ export default function BlockFormattingToolbar() {
                       moveBlock(block.id, 'down');
                       showNotification('Moved block down');
                     }}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
                   >
                     <ArrowDown size={15} />
                   </button>
@@ -2921,7 +2921,7 @@ export default function BlockFormattingToolbar() {
                       duplicateBlock(block.id);
                       showNotification('Block duplicated');
                     }}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer shrink-0"
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer shrink-0"
                     title="Duplicate this block"
                   >
                     <CopyPlus size={15} />
@@ -2935,7 +2935,7 @@ export default function BlockFormattingToolbar() {
                       removeBlock(block.id);
                       showNotification('Block deleted');
                     }}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-700 transition-all cursor-pointer shrink-0"
+                    className="w-8 h-8 rounded-xl flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-700 transition-all cursor-pointer shrink-0"
                     title="Delete this block"
                   >
                     <Trash2 size={15} />
@@ -2953,7 +2953,7 @@ export default function BlockFormattingToolbar() {
               <button
                 onClick={undo}
                 disabled={past.length === 0}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
               >
                 <Undo2 size={15} />
               </button>
@@ -2964,7 +2964,7 @@ export default function BlockFormattingToolbar() {
               <button
                 onClick={redo}
                 disabled={future.length === 0}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
               >
                 <Redo2 size={15} />
               </button>
@@ -2982,7 +2982,7 @@ export default function BlockFormattingToolbar() {
                     }));
                     showNotification(!isCurrentlyPinned ? 'Block pinned to top' : 'Block unpinned');
                   }}
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 ${block.attributes?.pinned
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${block.attributes?.pinned
                     ? 'bg-amber-500 text-white shadow-md ring-2 ring-amber-400 font-bold'
                     : 'text-gray-600 dark:text-gray-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40'
                     }`}
