@@ -2142,7 +2142,7 @@ function MobileTwoRowToolbar({
                 { value: '100%', label: '100%' },
               ]}
               onChange={handleWidth}
-              size="sm"
+              size="xs"
               buttonClassName="!h-8 !py-0 !rounded-xl !border-black/5 dark:!border-white/5 !shadow-xs !bg-white dark:!bg-slate-700 font-bold text-xs"
             />
           </div>
@@ -2162,7 +2162,7 @@ function MobileTwoRowToolbar({
                 updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, level: Number(val) } }));
                 showNotification(`Heading Level ${val}`);
               }}
-              size="sm"
+              size="xs"
               buttonClassName="!h-8 !py-0 !rounded-xl !border-black/5 dark:!border-white/5 !shadow-xs !bg-white dark:!bg-slate-700 font-bold text-xs"
             />
           </div>
