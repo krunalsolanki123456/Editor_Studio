@@ -1014,7 +1014,7 @@ export default function BlockFormattingToolbar() {
       )}
 
       {/* Main Google Docs Pill Bar */}
-      <div className="flex items-center gap-0.5 sm:gap-1 bg-[#edf2fa] dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-full px-2 sm:px-3 py-1 w-full max-w-full overflow-x-auto be-scroll shadow-2xs">
+      <div className="flex items-center gap-0.5 sm:gap-1 bg-[#edf2fa] dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-full px-2 sm:px-3 py-1 w-full max-w-full overflow-visible shadow-2xs">
         {/* Multi-select indicator if multiple blocks selected */}
         {selectedIds.length > 1 ? (
           <MultiSelectToolbar selectedIds={selectedIds} showNotification={showNotification} />
