@@ -437,111 +437,296 @@ function ListControls({ block }: { block: BlockInstance }) {
 }
 
 // ==========================================
+// DESKTOP BLOCK MORE MENU COMPONENT (⋯)
+// ==========================================
+
+function BlockMoreMenu({ block }: { block: BlockInstance }) {
+  const [open, setOpen] = useState(false);
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const duplicateBlock = useEditorStore((s) => s.duplicateBlock);
+  const removeBlock = useEditorStore((s) => s.removeBlock);
+  const moveBlock = useEditorStore((s) => s.moveBlock);
+  const toggleHtmlMode = useEditorStore((s) => s.toggleHtmlMode);
+  const htmlModeBlockIds = useEditorStore((s) => s.htmlModeBlockIds);
+  const isHtml = htmlModeBlockIds.includes(block.id);
+  const isPinned = Boolean(block.attributes?.pinned);
+
+  return (
+    <div className="relative inline-flex items-center shrink-0">
+      <Tooltip text="More options">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+            open
+              ? 'bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white'
+              : 'text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50/70 dark:hover:bg-blue-950/40'
+          }`}
+        >
+          <MoreHorizontal size={16} />
+        </button>
+      </Tooltip>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-[120]" onClick={() => setOpen(false)} />
+          <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-800 p-1.5 flex flex-col gap-0.5 z-[130] animate-in fade-in zoom-in-95 duration-150 select-none">
+            <button
+              type="button"
+              onClick={() => { moveBlock(block.id, 'up'); setOpen(false); }}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer w-full text-left"
+            >
+              <ArrowUp size={14} className="text-slate-400" />
+              <span>Move Up</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { moveBlock(block.id, 'down'); setOpen(false); }}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer w-full text-left"
+            >
+              <ArrowDown size={14} className="text-slate-400" />
+              <span>Move Down</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { duplicateBlock(block.id); setOpen(false); }}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer w-full text-left"
+            >
+              <CopyPlus size={14} className="text-slate-400" />
+              <span>Duplicate</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, pinned: !isPinned } }));
+                setOpen(false);
+              }}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer w-full text-left"
+            >
+              <Pin size={14} className={isPinned ? 'text-amber-500' : 'text-slate-400'} />
+              <span>{isPinned ? 'Unpin Block' : 'Pin to Top'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { toggleHtmlMode(block.id); setOpen(false); }}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer w-full text-left"
+            >
+              <Code2 size={14} className="text-slate-400" />
+              <span>{isHtml ? 'Visual Editor' : 'Edit HTML'}</span>
+            </button>
+            <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
+            <button
+              type="button"
+              onClick={() => { removeBlock(block.id); setOpen(false); }}
+              className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer w-full text-left"
+            >
+              <Trash2 size={14} />
+              <span>Delete Block</span>
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ==========================================
 // BLOCK SPECIFIC TOOLBAR IMPLEMENTATIONS
 // ==========================================
 
 function ParagraphToolbar({ block, execCmd, saveSelection }: CommonToolbarProps) {
-  const [showEmoji, setShowEmoji] = useState(false);
-  const [emojiCategory, setEmojiCategory] = useState<'smileys' | 'gestures' | 'symbols' | 'work'>('smileys');
+  const [showLink, setShowLink] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkText, setLinkText] = useState('');
+  const [savedRange, setSavedRange] = useState<Range | null>(null);
 
-  const emojiCategories = {
-    smileys: { label: '😃 Smileys', items: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😋', '😛', '😜', '🤪', '😎', '🥳', '😭', '🤯', '🤠'] },
-    gestures: { label: '👍 Gestures', items: ['👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '👋', '✍️', '🙏', '🤝', '👏', '🙌', '💪'] },
-    symbols: { label: '❤️ Symbols', items: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '✨', '⭐', '🌟', '💥', '🔥', '⚡', '🌈', '✅', '☑️', '❌', '⭕'] },
-    work: { label: '📝 Work', items: ['📝', '📄', '📑', '📋', '📁', '📊', '📈', '📌', '📎', '✂️', '✏️', '🔍', '🔒', '💻', '📱', '⏰', '💡', '🎯', '🏆', '🚀', '🎉'] },
+  const openLinkPopover = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      setSavedRange(sel.getRangeAt(0).cloneRange());
+      let node: Node | null = sel.getRangeAt(0).commonAncestorContainer;
+      while (node && node !== document.body) {
+        if (node.nodeType === 1 && (node as HTMLElement).tagName === 'A') {
+          setLinkUrl((node as HTMLAnchorElement).getAttribute('href') || '');
+          setLinkText((node as HTMLElement).innerText || '');
+          setShowLink(true);
+          return;
+        }
+        node = node.parentNode;
+      }
+      setLinkUrl('');
+      setLinkText(sel.toString() || '');
+      setShowLink(true);
+    } else {
+      setShowLink(true);
+    }
   };
 
-  const insertEmoji = (emoji: string) => {
-    document.execCommand('insertText', false, emoji);
-    setShowEmoji(false);
+  const applyLink = () => {
+    if (savedRange) {
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(savedRange);
+    }
+    let formatted = linkUrl.trim();
+    if (formatted && !/^https?:\/\//i.test(formatted) && !/^mailto:/i.test(formatted) && !/^#/i.test(formatted)) {
+      formatted = 'https://' + formatted;
+    }
+    if (formatted) {
+      document.execCommand('createLink', false, formatted);
+    }
+    setShowLink(false);
   };
 
   return (
     <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       <BlockTypeSelector block={block} />
+      <span className="text-slate-300 dark:text-slate-700 font-bold px-1 select-none">⋮</span>
       <InlineFormattingControls block={block} execCmd={execCmd} saveSelection={saveSelection} />
-      <ListControls block={block} />
 
-      <Tooltip text="Edit HTML">
-        <button
-          onClick={() => {
-            const { toggleHtmlMode, selectedIds } = useEditorStore.getState();
-            toggleHtmlMode(block?.id || selectedIds[0]);
-          }}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
-          title="Edit HTML"
-        >
-          <Code2 size={15} />
-        </button>
-      </Tooltip>
-
-      <Tooltip text="Highlight (Ctrl+Shift+H)">
-        <button
-          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
-          onClick={() => execCmd('hiliteColor', '#fef08a')}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950/40 transition-colors cursor-pointer shrink-0"
-        >
-          <Highlighter size={15} />
-        </button>
-      </Tooltip>
-
+      {/* Link Popover */}
       <div className="relative inline-flex items-center shrink-0">
-        <Tooltip text="Insert Emoji">
+        <Tooltip text="Link (Ctrl+K)">
           <button
-            onClick={() => setShowEmoji(!showEmoji)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={openLinkPopover}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/70 dark:hover:bg-blue-950/40 transition-colors cursor-pointer shrink-0"
           >
-            <Smile size={15} />
+            <LinkIcon size={15} />
           </button>
         </Tooltip>
-        {showEmoji && (
-          <div className="absolute top-full left-0 mt-2 p-2 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 z-[100] w-72 flex flex-col gap-2">
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-1.5 px-0.5">
-              {(Object.keys(emojiCategories) as (keyof typeof emojiCategories)[]).map((catKey) => (
-                <button
-                  key={catKey}
-                  onClick={() => setEmojiCategory(catKey)}
-                  className={`text-xs font-semibold px-2 py-1 rounded-lg transition-colors cursor-pointer ${emojiCategory === catKey ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}
-                >
-                  {emojiCategories[catKey].label.split(' ')[0]}
-                </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-6 gap-1 max-h-52 overflow-y-auto be-scroll p-1">
-              {emojiCategories[emojiCategory].items.map((emoji, idx) => (
-                <button
-                  key={`${emoji}-${idx}`}
-                  onClick={() => insertEmoji(emoji)}
-                  className="p-1 text-lg hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-center cursor-pointer transition-transform hover:scale-125 flex items-center justify-center"
-                >
-                  {emoji}
-                </button>
-              ))}
+        {showLink && (
+          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2 z-[130] w-64">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              {linkUrl ? 'Edit Link' : 'Insert Link'}
+            </span>
+            <input
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="https://example.com"
+              className="px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && applyLink()}
+            />
+            <div className="flex justify-end gap-1.5 mt-1">
+              <button type="button" onClick={() => setShowLink(false)} className="px-2.5 py-1 text-xs text-slate-500 cursor-pointer">
+                Cancel
+              </button>
+              <button type="button" onClick={applyLink} className="px-3 py-1 text-xs font-semibold rounded-xl bg-blue-600 text-white cursor-pointer hover:bg-blue-700">
+                {linkUrl ? 'Update' : 'Apply'}
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      <Tooltip text="Clear Formatting (Ctrl+\\)">
-        <button
-          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
-          onClick={() => execCmd('removeFormat')}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer shrink-0"
-        >
-          <Eraser size={15} />
-        </button>
-      </Tooltip>
+      <BlockMoreMenu block={block} />
     </div>
   );
 }
 
 function HeadingToolbar({ block, execCmd, saveSelection, showNotification }: CommonToolbarProps) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const currentLvl = block.attributes.level || 2;
+  const isBold = (block.attributes?.fontWeight === 700 || block.attributes?.fontWeight === 'bold') || true;
+  const [showLink, setShowLink] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
+
+  const toggleBold = () => {
+    const next = block.attributes?.fontWeight === 400 ? 700 : 400;
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, fontWeight: next } }));
+  };
+
+  const applyLink = () => {
+    let formatted = linkUrl.trim();
+    if (formatted && !/^https?:\/\//i.test(formatted) && !/^#/i.test(formatted)) {
+      formatted = 'https://' + formatted;
+    }
+    if (formatted) {
+      document.execCommand('createLink', false, formatted);
+    }
+    setShowLink(false);
+  };
+
   return (
     <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <BlockTypeSelector block={block} />
-      <InlineFormattingControls block={block} execCmd={execCmd} saveSelection={saveSelection} />
-      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" />
+      {/* Heading Level Dropdown with active blue tint */}
+      <div className="w-18 shrink-0">
+        <CustomSelect
+          value={String(currentLvl)}
+          options={[
+            { value: '1', label: 'H1' },
+            { value: '2', label: 'H2' },
+            { value: '3', label: 'H3' },
+            { value: '4', label: 'H4' },
+            { value: '5', label: 'H5' },
+            { value: '6', label: 'H6' },
+          ]}
+          onChange={(val) => {
+            updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, level: Number(val) } }));
+            showNotification(`Heading Level ${val}`);
+          }}
+          size="xs"
+          buttonClassName="!h-8 !py-0 !px-2.5 !rounded-xl !bg-blue-50 dark:!bg-blue-950/70 !text-blue-600 dark:!text-blue-400 !border-blue-200/50 dark:!border-blue-800/50 font-bold text-xs"
+        />
+      </div>
+
+      <span className="text-slate-300 dark:text-slate-700 font-bold px-1 select-none">⋮</span>
+
+      {/* Bold */}
+      <Tooltip text="Bold">
+        <button
+          type="button"
+          onClick={toggleBold}
+          className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs transition-all cursor-pointer ${
+            block.attributes?.fontWeight === 400
+              ? 'text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800'
+              : 'bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 font-bold border border-blue-200/50 dark:border-blue-800/50'
+          }`}
+        >
+          B
+        </button>
+      </Tooltip>
+
+      {/* Alignment */}
       <AlignmentPicker block={block} showNotification={showNotification} />
+
+      {/* Link */}
+      <div className="relative inline-flex items-center shrink-0">
+        <Tooltip text="Link">
+          <button
+            type="button"
+            onClick={() => setShowLink(!showLink)}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/70 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
+          >
+            <LinkIcon size={15} />
+          </button>
+        </Tooltip>
+        {showLink && (
+          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2 z-[130] w-64">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Heading Link</span>
+            <input
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="https://example.com"
+              className="px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && applyLink()}
+            />
+            <div className="flex justify-end gap-1.5 mt-1">
+              <button type="button" onClick={() => setShowLink(false)} className="px-2.5 py-1 text-xs text-slate-500 cursor-pointer">
+                Cancel
+              </button>
+              <button type="button" onClick={applyLink} className="px-3 py-1 text-xs font-semibold rounded-xl bg-blue-600 text-white cursor-pointer hover:bg-blue-700">
+                Apply
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <BlockMoreMenu block={block} />
     </div>
   );
 }
@@ -585,80 +770,36 @@ function ImageToolbar({ block, showNotification }: CommonToolbarProps) {
     showNotification(formatted ? 'Image link updated' : 'Image link removed');
   };
 
-  const currentWidth = (block.attributes.width as string) || '100%';
-
   return (
     <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 rounded-lg border border-blue-200/60 dark:border-blue-800/60">
-        <ImageIcon size={14} /> Image
+      <span className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60 shrink-0">
+        <ImageIcon size={15} />
       </span>
 
-      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+      <span className="text-slate-300 dark:text-slate-700 font-bold px-1 select-none">⋮</span>
 
-      {/* Image Alignment Picker */}
+      {/* Image Alignment */}
       <AlignmentPicker block={block} showNotification={showNotification} />
 
-      {/* Width Dropdown (Requirement 4) */}
-      <Tooltip text="Image Width">
-        <div className="w-28">
-          <CustomSelect
-            value={currentWidth}
-            options={[
-              { value: 'auto', label: 'Auto' },
-              { value: '25%', label: '25%' },
-              { value: '50%', label: '50%' },
-              { value: '75%', label: '75%' },
-              { value: '100%', label: '100%' },
-            ]}
-            onChange={(val) => {
-              updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, width: val } }));
-              showNotification(`Width set to ${val}`);
-            }}
-            size="sm"
-          />
-        </div>
-      </Tooltip>
-
-      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
-
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageReplace} className="hidden" />
-      <Tooltip text="Replace Image">
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
-        >
-          <Upload size={14} /> Replace
-        </button>
-      </Tooltip>
-
-      <Tooltip text="Crop Image">
-        <button
-          onClick={() => {
-            updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, isCropping: true } }));
-            showNotification('Crop tool opened');
-          }}
-          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
-        >
-          <Crop size={14} /> Crop
-        </button>
-      </Tooltip>
-
+      {/* Aspect Ratio / Crop */}
       <div className="relative inline-flex items-center">
-        <Tooltip text="Aspect Ratio">
+        <Tooltip text="Crop / Aspect Ratio">
           <button
+            type="button"
             onClick={() => setShowCropMenu(!showCropMenu)}
-            className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
-            Aspect Ratio
+            <Crop size={15} />
           </button>
         </Tooltip>
         {showCropMenu && (
-          <div className="absolute top-full left-0 mt-2 p-1.5 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-1 z-[100] w-36">
+          <div className="absolute top-full left-0 mt-2 p-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-1 z-[130] w-36">
             {['auto', '16:9', '4:3', '1:1', '9:16', '3:2', '2:1'].map((ratio) => (
               <button
                 key={ratio}
+                type="button"
                 onClick={() => applyCropRatio(ratio)}
-                className={`px-2.5 py-1 text-xs font-medium text-left rounded-lg transition-colors cursor-pointer capitalize ${(block.attributes.aspectRatio || 'auto') === ratio ? 'bg-primary-50 text-primary-600 dark:bg-primary-950/50 dark:text-primary-300 font-semibold' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                className={`px-2.5 py-1 text-xs font-semibold text-left rounded-xl transition-colors cursor-pointer capitalize ${(block.attributes.aspectRatio || 'auto') === ratio ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
               >
                 {ratio === 'auto' ? 'Original / Auto' : ratio}
               </button>
@@ -667,31 +808,33 @@ function ImageToolbar({ block, showNotification }: CommonToolbarProps) {
         )}
       </div>
 
+      {/* Image Link */}
       <div className="relative inline-flex items-center">
         <Tooltip text="Image Link">
           <button
+            type="button"
             onClick={() => setShowLinkPopover(!showLinkPopover)}
-            className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${block.attributes.link ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 font-semibold' : 'bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200'}`}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${block.attributes.link ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
           >
-            <LinkIcon size={14} /> Link
+            <LinkIcon size={15} />
           </button>
         </Tooltip>
         {showLinkPopover && (
-          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64">
-            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Image Destination Link</span>
+          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2 z-[130] w-64">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Image Link</span>
             <input
               value={linkInput}
               onChange={(e) => setLinkInput(e.target.value)}
               placeholder="https://example.com"
-              className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
+              className="px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
               onKeyDown={(e) => e.key === 'Enter' && applyLink()}
               autoFocus
             />
             <div className="flex justify-end gap-1.5 mt-1">
-              <button onClick={() => setShowLinkPopover(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
+              <button type="button" onClick={() => setShowLinkPopover(false)} className="px-2.5 py-1 text-xs text-slate-500 cursor-pointer">
                 Cancel
               </button>
-              <button onClick={applyLink} className="px-3 py-1 text-xs font-semibold rounded-lg bg-primary-600 text-white cursor-pointer">
+              <button type="button" onClick={applyLink} className="px-3 py-1 text-xs font-semibold rounded-xl bg-blue-600 text-white cursor-pointer hover:bg-blue-700">
                 Save Link
               </button>
             </div>
@@ -699,49 +842,51 @@ function ImageToolbar({ block, showNotification }: CommonToolbarProps) {
         )}
       </div>
 
-      <Tooltip text="Toggle Caption">
-        <button
-          onClick={() => {
-            updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, showCaption: b.attributes.showCaption === false ? true : false } }));
-            showNotification('Caption toggled');
-          }}
-          className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${block.attributes.showCaption !== false ? 'bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}
-        >
-          <Subtitles size={14} /> Caption
-        </button>
-      </Tooltip>
-
+      {/* Alt Text */}
       <div className="relative inline-flex items-center">
-        <Tooltip text="Edit Alt Text">
+        <Tooltip text="Alt Text">
           <button
+            type="button"
             onClick={() => setShowAltPopover(!showAltPopover)}
-            className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
-            <TagIcon size={14} /> Alt Text
+            <TagIcon size={15} />
           </button>
         </Tooltip>
         {showAltPopover && (
-          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64">
-            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Alt Text (Accessibility)</span>
+          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2 z-[130] w-64">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Alt Text (Accessibility)</span>
             <input
               value={altInput}
               onChange={(e) => setAltInput(e.target.value)}
               placeholder="Describe this image..."
-              className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
+              className="px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
               onKeyDown={(e) => e.key === 'Enter' && applyAltText()}
               autoFocus
             />
             <div className="flex justify-end gap-1.5 mt-1">
-              <button onClick={() => setShowAltPopover(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
+              <button type="button" onClick={() => setShowAltPopover(false)} className="px-2.5 py-1 text-xs text-slate-500 cursor-pointer">
                 Cancel
               </button>
-              <button onClick={applyAltText} className="px-3 py-1 text-xs font-semibold rounded-lg bg-primary-600 text-white cursor-pointer">
+              <button type="button" onClick={applyAltText} className="px-3 py-1 text-xs font-semibold rounded-xl bg-blue-600 text-white cursor-pointer hover:bg-blue-700">
                 Save Alt
               </button>
             </div>
           </div>
         )}
       </div>
+
+      {/* Replace Image Button Pill */}
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageReplace} className="hidden" />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="px-3 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 shadow-2xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+      >
+        <span>Replace</span>
+      </button>
+
+      <BlockMoreMenu block={block} />
     </div>
   );
 }
@@ -750,6 +895,7 @@ function ButtonToolbar({ block, showNotification }: CommonToolbarProps) {
   const updateBlock = useEditorStore((s) => s.updateBlock);
   const [showUrlPopover, setShowUrlPopover] = useState(false);
   const [urlInput, setUrlInput] = useState((block.attributes.url as string) || '');
+  const setSettingsSidebarOpen = useEditorStore((s) => s.setSettingsSidebarOpen);
 
   const applyUrl = () => {
     let formatted = urlInput.trim();
@@ -761,86 +907,65 @@ function ButtonToolbar({ block, showNotification }: CommonToolbarProps) {
 
   return (
     <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-lg border border-emerald-200/60 dark:border-emerald-800/60">
-        <LinkIcon size={14} /> Button
+      <span className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60 shrink-0">
+        <Square size={15} />
       </span>
 
-      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+      <span className="text-slate-300 dark:text-slate-700 font-bold px-1 select-none">⋮</span>
 
+      <AlignmentPicker block={block} showNotification={showNotification} />
+
+      {/* Destination URL */}
       <div className="relative inline-flex items-center">
-        <Tooltip text="Edit Button Link URL">
+        <Tooltip text="Button Link">
           <button
+            type="button"
             onClick={() => setShowUrlPopover(!showUrlPopover)}
-            className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${block.attributes.url ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
           >
-            <ExternalLink size={14} /> URL
+            <LinkIcon size={15} />
           </button>
         </Tooltip>
         {showUrlPopover && (
-          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64">
-            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Button Destination</span>
+          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2 z-[130] w-64">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Button Destination</span>
             <input
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               placeholder="https://example.com"
-              className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
+              className="px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
               onKeyDown={(e) => e.key === 'Enter' && applyUrl()}
               autoFocus
             />
             <div className="flex justify-end gap-1.5 mt-1">
-              <button onClick={() => setShowUrlPopover(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
+              <button type="button" onClick={() => setShowUrlPopover(false)} className="px-2.5 py-1 text-xs text-slate-500 cursor-pointer">
                 Cancel
               </button>
-              <button onClick={applyUrl} className="px-3 py-1 text-xs font-semibold rounded-lg bg-primary-600 text-white cursor-pointer">
-                Save URL
+              <button type="button" onClick={applyUrl} className="px-3 py-1 text-xs font-semibold rounded-xl bg-blue-600 text-white cursor-pointer hover:bg-blue-700">
+                Save
               </button>
             </div>
           </div>
         )}
       </div>
 
-      <div className="w-28">
-        <CustomSelect
-          value={(block.attributes.style as string) || 'fill'}
-          options={[
-            { value: 'fill', label: 'Filled' },
-            { value: 'outline', label: 'Outline' },
-            { value: 'link', label: 'Link' },
-          ]}
-          onChange={(val) => {
-            updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, style: val } }));
-            showNotification(`Style set to ${val}`);
-          }}
-          size="sm"
-        />
-      </div>
+      {/* Edit Pill Button */}
+      <button
+        type="button"
+        onClick={() => setSettingsSidebarOpen(true)}
+        className="px-3 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 shadow-2xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+      >
+        <span>Edit</span>
+      </button>
 
-      <div className="w-32">
-        <CustomSelect
-          value={(block.attributes.width as string) || 'auto'}
-          options={[
-            { value: 'auto', label: 'Width: Auto' },
-            { value: '25%', label: 'Width: 25%' },
-            { value: '50%', label: 'Width: 50%' },
-            { value: '75%', label: 'Width: 75%' },
-            { value: '100%', label: 'Width: 100%' },
-          ]}
-          onChange={(val) => {
-            updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, width: val } }));
-            showNotification(`Width set to ${val}`);
-          }}
-          size="sm"
-        />
-      </div>
-
-      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
-      <AlignmentPicker block={block} showNotification={showNotification} />
+      <BlockMoreMenu block={block} />
     </div>
   );
 }
 
 function ColumnsToolbar({ block, showNotification }: CommonToolbarProps) {
   const updateBlock = useEditorStore((s) => s.updateBlock);
+  const [showPicker, setShowPicker] = useState(false);
   const cols = (block.attributes.columns as number) || 2;
 
   const setColumnCount = (count: number) => {
@@ -860,28 +985,46 @@ function ColumnsToolbar({ block, showNotification }: CommonToolbarProps) {
         innerBlocks: nextInner,
       };
     });
+    setShowPicker(false);
     showNotification(`Columns set to ${count}`);
   };
 
   return (
     <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 rounded-lg border border-indigo-200/60 dark:border-indigo-800/60">
-        <ColumnsIcon size={14} /> Columns ({cols})
+      <span className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60 shrink-0">
+        <Columns3 size={15} />
       </span>
 
-      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+      <span className="text-slate-300 dark:text-slate-700 font-bold px-1 select-none">⋮</span>
 
-      <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-0.5 rounded-lg border border-gray-200 dark:border-gray-700">
-        {[2, 3, 4].map((count) => (
+      {/* Edit Layout Popover */}
+      <div className="relative inline-flex items-center">
+        <Tooltip text="Change Columns Layout">
           <button
-            key={count}
-            onClick={() => setColumnCount(count)}
-            className={`px-2.5 py-1 text-xs font-semibold rounded transition-colors cursor-pointer ${cols === count ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'}`}
+            type="button"
+            onClick={() => setShowPicker(!showPicker)}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
-            {count} Cols
+            <PenTool size={15} />
           </button>
-        ))}
+        </Tooltip>
+        {showPicker && (
+          <div className="absolute top-full left-0 mt-2 p-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 flex items-center gap-1 z-[130]">
+            {[2, 3, 4].map((count) => (
+              <button
+                key={count}
+                type="button"
+                onClick={() => setColumnCount(count)}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-xl transition-colors cursor-pointer ${cols === count ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-300 font-bold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                {count} Cols
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      <BlockMoreMenu block={block} />
     </div>
   );
 }
@@ -1027,71 +1170,23 @@ function TableToolbar({ block, showNotification }: CommonToolbarProps) {
 
 function ListToolbar({ block, saveSelection, showNotification }: CommonToolbarProps) {
   const updateBlock = useEditorStore((s) => s.updateBlock);
+  const currentStyle = (block.attributes.style as ListStyle) || 'bullet';
 
   const toggleStyle = (targetStyle: ListStyle) => {
-    const currentStyle = (block.attributes.style as ListStyle) || 'bullet';
-
-    if (currentStyle === targetStyle) {
-      // Toggle OFF: Convert list to paragraph block(s)
-      const currentBlocks = useEditorStore.getState().blocks;
-      const blockIdx = currentBlocks.findIndex((b) => b.id === block.id);
-      const items = (block.attributes.items as { id: string; content: RichTextValue }[]) || [];
-
-      const firstItemContent = items[0]?.content || [];
-      updateBlock(block.id, (current) => ({
-        ...current,
-        type: 'paragraph',
-        attributes: {
-          content: firstItemContent,
-        },
-      }));
-
-      if (items.length > 1 && blockIdx !== -1) {
-        const extraParagraphs: BlockInstance[] = items.slice(1).map((it) => ({
-          id: createId(),
-          type: 'paragraph',
-          attributes: { content: it.content || [] },
-        }));
-
-        useEditorStore.setState((state) => {
-          const newBlocks = [...state.blocks];
-          newBlocks.splice(blockIdx + 1, 0, ...extraParagraphs);
-          return { blocks: newBlocks };
-        });
-      }
-      showNotification('Removed list formatting');
-      return;
-    }
-
     updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, style: targetStyle } }));
     showNotification(`List style set to ${targetStyle}`);
   };
 
-  const getActiveListItemId = (): string | null => {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0) return null;
-    let node: Node | null = sel.getRangeAt(0).commonAncestorContainer;
-    while (node && node !== document.body) {
-      if (node.nodeType === 1 && (node as HTMLElement).hasAttribute('data-list-item')) {
-        return (node as HTMLElement).getAttribute('data-list-item');
-      }
-      node = node.parentNode;
-    }
-    return null;
-  };
-
   const indentList = () => {
     const items = (block.attributes.items as { id: string; content: RichTextValue; level?: number }[]) ?? [];
-    const activeId = getActiveListItemId();
-    const itemId = activeId || items[items.length - 1]?.id || items[0]?.id;
-    if (itemId) {
+    if (items.length > 0) {
       updateBlock(block.id, (b) => {
         const curItems = (b.attributes.items as { id: string; content: RichTextValue; level?: number }[]) ?? [];
         return {
           ...b,
           attributes: {
             ...b.attributes,
-            items: curItems.map((it) => (it.id === itemId ? { ...it, level: Math.min((it.level || 0) + 1, 4) } : it)),
+            items: curItems.map((it) => ({ ...it, level: Math.min((it.level || 0) + 1, 4) })),
           },
         };
       });
@@ -1101,16 +1196,14 @@ function ListToolbar({ block, saveSelection, showNotification }: CommonToolbarPr
 
   const outdentList = () => {
     const items = (block.attributes.items as { id: string; content: RichTextValue; level?: number }[]) ?? [];
-    const activeId = getActiveListItemId();
-    const itemId = activeId || items[items.length - 1]?.id || items[0]?.id;
-    if (itemId) {
+    if (items.length > 0) {
       updateBlock(block.id, (b) => {
         const curItems = (b.attributes.items as { id: string; content: RichTextValue; level?: number }[]) ?? [];
         return {
           ...b,
           attributes: {
             ...b.attributes,
-            items: curItems.map((it) => (it.id === itemId ? { ...it, level: Math.max((it.level || 0) - 1, 0) } : it)),
+            items: curItems.map((it) => ({ ...it, level: Math.max((it.level || 0) - 1, 0) })),
           },
         };
       });
@@ -1118,73 +1211,195 @@ function ListToolbar({ block, saveSelection, showNotification }: CommonToolbarPr
     }
   };
 
-  const currentStyle = (block.attributes.style as ListStyle) || 'bullet';
-
   return (
     <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       <BlockTypeSelector block={block} />
+      <span className="text-slate-300 dark:text-slate-700 font-bold px-1 select-none">⋮</span>
 
+      {/* Bullet Toggle */}
       <Tooltip text="Bullet list">
         <button
+          type="button"
           onClick={() => toggleStyle('bullet')}
-          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${currentStyle === 'bullet' ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/70 dark:text-primary-300 font-semibold shadow-2xs' : 'text-gray-600 dark:text-gray-300 hover:text-primary-600'}`}
+          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+            currentStyle === 'bullet'
+              ? 'bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 font-bold border border-blue-200/50 dark:border-blue-800/50'
+              : 'text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
         >
           <List size={15} />
         </button>
       </Tooltip>
 
+      {/* Numbered Toggle */}
       <Tooltip text="Numbered list">
         <button
+          type="button"
           onClick={() => toggleStyle('number')}
-          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${currentStyle === 'number' ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/70 dark:text-primary-300 font-semibold shadow-2xs' : 'text-gray-600 dark:text-gray-300 hover:text-primary-600'}`}
+          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+            currentStyle === 'number'
+              ? 'bg-blue-50 dark:bg-blue-950/70 text-blue-600 dark:text-blue-400 font-bold border border-blue-200/50 dark:border-blue-800/50'
+              : 'text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
         >
           <ListOrdered size={15} />
         </button>
       </Tooltip>
 
-      <Tooltip text="Checklist">
+      {/* Outdent */}
+      <Tooltip text="Outdent (Shift+Tab)">
         <button
-          onClick={() => toggleStyle('checklist')}
-          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${currentStyle === 'checklist' ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/70 dark:text-primary-300 font-semibold shadow-2xs' : 'text-gray-600 dark:text-gray-300 hover:text-primary-600'}`}
+          type="button"
+          onClick={outdentList}
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         >
-          <CheckSquare size={15} />
+          <Outdent size={15} />
         </button>
       </Tooltip>
 
-      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" />
-
-      <Tooltip text="Indent list (Tab)">
+      {/* Indent */}
+      <Tooltip text="Indent (Tab)">
         <button
-          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+          type="button"
           onClick={indentList}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 transition-colors cursor-pointer shrink-0"
+          className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         >
           <Indent size={15} />
         </button>
       </Tooltip>
 
-      <Tooltip text="Outdent list (Shift+Tab)">
-        <button
-          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
-          onClick={outdentList}
-          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 transition-colors cursor-pointer shrink-0"
-        >
-          <Outdent size={15} />
-        </button>
-      </Tooltip>
+      <BlockMoreMenu block={block} />
     </div>
   );
 }
 
 function MediaEmbedToolbar({ block, showNotification }: CommonToolbarProps) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showUrlPopover, setShowUrlPopover] = useState(false);
+  const [urlInput, setUrlInput] = useState((block.attributes.url as string) || '');
+  const [showSettings, setShowSettings] = useState(false);
+
+  const applyUrl = () => {
+    let formatted = urlInput.trim();
+    if (formatted && !/^https?:\/\//i.test(formatted) && !/^mailto:/i.test(formatted)) {
+      formatted = 'https://' + formatted;
+    }
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, url: formatted } }));
+    setShowUrlPopover(false);
+    showNotification('Video URL updated');
+  };
+
+  const handleVideoReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, url } }));
+    showNotification('Video replaced');
+  };
+
   return (
     <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 rounded-lg border border-purple-200/60 dark:border-purple-800/60">
-        <Video size={14} /> {getBlockLabel(block.type)}
+      <span className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60 shrink-0">
+        <Video size={15} />
       </span>
 
-      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+      <span className="text-slate-300 dark:text-slate-700 font-bold px-1 select-none">⋮</span>
+
       <AlignmentPicker block={block} showNotification={showNotification} />
+
+      {/* Settings / Aspect Ratio */}
+      <div className="relative inline-flex items-center">
+        <Tooltip text="Settings / Aspect Ratio">
+          <button
+            type="button"
+            onClick={() => setShowSettings(!showSettings)}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            <Settings size={15} />
+          </button>
+        </Tooltip>
+        {showSettings && (
+          <div className="absolute top-full left-0 mt-2 p-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-1 z-[130] w-36">
+            {['16:9', '4:3', '1:1', '9:16', '21:9'].map((ratio) => (
+              <button
+                key={ratio}
+                type="button"
+                onClick={() => {
+                  updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, aspectRatio: ratio } }));
+                  setShowSettings(false);
+                  showNotification(`Aspect ratio: ${ratio}`);
+                }}
+                className={`px-2.5 py-1 text-xs font-semibold text-left rounded-xl transition-colors cursor-pointer ${(block.attributes.aspectRatio || '16:9') === ratio ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+              >
+                {ratio}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Link URL */}
+      <div className="relative inline-flex items-center">
+        <Tooltip text="Video URL">
+          <button
+            type="button"
+            onClick={() => setShowUrlPopover(!showUrlPopover)}
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            <LinkIcon size={15} />
+          </button>
+        </Tooltip>
+        {showUrlPopover && (
+          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2 z-[130] w-64">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Video Source URL</span>
+            <input
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              placeholder="https://youtube.com/..."
+              className="px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
+              onKeyDown={(e) => e.key === 'Enter' && applyUrl()}
+              autoFocus
+            />
+            <div className="flex justify-end gap-1.5 mt-1">
+              <button type="button" onClick={() => setShowUrlPopover(false)} className="px-2.5 py-1 text-xs text-slate-500 cursor-pointer">
+                Cancel
+              </button>
+              <button type="button" onClick={applyUrl} className="px-3 py-1 text-xs font-semibold rounded-xl bg-blue-600 text-white cursor-pointer hover:bg-blue-700">
+                Save
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Replace Video */}
+      <input ref={fileInputRef} type="file" accept="video/*" onChange={handleVideoReplace} className="hidden" />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="px-3 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 shadow-2xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+      >
+        <span>Replace</span>
+      </button>
+
+      <BlockMoreMenu block={block} />
+    </div>
+  );
+}
+
+function QuoteToolbar({ block, showNotification }: CommonToolbarProps) {
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <span className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center border border-slate-200/60 dark:border-slate-700/60 font-serif font-bold text-sm shrink-0">
+        ”
+      </span>
+
+      <span className="text-slate-300 dark:text-slate-700 font-bold px-1 select-none">⋮</span>
+
+      <AlignmentPicker block={block} showNotification={showNotification} />
+
+      <BlockMoreMenu block={block} />
     </div>
   );
 }
@@ -1797,8 +2012,8 @@ const BLOCK_TOOLBAR_REGISTRY: Record<string, React.ComponentType<CommonToolbarPr
   paragraph: ParagraphToolbar,
   heading: HeadingToolbar,
   list: ListToolbar,
-  quote: ParagraphToolbar,
-  pullquote: ParagraphToolbar,
+  quote: QuoteToolbar,
+  pullquote: QuoteToolbar,
   code: CodeToolbar,
   preformatted: ParagraphToolbar,
   image: ImageToolbar,
@@ -2099,7 +2314,7 @@ function MobileTwoRowToolbar({
       <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageReplace} className="hidden" />
 
       {/* 1. PRIMARY ROW (Essential Controls - Balanced 36px Height, 100% Mobile Fit) */}
-      <div className="flex items-center justify-between gap-1 w-full bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 shadow-xs backdrop-blur-md h-[44px] min-h-[44px] max-h-[44px] box-border">
+      <div className="flex items-center justify-between gap-1 w-full bg-slate-100/90 dark:bg-slate-800/90 p-1 border border-slate-200/70 dark:border-slate-700/70 shadow-xs backdrop-blur-md h-[44px] min-h-[44px] max-h-[44px] box-border">
         {/* 1. Block Badge (Paragraph / Heading / Image) */}
         <div className="h-9 min-h-[36px] max-h-[36px] box-border px-2.5 rounded-xl bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold text-xs shadow-xs border border-black/5 dark:border-white/5 inline-flex items-center gap-1.5 shrink-0 select-none">
           <BlockIcon size={14} className="text-blue-500 shrink-0" />
@@ -2116,11 +2331,10 @@ function MobileTwoRowToolbar({
                 key={al}
                 type="button"
                 onClick={() => handleAlign(al)}
-                className={`w-6.5 min-w-[26px] max-w-[26px] h-8 min-h-[32px] max-h-[32px] rounded-lg box-border p-0 m-0 border-0 outline-none inline-flex items-center justify-center transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs font-bold'
-                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
-                }`}
+                className={`w-6.5 min-w-[26px] max-w-[26px] h-8 min-h-[32px] max-h-[32px] rounded-lg box-border p-0 m-0 border-0 outline-none inline-flex items-center justify-center transition-all cursor-pointer ${isActive
+                  ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs font-bold'
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
+                  }`}
                 title={`Align ${al}`}
               >
                 <Icon size={13} />
@@ -2791,9 +3005,9 @@ export default function BlockFormattingToolbar() {
       </div>
 
       {/* 💻 TABLET & DESKTOP VIEW (>= 576px / hidden xs:flex) */}
-      <div className="hidden xs:flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-1.5 xl:gap-2 w-full animate-in fade-in zoom-in-95 duration-150">
-        {/* Upper Section / Row 1: Formatting & Content Controls */}
-        <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap w-full xl:w-auto">
+      <div className="hidden xs:flex items-center justify-between gap-3 w-full animate-in fade-in zoom-in-95 duration-150">
+        {/* Left / Center: The Exact Block Floating Toolbar */}
+        <div className="flex items-center gap-1.5 p-1 bg-slate-50/90 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-2xl shadow-xs backdrop-blur-md">
           {selectedIds.length > 1 ? (
             <MultiSelectToolbar selectedIds={selectedIds} showNotification={showNotification} />
           ) : block ? (
@@ -2804,195 +3018,33 @@ export default function BlockFormattingToolbar() {
               showNotification={showNotification}
             />
           ) : (
-            <div className="text-xs text-gray-400">Select a block to format</div>
+            <div className="text-xs text-slate-400 px-3 py-1">Select a block to format</div>
           )}
         </div>
 
-        {/* Lower Section / Row 2 (100% width below 1280px, right-aligned on desktop xl): Actions & History */}
-        <div className="flex items-center justify-between xl:justify-end gap-1.5 flex-wrap w-full xl:w-auto pt-1.5 xl:pt-0 border-t border-slate-100 dark:border-slate-800/80 xl:border-t-0">
-          <div className="flex items-center gap-1 flex-wrap">
-            {supportsInlineLink && (
-              <div className="relative inline-flex items-center shrink-0">
-                <Tooltip text="Insert / Edit Link (Ctrl+K)">
-                  <button
-                    onMouseDown={(e) => { e.preventDefault(); }}
-                    onClick={openLinkPopover}
-                    className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
-                  >
-                    <LinkIcon size={15} />
-                  </button>
-                </Tooltip>
-                {showLink && (
-                  <div className="absolute top-full right-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64">
-                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                      {linkUrl ? 'Edit Link' : 'Insert Link'}
-                    </span>
-                    <input
-                      value={linkUrl}
-                      onChange={(e) => setLinkUrl(e.target.value)}
-                      placeholder="https://example.com"
-                      className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
-                    />
-                    {linkText !== undefined && (
-                      <input
-                        value={linkText}
-                        onChange={(e) => setLinkText(e.target.value)}
-                        placeholder="Link Text (optional)"
-                        className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
-                      />
-                    )}
-                    <div className="flex justify-between items-center mt-1">
-                      {linkUrl ? (
-                        <button onClick={removeLink} className="px-2.5 py-1 text-xs text-red-500 hover:text-red-700 cursor-pointer">
-                          Remove
-                        </button>
-                      ) : (
-                        <button onClick={() => setShowLink(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
-                          Cancel
-                        </button>
-                      )}
-                      <div className="flex gap-1.5">
-                        {linkUrl && (
-                          <button onClick={() => setShowLink(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
-                            Cancel
-                          </button>
-                        )}
-                        <button
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={applyLink}
-                          className="px-3 py-1 text-xs font-semibold rounded-lg bg-primary-600 text-white cursor-pointer shadow-2xs hover:bg-primary-700 transition-colors"
-                        >
-                          {linkUrl ? 'Update' : 'Apply'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+        {/* Right: Quick History Actions */}
+        <div className="flex items-center gap-1 shrink-0">
+          <Tooltip text="Undo (Ctrl+Z)">
+            <button
+              type="button"
+              onClick={undo}
+              disabled={past.length === 0}
+              className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
+            >
+              <Undo2 size={15} />
+            </button>
+          </Tooltip>
 
-            {/* Edit HTML Toggle Button */}
-            {block && (
-              <Tooltip text="Edit HTML">
-                <button
-                  onClick={() => toggleHtmlMode(block.id)}
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors cursor-pointer shrink-0 ${htmlModeBlockIds.includes(block.id)
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40'
-                    }`}
-                  title="Edit HTML"
-                >
-                  <Code2 size={15} />
-                </button>
-              </Tooltip>
-            )}
-
-            {/* Move Up / Move Down */}
-            {block && (
-              <>
-                <Tooltip text="Move Block Up (Up Arrow)">
-                  <button
-                    onClick={() => {
-                      moveBlock(block.id, 'up');
-                      showNotification('Moved block up');
-                    }}
-                    className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
-                  >
-                    <ArrowUp size={15} />
-                  </button>
-                </Tooltip>
-
-                <Tooltip text="Move Block Down (Down Arrow)">
-                  <button
-                    onClick={() => {
-                      moveBlock(block.id, 'down');
-                      showNotification('Moved block down');
-                    }}
-                    className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
-                  >
-                    <ArrowDown size={15} />
-                  </button>
-                </Tooltip>
-
-                {/* Duplicate Block Button */}
-                <Tooltip text="Duplicate Block">
-                  <button
-                    onClick={() => {
-                      duplicateBlock(block.id);
-                      showNotification('Block duplicated');
-                    }}
-                    className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer shrink-0"
-                    title="Duplicate this block"
-                  >
-                    <CopyPlus size={15} />
-                  </button>
-                </Tooltip>
-
-                {/* Delete Selected Block Button */}
-                <Tooltip text="Delete Block (Trash)">
-                  <button
-                    onClick={() => {
-                      removeBlock(block.id);
-                      showNotification('Block deleted');
-                    }}
-                    className="w-8 h-8 rounded-xl flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-700 transition-all cursor-pointer shrink-0"
-                    title="Delete this block"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </Tooltip>
-              </>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1 flex-wrap">
-            <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" />
-
-            {/* Undo */}
-            <Tooltip text="Undo (Ctrl+Z)">
-              <button
-                onClick={undo}
-                disabled={past.length === 0}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
-              >
-                <Undo2 size={15} />
-              </button>
-            </Tooltip>
-
-            {/* Redo */}
-            <Tooltip text="Redo (Ctrl+Y)">
-              <button
-                onClick={redo}
-                disabled={future.length === 0}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
-              >
-                <Redo2 size={15} />
-              </button>
-            </Tooltip>
-
-            {/* Pin Block Toggle Button */}
-            {block && (
-              <Tooltip text={block.attributes?.pinned ? 'Unpin Block' : 'Pin Block'}>
-                <button
-                  onClick={() => {
-                    const isCurrentlyPinned = Boolean(block.attributes?.pinned);
-                    updateBlock(block.id, (b) => ({
-                      ...b,
-                      attributes: { ...b.attributes, pinned: !isCurrentlyPinned },
-                    }));
-                    showNotification(!isCurrentlyPinned ? 'Block pinned to top' : 'Block unpinned');
-                  }}
-                  className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${block.attributes?.pinned
-                    ? 'bg-amber-500 text-white shadow-md ring-2 ring-amber-400 font-bold'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40'
-                    }`}
-                  title="Pin / Unpin this block"
-                >
-                  <Pin size={15} className={block.attributes?.pinned ? 'rotate-45 text-white' : ''} />
-                </button>
-              </Tooltip>
-            )}
-          </div>
+          <Tooltip text="Redo (Ctrl+Y)">
+            <button
+              type="button"
+              onClick={redo}
+              disabled={future.length === 0}
+              className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
+            >
+              <Redo2 size={15} />
+            </button>
+          </Tooltip>
         </div>
       </div>
     </div>
