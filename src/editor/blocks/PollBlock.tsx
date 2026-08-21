@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
-  Vote, Plus, Trash2, RotateCcw,
-  Eye, Edit3, Check, Lock, Unlock, PlayCircle, AlertCircle
+  Plus, Trash2, RotateCcw,
+  Eye, Edit3, Check, Lock, Unlock, AlertCircle
 } from 'lucide-react';
 import type { BlockInstance } from '../types';
 import { useEditorStore } from '../store';

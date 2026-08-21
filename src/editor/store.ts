@@ -988,7 +988,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   },
 
   loadFromJSON: (data) =>
-    set((state) => {
+    set(() => {
       const pages = Array.isArray(data.pages) && data.pages.length > 0
         ? data.pages
         : [{ id: 'page-1', name: 'Page 1', blocks: Array.isArray(data.blocks) ? data.blocks : [] }];

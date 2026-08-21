@@ -157,11 +157,11 @@ function ensureTwitterWidgets(): Promise<void> {
 
 let instagramWidgetsPromise: Promise<void> | null = null;
 
-function ensureInstagramWidgets(): Promise<void> {
+export function ensureInstagramWidgets(): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve();
   if (window.instgrm?.Embeds) return Promise.resolve();
   if (!instagramWidgetsPromise) {
-    instagramWidgetsPromise = new Promise((resolve, reject) => {
+    instagramWidgetsPromise = new Promise<void>((resolve, reject) => {
       const existing = document.querySelector<HTMLScriptElement>('script[data-instagram-widgets="true"]');
       if (existing) {
         existing.addEventListener('load', () => resolve(), { once: true });
@@ -198,7 +198,7 @@ export function TwitterEmbed({ url }: { url: string }) {
       .then(() => {
         if (!active || !ref.current) return;
         ref.current.innerHTML = '';
-        const widgets = window.twttr?.widgets as any;
+        const widgets = (window as any).twttr?.widgets;
         if (tweetId && widgets?.createTweet) {
           widgets.createTweet(tweetId, ref.current, {
             theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
@@ -212,7 +212,7 @@ export function TwitterEmbed({ url }: { url: string }) {
           a.href = normalizedUrl;
           bq.appendChild(a);
           ref.current.appendChild(bq);
-          window.twttr.widgets.load(ref.current);
+          (window as any).twttr?.widgets?.load(ref.current);
         }
       })
       .catch(() => {

@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  FileDown, Eye, X, Monitor, Tablet, Smartphone, Search, Code, Copy, Check,
-  PanelLeftOpen, Sliders, FileText, ChevronDown, Plus, Trash2, Save, Undo2, Redo2,
-  ZoomIn, ZoomOut, CheckCircle2, Sun, Moon, CopyPlus, Edit3, ArrowLeft,
+  FileDown, Eye, X, Monitor, Tablet, Smartphone,
+  FileText, ChevronDown, Plus, Trash2, Save, Undo2, Redo2,
+  ZoomIn, ZoomOut, CheckCircle2, Sun, Moon, CopyPlus, Edit3,
 } from 'lucide-react';
 import { useEditorStore, saveToIndexedDB, syncPages } from './store';
 import { exportHtml } from './exporter';
@@ -44,18 +44,13 @@ function Tooltip({
   );
 }
 
-export default function TopToolbar({ onOpenInserter, onSave }: TopToolbarProps) {
+export default function TopToolbar({ onSave }: TopToolbarProps) {
   const blocks = useEditorStore((s) => s.blocks);
   const theme = useEditorStore((s) => s.theme);
   const toggleTheme = useEditorStore((s) => s.toggleTheme);
   const documentTitle = useEditorStore((s) => s.documentTitle);
-  const setDocumentTitle = useEditorStore((s) => s.setDocumentTitle);
   const deviceView = useEditorStore((s) => s.deviceView);
   const setDeviceView = useEditorStore((s) => s.setDeviceView);
-  const inserterOpen = useEditorStore((s) => s.inserterOpen);
-  const setInserterOpen = useEditorStore((s) => s.setInserterOpen);
-  const settingsSidebarOpen = useEditorStore((s) => s.settingsSidebarOpen);
-  const setSettingsSidebarOpen = useEditorStore((s) => s.setSettingsSidebarOpen);
 
   // Multi-Page state
   const pages = useEditorStore((s) => s.pages);

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import {
-  Vote, Landmark, Users, BarChart3, Plus, Trash2, Check,
+  Landmark, Users, BarChart3, Plus, Trash2,
   Upload, Settings2, Trophy, ArrowUpRight, ArrowDownRight, Layers,
-  Palette, Pencil, ChevronDown
+  Pencil, ChevronDown
 } from 'lucide-react';
 import { useEditorStore } from '../store';
 import { fileToDataUrl } from '../media';

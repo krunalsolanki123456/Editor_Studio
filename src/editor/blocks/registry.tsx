@@ -3,7 +3,7 @@ import {
   Link, ListOrdered, Minus, Music, Quote, Rows3, Square, Table as TableIcon,
   Type, Video, Youtube, MonitorPlay, PanelTop, Download, FileCode,
   Image as CoverIcon, CircleEllipsis, GalleryHorizontalEnd, SlidersHorizontal,
-  Radio, Vote, CheckSquare,
+  Radio,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 

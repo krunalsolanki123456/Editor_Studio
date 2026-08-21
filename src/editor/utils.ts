@@ -197,7 +197,6 @@ export function blockToHtmlCode(block: BlockInstance): string {
     case 'election': {
       const title = (block.attributes.title as string) || 'Live Charts & Results / લાઈવ ચાર્ટ અને પરિણામ';
       const totalSeats = Number(block.attributes.totalSeats) || 182;
-      const majoritySeats = Number(block.attributes.majoritySeats) || 92;
       const isLive = block.attributes.isLive !== false;
       const parties = (block.attributes.parties as any[]) || [];
 

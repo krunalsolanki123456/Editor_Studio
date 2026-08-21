@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useEditorStore } from './editor/store';
 import TopToolbar from './editor/TopToolbar';
 import EditorCanvas from './editor/EditorCanvas';

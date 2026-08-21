@@ -13,7 +13,6 @@ import {
   Columns3,
   Upload,
   LayoutGrid,
-  PanelLeftClose,
   PanelLeftOpen,
 } from 'lucide-react';
 
@@ -60,8 +59,6 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
   const setInserterOpen = useEditorStore((s) => s.setInserterOpen);
   const blocks = useEditorStore((s) => s.blocks);
   const selectedIds = useEditorStore((s) => s.selectedIds);
-  const inserterTargetIndex = useEditorStore((s) => s.inserterTargetIndex);
-  const openInserterAtIndex = useEditorStore((s) => s.openInserterAtIndex);
   const filterOptions = useEditorStore((s) => s.filterOptions);
 
   const availableDefinitions = useMemo(() => {
@@ -72,7 +69,7 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
   const activeBlockType = selectedBlock?.type;
   const activeCategory = selectedBlock ? availableDefinitions.find((b) => b.type === selectedBlock.type)?.category : null;
 
-  const [activeTab, setActiveTab] = useState<string>('all');
+  const [activeTab] = useState<string>('all');
   const [hoveredRailTooltip, setHoveredRailTooltip] = useState<{
     label: string;
     isActive?: boolean;
@@ -111,9 +108,6 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
   }, [availableDefinitions, search, activeTab]);
 
   const isSearching = search.trim().length > 0;
-
-  const selectedIndex = selectedBlock ? blocks.findIndex((b) => b.id === selectedBlock.id) : -1;
-  const isInsertingAbove = inserterTargetIndex !== null && selectedIndex !== -1 && inserterTargetIndex <= selectedIndex;
 
   const handleInsertBlock = (type: string) => {
     onInsert(type);

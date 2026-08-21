@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Radio, Plus, Trash2, Pin, X, Check, Edit2,
   Upload, AlignLeft, AlignCenter, AlignRight,
-  FileText, Download, Eye, Code2, Link2, Play, ExternalLink
+  FileText, Download, Code2, Link2
 } from 'lucide-react';
 import { useEditorStore } from '../store';
 import { fileToDataUrl } from '../media';
@@ -262,12 +262,6 @@ export function LiveUpdatesBlock({ block, selected = false }: BlockProps) {
   const handleTogglePin = (id: string) => {
     updateAttributes({
       updates: updates.map((u) => (u.id === id ? { ...u, isPinned: !u.isPinned } : u)),
-    });
-  };
-
-  const handleUpdateItemAlign = (id: string, align: 'left' | 'center' | 'right') => {
-    updateAttributes({
-      updates: updates.map((u) => (u.id === id ? { ...u, mediaAlign: align } : u)),
     });
   };
 
@@ -644,7 +638,7 @@ export function LiveUpdatesBlock({ block, selected = false }: BlockProps) {
           </div>
         ) : (
           <div className="relative pl-5 sm:pl-7 border-l-2 border-dashed border-gray-300 dark:border-gray-700 space-y-6 sm:space-y-8">
-            {sortedUpdates.map((item, idx) => {
+            {sortedUpdates.map((item) => {
               const alignJustify = item.mediaAlign === 'left' ? 'justify-start' : item.mediaAlign === 'right' ? 'justify-end' : 'justify-center';
               const mediaContainerWidth = item.mediaAlign === 'left' || item.mediaAlign === 'right' ? 'w-full sm:w-[75%]' : 'w-full';
 

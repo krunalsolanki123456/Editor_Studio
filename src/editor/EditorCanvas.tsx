@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { Layout, Sparkles } from 'lucide-react';
 import { useEditorStore } from './store';
 import BlockWrapper from './BlockWrapper';
@@ -261,33 +261,6 @@ export default function EditorCanvas() {
     }
   };
 
-  // Calculate document metrics
-  const documentMetrics = useMemo(() => {
-    let text = '';
-    const extractText = (list: any[]) => {
-      for (const b of list) {
-        if (b.attributes) {
-          if (typeof b.attributes.content === 'string') text += ' ' + b.attributes.content;
-          else if (Array.isArray(b.attributes.content)) {
-            text += ' ' + b.attributes.content.map((c: any) => c.text || '').join(' ');
-          }
-          if (Array.isArray(b.attributes.items)) {
-            text += ' ' + b.attributes.items.map((it: any) => (typeof it.content === 'string' ? it.content : '')).join(' ');
-          }
-        }
-        if (b.innerBlocks && b.innerBlocks.length > 0) {
-          extractText(b.innerBlocks);
-        }
-      }
-    };
-    extractText(blocks);
-    const cleanText = text.replace(/<[^>]*>/g, '').trim();
-    const words = cleanText ? cleanText.split(/\s+/).filter(Boolean).length : 0;
-    const chars = cleanText.length;
-    const readTime = Math.max(1, Math.ceil(words / 200));
-    return { words, chars, readTime, count: blocks.length };
-  }, [blocks]);
-
   const addStarterTemplate = (type: 'article' | 'hero' | 'two-column') => {
     if (type === 'article') {
       const hId = insertBlock('heading');
@@ -322,8 +295,6 @@ export default function EditorCanvas() {
 
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
   const zoomLevel = useEditorStore((s) => s.zoomLevel);
-  const setZoomLevel = useEditorStore((s) => s.setZoomLevel);
-  const setDeviceView = useEditorStore((s) => s.setDeviceView);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col min-w-0 overflow-hidden bg-dot-grid transition-colors relative">

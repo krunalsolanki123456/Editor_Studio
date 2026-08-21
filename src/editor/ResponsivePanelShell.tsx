@@ -46,7 +46,7 @@ export default function ResponsivePanelShell({
                 `max-xs:fixed max-xs:inset-y-0 max-xs:h-dvh max-xs:z-[200] max-xs:shadow-2xl ${side === 'left' ? 'max-xs:left-0 max-xs:be-animate-panel-left' : 'max-xs:right-0 max-xs:be-animate-panel-right'}`
           }
           /* 576px+ : static flex child with smooth slide-in */
-          xs:relative xs:z-30 xs:shadow-none xs:h-full xs:w-72 xs:shrink-0
+          xs:relative xs:z-30 xs:shadow-none xs:h-full ${widthClassName} xs:shrink-0
           ${side === 'left' ? 'xs:border-r xs:be-animate-panel-left' : 'xs:border-l xs:be-animate-panel-right'}
           ${className}
         `}

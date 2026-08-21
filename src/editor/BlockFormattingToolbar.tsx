@@ -1,14 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import {
-  Undo2, Redo2, Printer, Paintbrush, ZoomIn, ZoomOut,
-  Bold, Italic, Underline, Strikethrough, Subscript, Superscript,
-  Highlighter, Link as LinkIcon, Image as ImageIcon, MessageSquare,
-  MoreVertical, MoreHorizontal, AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  List, ListOrdered, CheckSquare, Indent, Outdent, Eraser,
-  ChevronDown, ChevronUp, Minus, Plus, ArrowUp, ArrowDown,
-  CopyPlus, Code2, Trash2, Pin, Sliders, Smile, Check, ExternalLink,
-  Maximize2, Crop, Subtitles, Tag as TagIcon, Columns as ColumnsIcon,
-  Layers, Video, Upload, X, Type, ArrowUpDown, Table as TableIcon,
+  List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify,
+  CheckSquare, Image as ImageIcon, Smile, Columns3, Rows3, Table as TableIcon, Link as LinkIcon,
+  Pin, Code2, Eraser, Indent, Outdent, Crop, ExternalLink,
+  Trash2, Video, Highlighter, Upload, Subtitles, Tag as TagIcon,
+  Columns as ColumnsIcon, Layers, Plus, Copy as CopyIcon, CopyPlus,
+  ArrowUp, ArrowDown, Sliders,
 } from 'lucide-react';
 import { useEditorStore, findBlock } from './store';
 import { createBlock, getBlockLabel } from './blocks/registry';
@@ -46,7 +43,7 @@ function Tooltip({
   return (
     <div className="relative group inline-flex items-center shrink-0">
       {children}
-      <div className={`absolute top-full mt-2 ${alignClasses} hidden group-hover:flex flex-col items-center pointer-events-none z-[99999]`}>
+      <div className={`absolute top-full mt-2.5 ${alignClasses} hidden group-hover:flex flex-col items-center pointer-events-none z-[99999]`}>
         <div className={`w-2 h-2 bg-slate-900 dark:bg-slate-800 rotate-45 -mb-1 shadow-xs border-t border-l border-slate-700/60 ${arrowAlignClasses}`} />
         <span className="px-2.5 py-1 text-[11px] font-semibold text-white bg-slate-900 dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-700/60 whitespace-nowrap block">
           {text}
@@ -57,65 +54,24 @@ function Tooltip({
 }
 
 // ==========================================
-// GOOGLE DOCS CONSTANTS & PALETTES
+// REUSABLE TOOLBAR COMPONENTS
 // ==========================================
 
-const GOOGLE_DOCS_STYLES: SelectOption[] = [
-  { value: 'paragraph', label: 'Normal text', subLabel: '¶' },
-  { value: 'title', label: 'Title', subLabel: 'H₁' },
-  { value: 'subtitle', label: 'Subtitle', subLabel: 'H₂' },
+const blockTypeOptions: SelectOption[] = [
+  { value: 'paragraph', label: 'Paragraph', subLabel: '¶' },
   { value: 'h1', label: 'Heading 1', subLabel: 'H₁' },
   { value: 'h2', label: 'Heading 2', subLabel: 'H₂' },
   { value: 'h3', label: 'Heading 3', subLabel: 'H₃' },
   { value: 'h4', label: 'Heading 4', subLabel: 'H₄' },
   { value: 'h5', label: 'Heading 5', subLabel: 'H₅' },
   { value: 'h6', label: 'Heading 6', subLabel: 'H₆' },
+  { value: 'list-bullet', label: 'Bullet List', subLabel: '•' },
+  { value: 'list-number', label: 'Numbered List', subLabel: '1.' },
+  { value: 'list-checklist', label: 'Checklist', subLabel: '☑' },
   { value: 'quote', label: 'Quote', subLabel: '❝' },
   { value: 'code', label: 'Code', subLabel: '</>' },
   { value: 'preformatted', label: 'Preformatted', subLabel: '⁋' },
-];
-
-const GOOGLE_DOCS_FONTS: SelectOption[] = [
-  { value: 'arial', label: 'Arial' },
-  { value: 'roboto', label: 'Roboto' },
-  { value: 'inter', label: 'Inter' },
-  { value: 'georgia', label: 'Georgia' },
-  { value: 'times', label: 'Times New Roman' },
-  { value: 'garamond', label: 'Garamond' },
-  { value: 'verdana', label: 'Verdana' },
-  { value: 'trebuchet', label: 'Trebuchet MS' },
-  { value: 'courier', label: 'Courier New' },
-  { value: 'firacode', label: 'Fira Code' },
-  { value: 'comicsans', label: 'Comic Sans MS' },
-  { value: 'impact', label: 'Impact' },
-  { value: 'system', label: 'System Default' },
-];
-
-const FONT_SIZE_PRESETS = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 30, 36, 48, 60, 72, 96];
-
-const GOOGLE_DOCS_TEXT_COLORS = [
-  '#000000', '#434343', '#666666', '#999999', '#b7b7b7', '#cccccc', '#d9d9d9', '#efefef', '#f3f3f3', '#ffffff',
-  '#980000', '#ff0000', '#ff9900', '#ffff00', '#00ff00', '#00ffff', '#4a86e8', '#0000ff', '#9900ff', '#ff00ff',
-  '#e6b8af', '#f4cccc', '#fce5cd', '#fff2cc', '#d9ead3', '#d0e0e3', '#c9daf8', '#cfe2f3', '#d9d2e9', '#ead1dc',
-  '#dd7e6b', '#ea9999', '#f9cb9c', '#ffe599', '#b6d7a8', '#a2c4c9', '#a4c2f4', '#9fc5e8', '#b4a7d6', '#d5a6bd',
-  '#cc4125', '#e06666', '#f6b26b', '#ffd966', '#93c47d', '#76a5af', '#6d9eeb', '#6fa8dc', '#8e7cc3', '#c27ba0',
-  '#a61c1c', '#cc0000', '#e69138', '#f1c232', '#6aa84f', '#45818e', '#3c78d8', '#3d85c6', '#674ea7', '#a64d79',
-  '#5b0f00', '#660000', '#783f04', '#7f6000', '#274e13', '#0c343d', '#1155cc', '#0b5394', '#351c75', '#741b47',
-];
-
-const GOOGLE_DOCS_HIGHLIGHT_COLORS = [
-  { label: 'None', color: 'transparent' },
-  { label: 'Yellow', color: '#ffff00' },
-  { label: 'Green', color: '#00ff00' },
-  { label: 'Cyan', color: '#00ffff' },
-  { label: 'Magenta', color: '#ff00ff' },
-  { label: 'Blue', color: '#0000ff' },
-  { label: 'Red', color: '#ff0000' },
-  { label: 'Light Yellow', color: '#fef08a' },
-  { label: 'Light Green', color: '#bbf7d0' },
-  { label: 'Light Cyan', color: '#a5f3fc' },
-  { label: 'Light Pink', color: '#fbcfe8' },
-  { label: 'Light Purple', color: '#e9d5ff' },
+  { value: 'pullquote', label: 'Pullquote', subLabel: '“' },
 ];
 
 interface CommonToolbarProps {
@@ -125,16 +81,453 @@ interface CommonToolbarProps {
   showNotification: (msg: string) => void;
 }
 
+function BlockTypeSelector({ block }: { block: BlockInstance }) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const insertBlock = useEditorStore((s) => s.insertBlock);
+
+  const toRichText = (value: unknown): RichTextValue => {
+    if (Array.isArray(value)) return value as RichTextValue;
+    return value ? [{ text: String(value) }] : [];
+  };
+
+  const changeBlockTypeAndLevel = (type: string, level?: number, listStyle?: ListStyle) => {
+    if (!block) {
+      const newBlock = createBlock(type);
+      if (newBlock && type === 'list' && listStyle) newBlock.attributes.style = listStyle;
+      insertBlock(type);
+      return;
+    }
+
+    const next = createBlock(type);
+    if (!next) return;
+
+    const currentContent = block.type === 'list'
+      ? (block.attributes.items as { content: RichTextValue }[] | undefined)?.[0]?.content
+      : block.attributes.content;
+
+    updateBlock(block.id, (current) => {
+      const attributes: Record<string, unknown> = {
+        ...next.attributes,
+        ...current.attributes,
+        align: current.attributes.align ?? next.attributes.align,
+      };
+
+      if (type !== current.type || (type === 'heading' && level && level !== current.attributes.level)) {
+        delete attributes.fontSize;
+        delete attributes.fontWeight;
+      }
+
+      if (type === 'heading') {
+        attributes.level = level ?? (current.type === 'heading' ? (current.attributes.level as number) : 1);
+      } else if (level) {
+        attributes.level = level;
+      }
+
+      if (type === 'code' || type === 'preformatted') {
+        attributes.content = blockToHtmlCode(current);
+      } else if (type === 'list') {
+        if (listStyle) attributes.style = listStyle;
+        attributes.items = (current.type === 'list' && current.attributes.items)
+          ? current.attributes.items
+          : [{ id: `${current.id}-item`, content: toRichText(currentContent) }];
+      } else {
+        attributes.content = toRichText(currentContent);
+      }
+
+      return { ...current, type, attributes };
+    });
+  };
+
+  return (
+    <Tooltip text="Block type">
+      <div className="w-36 min-w-[135px] max-w-[155px]">
+        <CustomSelect
+          value={
+            block.type === 'heading'
+              ? `h${block.attributes.level || 2}`
+              : block.type === 'list'
+                ? `list-${block.attributes.style || 'bullet'}`
+                : block.type || 'paragraph'
+          }
+          options={blockTypeOptions}
+          onChange={(val) => {
+            const strVal = String(val);
+            if (strVal.startsWith('h')) {
+              const lvl = parseInt(strVal.replace('h', ''), 10);
+              changeBlockTypeAndLevel('heading', lvl);
+            } else if (strVal === 'list-bullet') {
+              changeBlockTypeAndLevel('list', undefined, 'bullet');
+            } else if (strVal === 'list-number') {
+              changeBlockTypeAndLevel('list', undefined, 'number');
+            } else if (strVal === 'list-checklist') {
+              changeBlockTypeAndLevel('list', undefined, 'checklist');
+            } else {
+              changeBlockTypeAndLevel(strVal);
+            }
+          }}
+          size="sm"
+        />
+      </div>
+    </Tooltip>
+  );
+}
+
+function InlineFormattingControls({
+  block,
+  execCmd,
+  saveSelection,
+}: {
+  block?: BlockInstance;
+  execCmd: (cmd: string, value?: string) => void;
+  saveSelection: () => void;
+}) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const a = block?.attributes || {};
+
+  const isBold = (a.fontWeight as number) === 700 || a.fontWeight === 'bold';
+  const isItalic = a.fontStyle === 'italic';
+  const isUnderline = a.textDecoration === 'underline';
+  const isStrikethrough = a.textDecoration === 'line-through';
+
+  const handleToggle = (format: 'bold' | 'italic' | 'underline' | 'strikethrough') => {
+    const sel = window.getSelection();
+    const hasTextSelection = sel && !sel.isCollapsed && sel.toString().length > 0;
+    if (hasTextSelection) {
+      execCmd(format === 'strikethrough' ? 'strikeThrough' : format);
+    } else if (block) {
+      if (format === 'bold') {
+        const next = isBold ? 400 : 700;
+        updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, fontWeight: next } }));
+      } else if (format === 'italic') {
+        const next = isItalic ? 'normal' : 'italic';
+        updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, fontStyle: next } }));
+      } else if (format === 'underline') {
+        const next = isUnderline ? 'none' : 'underline';
+        updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, textDecoration: next } }));
+      } else if (format === 'strikethrough') {
+        const next = isStrikethrough ? 'none' : 'line-through';
+        updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, textDecoration: next } }));
+      }
+    } else {
+      execCmd(format === 'strikethrough' ? 'strikeThrough' : format);
+    }
+  };
+
+  const getBtnClass = (active: boolean) =>
+    `w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-xs transition-all cursor-pointer shrink-0 ${active
+      ? 'bg-primary-500 text-white shadow-2xs font-bold'
+      : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40'
+    }`;
+
+  return (
+    <div className="flex items-center gap-0.5 flex-wrap">
+      <Tooltip text="Bold (Ctrl+B)">
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+          onClick={() => handleToggle('bold')}
+          className={getBtnClass(isBold)}
+        >
+          B
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Italic (Ctrl+I)">
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+          onClick={() => handleToggle('italic')}
+          className={`${getBtnClass(isItalic)} italic`}
+        >
+          I
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Underline (Ctrl+U)">
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+          onClick={() => handleToggle('underline')}
+          className={`${getBtnClass(isUnderline)} underline`}
+        >
+          U
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Strikethrough">
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+          onClick={() => handleToggle('strikethrough')}
+          className={`${getBtnClass(isStrikethrough)} line-through`}
+        >
+          S
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Subscript (X₂)">
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+          onClick={() => execCmd('subscript')}
+          className="w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-xs text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+        >
+          X<sub>2</sub>
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Superscript (X²)">
+        <button
+          type="button"
+          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+          onClick={() => execCmd('superscript')}
+          className="w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-xs text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+        >
+          X<sup>2</sup>
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
+function AlignmentPicker({ block, showNotification }: { block: BlockInstance; showNotification: (msg: string) => void }) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const currentAlign = (block.attributes.align as TextAlign) || 'left';
+
+  const setAlign = (align: TextAlign) => {
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, align } }));
+    showNotification(`Aligned ${align}`);
+  };
+
+  return (
+    <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 p-0.5 rounded-lg border border-gray-200 dark:border-gray-700">
+      <Tooltip text="Align Left">
+        <button
+          onClick={() => setAlign('left')}
+          className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${currentAlign === 'left' ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'}`}
+        >
+          <AlignLeft size={14} />
+        </button>
+      </Tooltip>
+      <Tooltip text="Align Center">
+        <button
+          onClick={() => setAlign('center')}
+          className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${currentAlign === 'center' ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'}`}
+        >
+          <AlignCenter size={14} />
+        </button>
+      </Tooltip>
+      <Tooltip text="Align Right">
+        <button
+          onClick={() => setAlign('right')}
+          className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${currentAlign === 'right' ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'}`}
+        >
+          <AlignRight size={14} />
+        </button>
+      </Tooltip>
+      <Tooltip text="Justify">
+        <button
+          onClick={() => setAlign('justify')}
+          className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${currentAlign === 'justify' ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'}`}
+        >
+          <AlignJustify size={14} />
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
+function ListControls({ block }: { block: BlockInstance }) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+
+  const convertToList = (listStyle: ListStyle) => {
+    const currentBlocks = useEditorStore.getState().blocks;
+    const blockIdx = currentBlocks.findIndex((b) => b.id === block.id);
+
+    if (block.type === 'list') {
+      const items = (block.attributes.items as { id: string; content: RichTextValue }[]) || [];
+      const currentStyle = block.attributes.style || 'bullet';
+
+      if (currentStyle === listStyle) {
+        // Toggle OFF: Convert list block back to paragraph block(s)
+        const firstItemContent = items[0]?.content || [];
+        updateBlock(block.id, (current) => ({
+          ...current,
+          type: 'paragraph',
+          attributes: {
+            content: firstItemContent,
+          },
+        }));
+
+        if (items.length > 1 && blockIdx !== -1) {
+          const extraParagraphs: BlockInstance[] = items.slice(1).map((it) => ({
+            id: createId(),
+            type: 'paragraph',
+            attributes: { content: it.content || [] },
+          }));
+
+          useEditorStore.setState((state) => {
+            const newBlocks = [...state.blocks];
+            newBlocks.splice(blockIdx + 1, 0, ...extraParagraphs);
+            return { blocks: newBlocks };
+          });
+        }
+        return;
+      }
+
+      // Switch list style (e.g. bullet -> number)
+      updateBlock(block.id, (current) => ({
+        ...current,
+        attributes: { ...current.attributes, style: listStyle },
+      }));
+      return;
+    }
+
+    // Convert non-list block (e.g. paragraph/heading) to list block
+    const next = createBlock('list');
+    if (!next) return;
+
+    const toRichText = (val: unknown): RichTextValue => {
+      if (Array.isArray(val)) return val as RichTextValue;
+      return val ? [{ text: String(val) }] : [];
+    };
+
+    updateBlock(block.id, (current) => ({
+      ...current,
+      type: 'list',
+      attributes: {
+        ...next.attributes,
+        ...current.attributes,
+        style: listStyle,
+        items: [{ id: createId(), content: toRichText(current.attributes.content), level: 0 }],
+      },
+    }));
+  };
+
+  const isBullet = block.type === 'list' && (block.attributes.style === 'bullet' || !block.attributes.style);
+  const isNumber = block.type === 'list' && block.attributes.style === 'number';
+
+  return (
+    <>
+      <Tooltip text="Bullet List">
+        <button
+          onClick={() => convertToList('bullet')}
+          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${isBullet
+            ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 font-semibold'
+            : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40'
+            }`}
+        >
+          <List size={16} />
+        </button>
+      </Tooltip>
+      <Tooltip text="Numbered List">
+        <button
+          onClick={() => convertToList('number')}
+          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${isNumber
+            ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 font-semibold'
+            : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40'
+            }`}
+        >
+          <ListOrdered size={16} />
+        </button>
+      </Tooltip>
+    </>
+  );
+}
+
 // ==========================================
 // BLOCK SPECIFIC TOOLBAR IMPLEMENTATIONS
 // ==========================================
 
-function DefaultBlockToolbar({ block }: CommonToolbarProps) {
+function ParagraphToolbar({ block, execCmd, saveSelection }: CommonToolbarProps) {
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [emojiCategory, setEmojiCategory] = useState<'smileys' | 'gestures' | 'symbols' | 'work'>('smileys');
+
+  const emojiCategories = {
+    smileys: { label: '😃 Smileys', items: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😋', '😛', '😜', '🤪', '😎', '🥳', '😭', '🤯', '🤠'] },
+    gestures: { label: '👍 Gestures', items: ['👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '👋', '✍️', '🙏', '🤝', '👏', '🙌', '💪'] },
+    symbols: { label: '❤️ Symbols', items: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '✨', '⭐', '🌟', '💥', '🔥', '⚡', '🌈', '✅', '☑️', '❌', '⭕'] },
+    work: { label: '📝 Work', items: ['📝', '📄', '📑', '📋', '📁', '📊', '📈', '📌', '📎', '✂️', '✏️', '🔍', '🔒', '💻', '📱', '⏰', '💡', '🎯', '🏆', '🚀', '🎉'] },
+  };
+
+  const insertEmoji = (emoji: string) => {
+    document.execCommand('insertText', false, emoji);
+    setShowEmoji(false);
+  };
+
   return (
-    <div className="flex items-center gap-1">
-      <span className="text-xs font-semibold px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-        {getBlockLabel(block.type)}
-      </span>
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <BlockTypeSelector block={block} />
+      <InlineFormattingControls block={block} execCmd={execCmd} saveSelection={saveSelection} />
+      <ListControls block={block} />
+
+      <Tooltip text="Highlight (Ctrl+Shift+H)">
+        <button
+          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+          onClick={() => execCmd('hiliteColor', '#fef08a')}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950/40 transition-colors cursor-pointer shrink-0"
+        >
+          <Highlighter size={15} />
+        </button>
+      </Tooltip>
+
+      <div className="relative inline-flex items-center shrink-0">
+        <Tooltip text="Insert Emoji">
+          <button
+            onClick={() => setShowEmoji(!showEmoji)}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+          >
+            <Smile size={15} />
+          </button>
+        </Tooltip>
+        {showEmoji && (
+          <div className="absolute top-full left-0 mt-2 p-2 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 z-[100] w-72 max-w-[calc(100vw-2rem)] flex flex-col gap-2">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-1.5 px-0.5">
+              {(Object.keys(emojiCategories) as (keyof typeof emojiCategories)[]).map((catKey) => (
+                <button
+                  key={catKey}
+                  onClick={() => setEmojiCategory(catKey)}
+                  className={`text-xs font-semibold px-2 py-1 rounded-lg transition-colors cursor-pointer ${emojiCategory === catKey ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300' : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'}`}
+                >
+                  {emojiCategories[catKey].label.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-6 gap-1 max-h-52 overflow-y-auto be-scroll p-1">
+              {emojiCategories[emojiCategory].items.map((emoji, idx) => (
+                <button
+                  key={`${emoji}-${idx}`}
+                  onClick={() => insertEmoji(emoji)}
+                  className="p-1 text-lg hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-center cursor-pointer transition-transform hover:scale-125 flex items-center justify-center"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Tooltip text="Clear Formatting (Ctrl+\\)">
+        <button
+          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+          onClick={() => execCmd('removeFormat')}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer shrink-0"
+        >
+          <Eraser size={15} />
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
+function HeadingToolbar({ block, execCmd, saveSelection, showNotification }: CommonToolbarProps) {
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <BlockTypeSelector block={block} />
+      <InlineFormattingControls block={block} execCmd={execCmd} saveSelection={saveSelection} />
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" />
+      <AlignmentPicker block={block} showNotification={showNotification} />
     </div>
   );
 }
@@ -182,15 +575,18 @@ function ImageToolbar({ block, showNotification }: CommonToolbarProps) {
 
   return (
     <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 rounded-md border border-blue-200/60 dark:border-blue-800/60">
+      <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 rounded-lg border border-blue-200/60 dark:border-blue-800/60">
         <ImageIcon size={14} /> Image
       </span>
 
-      <span className="w-px h-5 bg-slate-300 dark:bg-slate-700 mx-0.5 shrink-0" />
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
 
-      {/* Width Dropdown */}
+      {/* Image Alignment Picker */}
+      <AlignmentPicker block={block} showNotification={showNotification} />
+
+      {/* Width Dropdown (Requirement 4) */}
       <Tooltip text="Image Width">
-        <div className="w-24">
+        <div className="w-28">
           <CustomSelect
             value={currentWidth}
             options={[
@@ -202,41 +598,53 @@ function ImageToolbar({ block, showNotification }: CommonToolbarProps) {
             ]}
             onChange={(val) => {
               updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, width: val } }));
-              showNotification(`Image width set to ${val}`);
+              showNotification(`Width set to ${val}`);
             }}
             size="sm"
           />
         </div>
       </Tooltip>
 
-      {/* Replace Image */}
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageReplace} className="hidden" />
       <Tooltip text="Replace Image">
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer flex items-center gap-1"
+          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
         >
-          <Upload size={13} /> Replace
+          <Upload size={14} /> Replace
         </button>
       </Tooltip>
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageReplace} className="hidden" />
 
-      {/* Aspect Ratio Menu */}
+      <Tooltip text="Crop Image">
+        <button
+          onClick={() => {
+            updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, isCropping: true } }));
+            showNotification('Crop tool opened');
+          }}
+          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
+        >
+          <Crop size={14} /> Crop
+        </button>
+      </Tooltip>
+
       <div className="relative inline-flex items-center">
-        <Tooltip text="Crop / Aspect Ratio">
+        <Tooltip text="Aspect Ratio">
           <button
             onClick={() => setShowCropMenu(!showCropMenu)}
-            className="px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer flex items-center gap-1"
+            className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
           >
-            <Crop size={13} /> Crop
+            Aspect Ratio
           </button>
         </Tooltip>
         {showCropMenu && (
-          <div className="absolute top-full left-0 mt-2 p-1.5 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col gap-1 z-[100] w-36 max-w-[calc(100vw-2rem)]">
+          <div className="absolute top-full left-0 mt-2 p-1.5 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-1 z-[100] w-36 max-w-[calc(100vw-2rem)]">
             {['auto', '16:9', '4:3', '1:1', '9:16', '3:2', '2:1'].map((ratio) => (
               <button
                 key={ratio}
                 onClick={() => applyCropRatio(ratio)}
-                className={`px-2.5 py-1 text-xs font-medium text-left rounded-lg transition-colors cursor-pointer capitalize ${(block.attributes.aspectRatio || 'auto') === ratio ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-300 font-semibold' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                className={`px-2.5 py-1 text-xs font-medium text-left rounded-lg transition-colors cursor-pointer capitalize ${(block.attributes.aspectRatio || 'auto') === ratio ? 'bg-primary-50 text-primary-600 dark:bg-primary-950/50 dark:text-primary-300 font-semibold' : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
               >
                 {ratio === 'auto' ? 'Original / Auto' : ratio}
               </button>
@@ -245,320 +653,81 @@ function ImageToolbar({ block, showNotification }: CommonToolbarProps) {
         )}
       </div>
 
-      {/* Image Destination Link */}
       <div className="relative inline-flex items-center">
         <Tooltip text="Image Link">
           <button
             onClick={() => setShowLinkPopover(!showLinkPopover)}
-            className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer flex items-center gap-1 ${block.attributes.link ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 font-semibold' : 'bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 text-slate-700 dark:text-slate-200'}`}
+            className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${block.attributes.link ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 font-semibold' : 'bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200'}`}
           >
-            <LinkIcon size={13} /> Link
+            <LinkIcon size={14} /> Link
           </button>
         </Tooltip>
         {showLinkPopover && (
-          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Image Destination Link</span>
+          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Image Destination Link</span>
             <input
               value={linkInput}
               onChange={(e) => setLinkInput(e.target.value)}
               placeholder="https://example.com"
-              className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
+              className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
               onKeyDown={(e) => e.key === 'Enter' && applyLink()}
               autoFocus
             />
             <div className="flex justify-end gap-1.5 mt-1">
-              <button onClick={() => setShowLinkPopover(false)} className="px-2.5 py-1 text-xs text-slate-500 cursor-pointer">
+              <button onClick={() => setShowLinkPopover(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
                 Cancel
               </button>
-              <button onClick={applyLink} className="px-3 py-1 text-xs font-semibold rounded-lg bg-blue-600 text-white cursor-pointer shadow-2xs hover:bg-blue-700 transition-colors">
-                Apply
+              <button onClick={applyLink} className="px-3 py-1 text-xs font-semibold rounded-lg bg-primary-600 text-white cursor-pointer">
+                Save Link
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* Alt Text */}
+      <Tooltip text="Toggle Caption">
+        <button
+          onClick={() => {
+            updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, showCaption: b.attributes.showCaption === false ? true : false } }));
+            showNotification('Caption toggled');
+          }}
+          className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${block.attributes.showCaption !== false ? 'bg-primary-50 text-primary-600 dark:bg-primary-950/40 dark:text-primary-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}
+        >
+          <Subtitles size={14} /> Caption
+        </button>
+      </Tooltip>
+
       <div className="relative inline-flex items-center">
-        <Tooltip text="Image Alt Text (SEO / Accessibility)">
+        <Tooltip text="Edit Alt Text">
           <button
             onClick={() => setShowAltPopover(!showAltPopover)}
-            className="px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer flex items-center gap-1"
+            className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
           >
-            <Subtitles size={13} /> Alt Text
+            <TagIcon size={14} /> Alt Text
           </button>
         </Tooltip>
         {showAltPopover && (
-          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Alt Text (Accessibility)</span>
+          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Alt Text (Accessibility)</span>
             <input
               value={altInput}
               onChange={(e) => setAltInput(e.target.value)}
               placeholder="Describe this image..."
-              className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
+              className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
               onKeyDown={(e) => e.key === 'Enter' && applyAltText()}
               autoFocus
             />
             <div className="flex justify-end gap-1.5 mt-1">
-              <button onClick={() => setShowAltPopover(false)} className="px-2.5 py-1 text-xs text-slate-500 cursor-pointer">
+              <button onClick={() => setShowAltPopover(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
                 Cancel
               </button>
-              <button onClick={applyAltText} className="px-3 py-1 text-xs font-semibold rounded-lg bg-blue-600 text-white cursor-pointer">
+              <button onClick={applyAltText} className="px-3 py-1 text-xs font-semibold rounded-lg bg-primary-600 text-white cursor-pointer">
                 Save Alt
               </button>
             </div>
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function GalleryToolbar({ block, showNotification }: CommonToolbarProps) {
-  const updateBlock = useEditorStore((s) => s.updateBlock);
-  const cols = (block.attributes.columns as number) || 3;
-
-  return (
-    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 rounded-md border border-amber-200/60 dark:border-amber-800/60">
-        <ImageIcon size={14} /> Gallery
-      </span>
-      <span className="w-px h-5 bg-slate-300 dark:bg-slate-700 mx-0.5 shrink-0" />
-      <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
-        {[2, 3, 4, 5].map((count) => (
-          <button
-            key={count}
-            onClick={() => {
-              updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, columns: count } }));
-              showNotification(`Gallery set to ${count} columns`);
-            }}
-            className={`px-2 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${cols === count ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
-          >
-            {count} Cols
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CoverToolbar({ block, showNotification }: CommonToolbarProps) {
-  const updateBlock = useEditorStore((s) => s.updateBlock);
-  const opacity = (block.attributes.dimRatio as number) ?? 50;
-
-  return (
-    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 rounded-md border border-purple-200/60 dark:border-purple-800/60">
-        <ImageIcon size={14} /> Cover
-      </span>
-      <span className="w-px h-5 bg-slate-300 dark:bg-slate-700 mx-0.5 shrink-0" />
-      <div className="flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
-        <span>Overlay:</span>
-        {[20, 50, 80].map((val) => (
-          <button
-            key={val}
-            onClick={() => {
-              updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, dimRatio: val } }));
-              showNotification(`Overlay set to ${val}%`);
-            }}
-            className={`px-2 py-0.5 rounded-md text-xs cursor-pointer ${opacity === val ? 'bg-purple-600 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200'}`}
-          >
-            {val}%
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function MediaTextToolbar({ block, showNotification }: CommonToolbarProps) {
-  const updateBlock = useEditorStore((s) => s.updateBlock);
-  const isRight = block.attributes.mediaPosition === 'right';
-
-  return (
-    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-cyan-50 text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300 rounded-md border border-cyan-200/60 dark:border-cyan-800/60">
-        <ColumnsIcon size={14} /> Media & Text
-      </span>
-      <span className="w-px h-5 bg-slate-300 dark:bg-slate-700 mx-0.5 shrink-0" />
-      <button
-        onClick={() => {
-          updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, mediaPosition: isRight ? 'left' : 'right' } }));
-          showNotification(isRight ? 'Media placed left' : 'Media placed right');
-        }}
-        className="px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors cursor-pointer"
-      >
-        Flip Position ({isRight ? 'Right' : 'Left'})
-      </button>
-    </div>
-  );
-}
-
-function MediaEmbedToolbar({ block, showNotification }: CommonToolbarProps) {
-  const updateBlock = useEditorStore((s) => s.updateBlock);
-  const [showUrlInput, setShowUrlInput] = useState(false);
-  const [url, setUrl] = useState((block.attributes.url as string) || '');
-
-  const applyUrl = () => {
-    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, url: url.trim() } }));
-    setShowUrlInput(false);
-    showNotification('Media URL updated');
-  };
-
-  return (
-    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 rounded-md border border-rose-200/60 dark:border-rose-800/60">
-        <Video size={14} /> {getBlockLabel(block.type)}
-      </span>
-      <span className="w-px h-5 bg-slate-300 dark:bg-slate-700 mx-0.5 shrink-0" />
-      <div className="relative inline-flex items-center">
-        <button
-          onClick={() => setShowUrlInput(!showUrlInput)}
-          className="px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors cursor-pointer flex items-center gap-1"
-        >
-          <ExternalLink size={13} /> Change URL
-        </button>
-        {showUrlInput && (
-          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Embed URL</span>
-            <input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://..."
-              className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
-              onKeyDown={(e) => e.key === 'Enter' && applyUrl()}
-              autoFocus
-            />
-            <div className="flex justify-end gap-1.5 mt-1">
-              <button onClick={() => setShowUrlInput(false)} className="px-2.5 py-1 text-xs text-slate-500 cursor-pointer">
-                Cancel
-              </button>
-              <button onClick={applyUrl} className="px-3 py-1 text-xs font-semibold rounded-lg bg-blue-600 text-white cursor-pointer">
-                Save
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ColumnsToolbar({ block, showNotification }: CommonToolbarProps) {
-  const updateBlock = useEditorStore((s) => s.updateBlock);
-  const cols = (block.attributes.columns as number) || 2;
-
-  const setColumnCount = (count: number) => {
-    updateBlock(block.id, (curr) => {
-      const currentInner = curr.innerBlocks || [];
-      const nextInner = [...currentInner];
-      while (nextInner.length < count) {
-        nextInner.push({
-          id: createId(),
-          type: 'paragraph',
-          attributes: { content: [{ text: '' }] },
-          innerBlocks: [],
-        });
-      }
-      while (nextInner.length > count) {
-        nextInner.pop();
-      }
-      return {
-        ...curr,
-        attributes: { ...curr.attributes, columns: count },
-        innerBlocks: nextInner,
-      };
-    });
-    showNotification(`Columns set to ${count}`);
-  };
-
-  return (
-    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 rounded-md border border-indigo-200/60 dark:border-indigo-800/60">
-        <ColumnsIcon size={14} /> Columns
-      </span>
-      <span className="w-px h-5 bg-slate-300 dark:bg-slate-700 mx-0.5 shrink-0" />
-      <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
-        {[2, 3, 4, 6].map((count) => (
-          <button
-            key={count}
-            onClick={() => setColumnCount(count)}
-            className={`px-2 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${cols === count ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'}`}
-          >
-            {count} Cols
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SliderToolbar({ block, showNotification }: CommonToolbarProps) {
-  const updateBlock = useEditorStore((s) => s.updateBlock);
-  const autoplay = Boolean(block.attributes.autoplay);
-
-  return (
-    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-md border border-emerald-200/60 dark:border-emerald-800/60">
-        <Layers size={14} /> Slider
-      </span>
-      <span className="w-px h-5 bg-slate-300 dark:bg-slate-700 mx-0.5 shrink-0" />
-      <button
-        onClick={() => {
-          updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, autoplay: !autoplay } }));
-          showNotification(autoplay ? 'Autoplay disabled' : 'Autoplay enabled');
-        }}
-        className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors cursor-pointer ${autoplay ? 'bg-emerald-600 text-white font-bold' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200'}`}
-      >
-        Autoplay: {autoplay ? 'ON' : 'OFF'}
-      </button>
-    </div>
-  );
-}
-
-function TableToolbar({ block, showNotification }: CommonToolbarProps) {
-  const updateBlock = useEditorStore((s) => s.updateBlock);
-
-  const addRow = () => {
-    updateBlock(block.id, (b) => {
-      const rows = (b.attributes.rows as any[]) || [];
-      const colCount = rows[0]?.cells?.length || 2;
-      const newRow = { id: createId(), cells: Array(colCount).fill({ content: [{ text: '' }] }) };
-      return { ...b, attributes: { ...b.attributes, rows: [...rows, newRow] } };
-    });
-    showNotification('Row added');
-  };
-
-  const addCol = () => {
-    updateBlock(block.id, (b) => {
-      const rows = (b.attributes.rows as any[]) || [];
-      const newRows = rows.map((r: any) => ({
-        ...r,
-        cells: [...(r.cells || []), { content: [{ text: '' }] }],
-      }));
-      return { ...b, attributes: { ...b.attributes, rows: newRows } };
-    });
-    showNotification('Column added');
-  };
-
-  return (
-    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-teal-50 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 rounded-md border border-teal-200/60 dark:border-teal-800/60">
-        <TableIcon size={14} /> Table
-      </span>
-      <span className="w-px h-5 bg-slate-300 dark:bg-slate-700 mx-0.5 shrink-0" />
-      <button
-        onClick={addRow}
-        className="px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors cursor-pointer"
-      >
-        + Row
-      </button>
-      <button
-        onClick={addCol}
-        className="px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 transition-colors cursor-pointer"
-      >
-        + Col
-      </button>
     </div>
   );
 }
@@ -578,49 +747,1046 @@ function ButtonToolbar({ block, showNotification }: CommonToolbarProps) {
 
   return (
     <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
-      <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-md border border-emerald-200/60 dark:border-emerald-800/60">
+      <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-lg border border-emerald-200/60 dark:border-emerald-800/60">
         <LinkIcon size={14} /> Button
       </span>
 
-      <span className="w-px h-5 bg-slate-300 dark:bg-slate-700 mx-0.5 shrink-0" />
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
 
       <div className="relative inline-flex items-center">
         <Tooltip text="Edit Button Link URL">
           <button
             onClick={() => setShowUrlPopover(!showUrlPopover)}
-            className="px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer flex items-center gap-1.5"
+            className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
           >
-            <ExternalLink size={13} /> URL
+            <ExternalLink size={14} /> URL
           </button>
         </Tooltip>
         {showUrlPopover && (
-          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
-            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Button Destination</span>
+          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Button Destination</span>
             <input
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               placeholder="https://example.com"
-              className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
+              className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
               onKeyDown={(e) => e.key === 'Enter' && applyUrl()}
               autoFocus
             />
             <div className="flex justify-end gap-1.5 mt-1">
-              <button onClick={() => setShowUrlPopover(false)} className="px-2.5 py-1 text-xs text-slate-500 cursor-pointer">
+              <button onClick={() => setShowUrlPopover(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
                 Cancel
               </button>
-              <button onClick={applyUrl} className="px-3 py-1 text-xs font-semibold rounded-lg bg-blue-600 text-white cursor-pointer">
-                Apply
+              <button onClick={applyUrl} className="px-3 py-1 text-xs font-semibold rounded-lg bg-primary-600 text-white cursor-pointer">
+                Save URL
               </button>
             </div>
           </div>
         )}
       </div>
+
+      <div className="w-28">
+        <CustomSelect
+          value={(block.attributes.style as string) || 'fill'}
+          options={[
+            { value: 'fill', label: 'Filled' },
+            { value: 'outline', label: 'Outline' },
+            { value: 'link', label: 'Link' },
+          ]}
+          onChange={(val) => {
+            updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, style: val } }));
+            showNotification(`Style set to ${val}`);
+          }}
+          size="sm"
+        />
+      </div>
+
+      <div className="w-32">
+        <CustomSelect
+          value={(block.attributes.width as string) || 'auto'}
+          options={[
+            { value: 'auto', label: 'Width: Auto' },
+            { value: '25%', label: 'Width: 25%' },
+            { value: '50%', label: 'Width: 50%' },
+            { value: '75%', label: 'Width: 75%' },
+            { value: '100%', label: 'Width: 100%' },
+          ]}
+          onChange={(val) => {
+            updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, width: val } }));
+            showNotification(`Width set to ${val}`);
+          }}
+          size="sm"
+        />
+      </div>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+      <AlignmentPicker block={block} showNotification={showNotification} />
     </div>
   );
 }
 
-// Map specialized toolbars
+function ColumnsToolbar({ block, showNotification }: CommonToolbarProps) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const cols = (block.attributes.columns as number) || 2;
+
+  const setColumnCount = (count: number) => {
+    updateBlock(block.id, (b) => {
+      const existing = b.innerBlocks ?? [];
+      let nextInner = [...existing];
+      if (existing.length < count) {
+        for (let i = existing.length; i < count; i++) {
+          nextInner.push({ id: `col-${Date.now()}-${i}`, type: 'column', attributes: {}, innerBlocks: [] });
+        }
+      } else if (existing.length > count) {
+        nextInner = nextInner.slice(0, count);
+      }
+      return {
+        ...b,
+        attributes: { ...b.attributes, columns: count },
+        innerBlocks: nextInner,
+      };
+    });
+    showNotification(`Columns set to ${count}`);
+  };
+
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 rounded-lg border border-indigo-200/60 dark:border-indigo-800/60">
+        <ColumnsIcon size={14} /> Columns ({cols})
+      </span>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-0.5 rounded-lg border border-gray-200 dark:border-gray-700">
+        {[2, 3, 4].map((count) => (
+          <button
+            key={count}
+            onClick={() => setColumnCount(count)}
+            className={`px-2.5 py-1 text-xs font-semibold rounded transition-colors cursor-pointer ${cols === count ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900'}`}
+          >
+            {count} Cols
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TableToolbar({ block, showNotification }: CommonToolbarProps) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const a = block.attributes;
+
+  const addRow = () => {
+    updateBlock(block.id, (b) => {
+      const existingRows = (b.attributes.rows as string[][]) ?? [[]];
+      const cols = existingRows[0]?.length || 3;
+      const hasFooter = Boolean(b.attributes.hasFooter);
+      const newRow = Array(cols).fill('');
+
+      let targetIdx = existingRows.length;
+      if (hasFooter && existingRows.length > 1) {
+        targetIdx = existingRows.length - 1;
+      }
+
+      const nextRows = [...existingRows];
+      nextRows.splice(targetIdx, 0, newRow);
+
+      return {
+        ...b,
+        attributes: {
+          ...b.attributes,
+          rows: nextRows,
+        },
+      };
+    });
+    showNotification('Row added');
+  };
+
+  const addColumn = () => {
+    updateBlock(block.id, (b) => {
+      const existingRows = (b.attributes.rows as string[][]) ?? [[]];
+      const nextRows = existingRows.map((r) => [...r, '']);
+      return {
+        ...b,
+        attributes: {
+          ...b.attributes,
+          rows: nextRows,
+        },
+      };
+    });
+    showNotification('Column added');
+  };
+
+  const deleteRow = () => {
+    updateBlock(block.id, (b) => {
+      const rows = (b.attributes.rows as string[][]) ?? [];
+      if (rows.length <= 1) return b;
+      return { ...b, attributes: { ...b.attributes, rows: rows.slice(0, -1) } };
+    });
+    showNotification('Row deleted');
+  };
+
+  const deleteColumn = () => {
+    updateBlock(block.id, (b) => {
+      const rows = (b.attributes.rows as string[][]) ?? [];
+      if ((rows[0]?.length ?? 0) <= 1) return b;
+      return { ...b, attributes: { ...b.attributes, rows: rows.map((r) => r.slice(0, -1)) } };
+    });
+    showNotification('Column deleted');
+  };
+
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-primary-50 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 rounded-lg border border-primary-200/60 dark:border-primary-800/60">
+        <TableIcon size={14} /> Table
+      </span>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      <Tooltip text="Add Row">
+        <button
+          onClick={addRow}
+          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1"
+        >
+          <Rows3 size={14} /> Add Row
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Add Column">
+        <button
+          onClick={addColumn}
+          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1"
+        >
+          <Columns3 size={14} /> Add Column
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Delete Row">
+        <button
+          onClick={deleteRow}
+          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-colors cursor-pointer flex items-center gap-1"
+        >
+          <Trash2 size={14} /> Row
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Delete Column">
+        <button
+          onClick={deleteColumn}
+          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-colors cursor-pointer flex items-center gap-1"
+        >
+          <Trash2 size={14} /> Col
+        </button>
+      </Tooltip>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      <Tooltip text="Header Row">
+        <button
+          onClick={() => {
+            updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, hasHeader: !b.attributes.hasHeader } }));
+            showNotification('Header row toggled');
+          }}
+          className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer ${a.hasHeader ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 font-semibold' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}
+        >
+          Header
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Footer Row">
+        <button
+          onClick={() => {
+            updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, hasFooter: !b.attributes.hasFooter } }));
+            showNotification('Footer row toggled');
+          }}
+          className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer ${a.hasFooter ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 font-semibold' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}
+        >
+          Footer
+        </button>
+      </Tooltip>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+      <AlignmentPicker block={block} showNotification={showNotification} />
+    </div>
+  );
+}
+
+function ListToolbar({ block, saveSelection, showNotification }: CommonToolbarProps) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+
+  const toggleStyle = (targetStyle: ListStyle) => {
+    const currentStyle = (block.attributes.style as ListStyle) || 'bullet';
+
+    if (currentStyle === targetStyle) {
+      // Toggle OFF: Convert list to paragraph block(s)
+      const currentBlocks = useEditorStore.getState().blocks;
+      const blockIdx = currentBlocks.findIndex((b) => b.id === block.id);
+      const items = (block.attributes.items as { id: string; content: RichTextValue }[]) || [];
+
+      const firstItemContent = items[0]?.content || [];
+      updateBlock(block.id, (current) => ({
+        ...current,
+        type: 'paragraph',
+        attributes: {
+          content: firstItemContent,
+        },
+      }));
+
+      if (items.length > 1 && blockIdx !== -1) {
+        const extraParagraphs: BlockInstance[] = items.slice(1).map((it) => ({
+          id: createId(),
+          type: 'paragraph',
+          attributes: { content: it.content || [] },
+        }));
+
+        useEditorStore.setState((state) => {
+          const newBlocks = [...state.blocks];
+          newBlocks.splice(blockIdx + 1, 0, ...extraParagraphs);
+          return { blocks: newBlocks };
+        });
+      }
+      showNotification('Removed list formatting');
+      return;
+    }
+
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, style: targetStyle } }));
+    showNotification(`List style set to ${targetStyle}`);
+  };
+
+  const getActiveListItemId = (): string | null => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return null;
+    let node: Node | null = sel.getRangeAt(0).commonAncestorContainer;
+    while (node && node !== document.body) {
+      if (node.nodeType === 1 && (node as HTMLElement).hasAttribute('data-list-item')) {
+        return (node as HTMLElement).getAttribute('data-list-item');
+      }
+      node = node.parentNode;
+    }
+    return null;
+  };
+
+  const indentList = () => {
+    const items = (block.attributes.items as { id: string; content: RichTextValue; level?: number }[]) ?? [];
+    const activeId = getActiveListItemId();
+    const itemId = activeId || items[items.length - 1]?.id || items[0]?.id;
+    if (itemId) {
+      updateBlock(block.id, (b) => {
+        const curItems = (b.attributes.items as { id: string; content: RichTextValue; level?: number }[]) ?? [];
+        return {
+          ...b,
+          attributes: {
+            ...b.attributes,
+            items: curItems.map((it) => (it.id === itemId ? { ...it, level: Math.min((it.level || 0) + 1, 4) } : it)),
+          },
+        };
+      });
+      showNotification('Indented');
+    }
+  };
+
+  const outdentList = () => {
+    const items = (block.attributes.items as { id: string; content: RichTextValue; level?: number }[]) ?? [];
+    const activeId = getActiveListItemId();
+    const itemId = activeId || items[items.length - 1]?.id || items[0]?.id;
+    if (itemId) {
+      updateBlock(block.id, (b) => {
+        const curItems = (b.attributes.items as { id: string; content: RichTextValue; level?: number }[]) ?? [];
+        return {
+          ...b,
+          attributes: {
+            ...b.attributes,
+            items: curItems.map((it) => (it.id === itemId ? { ...it, level: Math.max((it.level || 0) - 1, 0) } : it)),
+          },
+        };
+      });
+      showNotification('Outdented');
+    }
+  };
+
+  const currentStyle = (block.attributes.style as ListStyle) || 'bullet';
+
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <BlockTypeSelector block={block} />
+
+      <Tooltip text="Bullet list">
+        <button
+          onClick={() => toggleStyle('bullet')}
+          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${currentStyle === 'bullet' ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/70 dark:text-primary-300 font-semibold shadow-2xs' : 'text-gray-600 dark:text-gray-300 hover:text-primary-600'}`}
+        >
+          <List size={15} />
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Numbered list">
+        <button
+          onClick={() => toggleStyle('number')}
+          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${currentStyle === 'number' ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/70 dark:text-primary-300 font-semibold shadow-2xs' : 'text-gray-600 dark:text-gray-300 hover:text-primary-600'}`}
+        >
+          <ListOrdered size={15} />
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Checklist">
+        <button
+          onClick={() => toggleStyle('checklist')}
+          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${currentStyle === 'checklist' ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/70 dark:text-primary-300 font-semibold shadow-2xs' : 'text-gray-600 dark:text-gray-300 hover:text-primary-600'}`}
+        >
+          <CheckSquare size={15} />
+        </button>
+      </Tooltip>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" />
+
+      <Tooltip text="Indent list (Tab)">
+        <button
+          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+          onClick={indentList}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 transition-colors cursor-pointer shrink-0"
+        >
+          <Indent size={15} />
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Outdent list (Shift+Tab)">
+        <button
+          onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+          onClick={outdentList}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 transition-colors cursor-pointer shrink-0"
+        >
+          <Outdent size={15} />
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
+function MediaEmbedToolbar({ block, showNotification }: CommonToolbarProps) {
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 rounded-lg border border-purple-200/60 dark:border-purple-800/60">
+        <Video size={14} /> {getBlockLabel(block.type)}
+      </span>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+      <AlignmentPicker block={block} showNotification={showNotification} />
+    </div>
+  );
+}
+
+function SliderToolbar({ block, showNotification }: CommonToolbarProps) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const a = block.attributes;
+  const slides = (a.slides as any[]) ?? [];
+
+  const addSlide = () => {
+    updateBlock(block.id, (b) => {
+      const current = (b.attributes.slides as any[]) ?? [];
+      const newSlide = {
+        id: `slide-${Date.now()}`,
+        heading: [{ text: `Slide ${current.length + 1}` }],
+        paragraph: [{ text: 'Add your custom description here.' }],
+        buttonText: 'Click Here',
+        buttonUrl: '#',
+        bgColor: '#0f172a',
+        align: 'center',
+      };
+      return { ...b, attributes: { ...b.attributes, slides: [...current, newSlide] } };
+    });
+    showNotification('New slide added');
+  };
+
+  const setAnimation = (anim: string) => {
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, animation: anim } }));
+    showNotification(`Transition set to ${anim}`);
+  };
+
+  const toggleAutoplay = () => {
+    const next = !a.autoplay;
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, autoplay: next } }));
+    showNotification(`Autoplay ${next ? 'enabled' : 'disabled'}`);
+  };
+
+  const toggleLayoutWidth = () => {
+    const next = a.layoutWidth === 'full' ? 'boxed' : 'full';
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, layoutWidth: next } }));
+    showNotification(`Layout set to ${next}`);
+  };
+
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 rounded-lg border border-violet-200/60 dark:border-violet-800/60">
+        <Layers size={14} /> Slider ({slides.length} slides)
+      </span>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      <Tooltip text="Add Slide">
+        <button
+          onClick={addSlide}
+          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
+        >
+          <Plus size={14} /> Add Slide
+        </button>
+      </Tooltip>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      <div className="w-28">
+        <CustomSelect
+          value={(a.animation as string) || 'slide'}
+          options={[
+            { value: 'slide', label: 'Slide' },
+            { value: 'fade', label: 'Fade' },
+          ]}
+          onChange={(val) => setAnimation(String(val))}
+          size="sm"
+        />
+      </div>
+
+      <Tooltip text="Toggle Autoplay">
+        <button
+          onClick={toggleAutoplay}
+          className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${a.autoplay ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-semibold' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}
+        >
+          Autoplay: {a.autoplay ? 'On' : 'Off'}
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Toggle Width Mode">
+        <button
+          onClick={toggleLayoutWidth}
+          className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${a.layoutWidth === 'full' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 font-semibold' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}
+        >
+          {a.layoutWidth === 'full' ? 'Full Width' : 'Boxed Width'}
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
+function CodeToolbar({ block, showNotification }: CommonToolbarProps) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const duplicateBlock = useEditorStore((s) => s.duplicateBlock);
+  const removeBlock = useEditorStore((s) => s.removeBlock);
+  const a = block.attributes;
+  const language = (a.language as string) || 'javascript';
+  const showLineNumbers = a.showLineNumbers !== false;
+  const wrapLines = Boolean(a.wrapLines);
+
+  const copyCode = () => {
+    navigator.clipboard.writeText((a.content as string) || '');
+    showNotification('Code copied to clipboard');
+  };
+
+  const toggleWrap = () => {
+    updateBlock(block.id, (b) => ({
+      ...b,
+      attributes: { ...b.attributes, wrapLines: !b.attributes.wrapLines },
+    }));
+    showNotification(!wrapLines ? 'Line wrapping enabled' : 'Line wrapping disabled');
+  };
+
+  const toggleLineNumbers = () => {
+    updateBlock(block.id, (b) => ({
+      ...b,
+      attributes: { ...b.attributes, showLineNumbers: b.attributes.showLineNumbers === false },
+    }));
+    showNotification(!showLineNumbers ? 'Line numbers enabled' : 'Line numbers disabled');
+  };
+
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      {/* Auto-Detected Language Badge (Read-Only) */}
+      <span className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-primary-50 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 border border-primary-200 dark:border-primary-800 select-none pointer-events-none flex items-center gap-1">
+        <Code2 size={13} /> {language}
+      </span>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      {/* Copy Code */}
+      <Tooltip text="Copy Code">
+        <button
+          onClick={copyCode}
+          className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
+        >
+          <CopyIcon size={14} /> Copy
+        </button>
+      </Tooltip>
+
+      {/* Wrap Lines Toggle */}
+      <Tooltip text="Wrap Lines">
+        <button
+          onClick={toggleWrap}
+          className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${wrapLines ? 'bg-primary-100 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 font-semibold' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}
+        >
+          Wrap: {wrapLines ? 'On' : 'Off'}
+        </button>
+      </Tooltip>
+
+      {/* Line Numbers Toggle */}
+      <Tooltip text="Line Numbers">
+        <button
+          onClick={toggleLineNumbers}
+          className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${showLineNumbers ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 font-semibold' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}`}
+        >
+          Lines: {showLineNumbers ? 'On' : 'Off'}
+        </button>
+      </Tooltip>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      {/* Duplicate */}
+      <Tooltip text="Duplicate Block">
+        <button
+          onClick={() => duplicateBlock(block.id)}
+          className="px-2 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer"
+        >
+          <CopyPlus size={14} />
+        </button>
+      </Tooltip>
+
+      {/* Delete */}
+      <Tooltip text="Delete Block">
+        <button
+          onClick={() => removeBlock(block.id)}
+          className="px-2 py-1 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-colors cursor-pointer"
+        >
+          <Trash2 size={14} />
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
+function GalleryToolbar({ block, showNotification }: CommonToolbarProps) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const duplicateBlock = useEditorStore((s) => s.duplicateBlock);
+  const removeBlock = useEditorStore((s) => s.removeBlock);
+  const a = block.attributes;
+  const images = (a.images as any[]) ?? [];
+  const selectedIdx = typeof a.selectedImageIndex === 'number' && a.selectedImageIndex >= 0 && a.selectedImageIndex < images.length ? a.selectedImageIndex : null;
+  const fileRef = useRef<HTMLInputElement>(null);
+  const replaceFileRef = useRef<HTMLInputElement>(null);
+
+  const addImages = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const urls = await Promise.all(Array.from(files).map(fileToDataUrl));
+    const newItems = urls.map((u) => ({ url: u, alt: '' }));
+    updateBlock(block.id, (b) => ({
+      ...b,
+      attributes: { ...b.attributes, images: [...((b.attributes.images as any[]) ?? []), ...newItems] },
+    }));
+    showNotification(`${urls.length} images added to gallery`);
+  };
+
+  const replaceAllImages = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const urls = await Promise.all(Array.from(files).map(fileToDataUrl));
+    const newItems = urls.map((u) => ({ url: u, alt: '' }));
+    updateBlock(block.id, (b) => ({
+      ...b,
+      attributes: { ...b.attributes, images: newItems, selectedImageIndex: null },
+    }));
+    showNotification(`Gallery replaced with ${urls.length} new images`);
+  };
+
+  const replaceSingleImage = async (files: FileList | null) => {
+    if (selectedIdx === null || !files || files.length === 0) return;
+    const url = await fileToDataUrl(files[0]);
+    updateBlock(block.id, (b) => {
+      const list = [...((b.attributes.images as any[]) ?? [])];
+      if (list[selectedIdx]) {
+        list[selectedIdx] = { ...list[selectedIdx], url };
+      }
+      return { ...b, attributes: { ...b.attributes, images: list } };
+    });
+    showNotification('Gallery image replaced');
+  };
+
+  const deleteSingleImage = () => {
+    if (selectedIdx === null) return;
+    updateBlock(block.id, (b) => {
+      const list = [...((b.attributes.images as any[]) ?? [])];
+      list.splice(selectedIdx, 1);
+      return {
+        ...b,
+        attributes: {
+          ...b.attributes,
+          images: list,
+          selectedImageIndex: null,
+        },
+      };
+    });
+    showNotification('Image deleted from gallery');
+  };
+
+  const duplicateSingleImage = () => {
+    if (selectedIdx === null) return;
+    updateBlock(block.id, (b) => {
+      const list = [...((b.attributes.images as any[]) ?? [])];
+      if (list[selectedIdx]) {
+        const copy = { ...list[selectedIdx] };
+        list.splice(selectedIdx + 1, 0, copy);
+      }
+      return {
+        ...b,
+        attributes: {
+          ...b.attributes,
+          images: list,
+          selectedImageIndex: selectedIdx + 1,
+        },
+      };
+    });
+    showNotification('Image duplicated in gallery');
+  };
+
+  // IF AN INDIVIDUAL IMAGE IS SELECTED INSIDE THE GALLERY
+  if (selectedIdx !== null) {
+    return (
+      <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+        {/* Return to Gallery Container Controls */}
+        <button
+          onClick={() => updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, selectedImageIndex: null } }))}
+          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-primary-100 text-primary-700 dark:bg-primary-950/70 dark:text-primary-300 hover:bg-primary-200 transition-colors cursor-pointer flex items-center gap-1 border border-primary-200 dark:border-primary-800"
+          title="Return to Gallery Settings"
+        >
+          ← Gallery Settings
+        </button>
+
+        <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+        <span className="flex items-center gap-1 text-xs font-semibold px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200/60 dark:border-gray-700/60">
+          <ImageIcon size={14} /> Image #{selectedIdx + 1}
+        </span>
+
+        <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+        {/* Replace Image */}
+        <Tooltip text="Replace Image">
+          <label className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5">
+            <Upload size={14} /> Replace
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => replaceSingleImage(e.target.files)}
+            />
+          </label>
+        </Tooltip>
+
+        {/* Crop */}
+        <Tooltip text="Crop Image">
+          <button
+            onClick={() => {
+              updateBlock(block.id, (b) => ({
+                ...b,
+                attributes: { ...b.attributes, isCropping: true },
+              }));
+              showNotification('Opening Image Cropper');
+            }}
+            className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <Crop size={14} /> Crop
+          </button>
+        </Tooltip>
+
+        {/* Duplicate Image */}
+        <Tooltip text="Duplicate Image">
+          <button
+            onClick={duplicateSingleImage}
+            className="px-2 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer"
+          >
+            <CopyPlus size={14} />
+          </button>
+        </Tooltip>
+
+        {/* Delete Image */}
+        <Tooltip text="Delete Image">
+          <button
+            onClick={deleteSingleImage}
+            className="px-2 py-1 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-colors cursor-pointer"
+          >
+            <Trash2 size={14} />
+          </button>
+        </Tooltip>
+      </div>
+    );
+  }
+
+  // IF GALLERY CONTAINER IS SELECTED
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-lg border border-emerald-200/60 dark:border-emerald-800/60">
+        <ImageIcon size={14} /> Gallery ({images.length} images)
+      </span>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      {/* Add Images */}
+      <Tooltip text="Add Images">
+        <label className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5">
+          <Plus size={14} /> Add Images
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => addImages(e.target.files)}
+          />
+        </label>
+      </Tooltip>
+
+      {/* Replace Images */}
+      <Tooltip text="Replace All Images">
+        <label className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5">
+          <Upload size={14} /> Replace Images
+          <input
+            ref={replaceFileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => replaceAllImages(e.target.files)}
+          />
+        </label>
+      </Tooltip>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      {/* Gallery Alignment */}
+      <AlignmentPicker block={block} showNotification={showNotification} />
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      {/* Duplicate Gallery */}
+      <Tooltip text="Duplicate Gallery">
+        <button
+          onClick={() => duplicateBlock(block.id)}
+          className="px-2 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer"
+        >
+          <CopyPlus size={14} />
+        </button>
+      </Tooltip>
+
+      {/* Delete Gallery */}
+      <Tooltip text="Delete Gallery">
+        <button
+          onClick={() => removeBlock(block.id)}
+          className="px-2 py-1 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-colors cursor-pointer"
+        >
+          <Trash2 size={14} />
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
+function DefaultBlockToolbar({ block, showNotification }: CommonToolbarProps) {
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200/60 dark:border-gray-700/60">
+        {getBlockLabel(block.type)}
+      </span>
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+      <AlignmentPicker block={block} showNotification={showNotification} />
+    </div>
+  );
+}
+
+function CoverToolbar({ block, showNotification }: CommonToolbarProps) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const duplicateBlock = useEditorStore((s) => s.duplicateBlock);
+  const removeBlock = useEditorStore((s) => s.removeBlock);
+  const a = block.attributes;
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const url = await fileToDataUrl(files[0]);
+    updateBlock(block.id, (b) => ({
+      ...b,
+      attributes: { ...b.attributes, url },
+    }));
+    showNotification('Cover background image replaced');
+  };
+
+  const handleRemove = () => {
+    updateBlock(block.id, (b) => ({
+      ...b,
+      attributes: { ...b.attributes, url: '' },
+    }));
+    showNotification('Cover background image removed');
+  };
+
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 rounded-lg border border-purple-200/60 dark:border-purple-800/60">
+        <ImageIcon size={14} /> Cover Block
+      </span>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      {/* Replace Background Image */}
+      <Tooltip text="Replace Background Image">
+        <label className="px-2.5 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5">
+          <Upload size={14} /> Replace Background
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleUpload(e.target.files)}
+          />
+        </label>
+      </Tooltip>
+
+      {/* Remove Background Image */}
+      {Boolean(a.url) && (
+        <Tooltip text="Remove Background Image">
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="px-2.5 py-1 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-colors cursor-pointer flex items-center gap-1.5"
+          >
+            <Trash2 size={14} /> Remove Background
+          </button>
+        </Tooltip>
+      )}
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      {/* Duplicate Cover */}
+      <Tooltip text="Duplicate Block">
+        <button
+          onClick={() => duplicateBlock(block.id)}
+          className="px-2 py-1 text-xs font-medium rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer"
+        >
+          <CopyPlus size={14} />
+        </button>
+      </Tooltip>
+
+      {/* Delete Cover */}
+      <Tooltip text="Delete Block">
+        <button
+          onClick={() => removeBlock(block.id)}
+          className="px-2 py-1 text-xs font-medium rounded-lg bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-colors cursor-pointer"
+        >
+          <Trash2 size={14} />
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
+function MediaTextToolbar({ block, showNotification }: CommonToolbarProps) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const a = block.attributes;
+  const mediaPosition = (a.mediaPosition as 'left' | 'right') || 'left';
+  const verticalAlign = (a.verticalAlign as 'top' | 'center' | 'bottom') || 'center';
+  const imageFill = Boolean(a.imageFill);
+
+  const toggleMediaPosition = () => {
+    const next = mediaPosition === 'left' ? 'right' : 'left';
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, mediaPosition: next } }));
+    showNotification(`Media moved to ${next}`);
+  };
+
+  const setVAlign = (val: 'top' | 'center' | 'bottom') => {
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, verticalAlign: val } }));
+    showNotification(`Aligned ${val}`);
+  };
+
+  const toggleImageFill = () => {
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, imageFill: !imageFill } }));
+    showNotification(!imageFill ? 'Crop image to fill column' : 'Natural image size');
+  };
+
+  return (
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <span className="px-2 py-1 text-xs font-bold rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 flex items-center gap-1">
+        Media & Text
+      </span>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      {/* Media Position Toggle */}
+      <Tooltip text={mediaPosition === 'left' ? 'Show media on right' : 'Show media on left'}>
+        <button
+          onClick={toggleMediaPosition}
+          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 transition-colors cursor-pointer flex items-center gap-1.5"
+        >
+          {mediaPosition === 'left' ? 'Media on Left' : 'Media on Right'}
+        </button>
+      </Tooltip>
+
+      {/* Vertical Alignment */}
+      <div className="flex items-center gap-0.5 bg-gray-100 dark:bg-gray-800 p-0.5 rounded-lg border border-gray-200 dark:border-gray-700">
+        <Tooltip text="Align Top">
+          <button
+            onClick={() => setVAlign('top')}
+            className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${verticalAlign === 'top'
+              ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs font-bold'
+              : 'text-gray-600 dark:text-gray-400'
+              }`}
+          >
+            ↑
+          </button>
+        </Tooltip>
+        <Tooltip text="Align Center">
+          <button
+            onClick={() => setVAlign('center')}
+            className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${verticalAlign === 'center'
+              ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs font-bold'
+              : 'text-gray-600 dark:text-gray-400'
+              }`}
+          >
+            ↕
+          </button>
+        </Tooltip>
+        <Tooltip text="Align Bottom">
+          <button
+            onClick={() => setVAlign('bottom')}
+            className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${verticalAlign === 'bottom'
+              ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs font-bold'
+              : 'text-gray-600 dark:text-gray-400'
+              }`}
+          >
+            ↓
+          </button>
+        </Tooltip>
+      </div>
+
+      {/* Crop / Fill container toggle */}
+      <Tooltip text="Crop media to fill entire column">
+        <button
+          onClick={toggleImageFill}
+          className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${imageFill
+            ? 'bg-primary-500 text-white shadow-2xs'
+            : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-200'
+            }`}
+        >
+          {imageFill ? 'Filled Column' : 'Fit Natural'}
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
+// ==========================================
+// BLOCK TOOLBAR ARCHITECTURE REGISTRY
+// ==========================================
+
 const BLOCK_TOOLBAR_REGISTRY: Record<string, React.ComponentType<CommonToolbarProps>> = {
+  paragraph: ParagraphToolbar,
+  heading: HeadingToolbar,
+  list: ListToolbar,
+  quote: ParagraphToolbar,
+  pullquote: ParagraphToolbar,
+  code: CodeToolbar,
+  preformatted: ParagraphToolbar,
   image: ImageToolbar,
   gallery: GalleryToolbar,
   cover: CoverToolbar,
@@ -635,43 +1801,216 @@ const BLOCK_TOOLBAR_REGISTRY: Record<string, React.ComponentType<CommonToolbarPr
   row: () => null,
   stack: DefaultBlockToolbar,
   slider: SliderToolbar,
+  spacer: DefaultBlockToolbar,
+  separator: DefaultBlockToolbar,
   table: TableToolbar,
   button: ButtonToolbar,
+  file: DefaultBlockToolbar,
+  html: DefaultBlockToolbar,
 };
 
 function MultiSelectToolbar({ selectedIds, showNotification }: { selectedIds: string[]; showNotification: (msg: string) => void }) {
   const duplicateSelectedBlocks = useEditorStore((s) => s.duplicateSelectedBlocks);
   const deleteSelectedBlocks = useEditorStore((s) => s.deleteSelectedBlocks);
 
+  const convertSelectedToList = (listStyle: ListStyle) => {
+    const state = useEditorStore.getState();
+    const currentBlocks = state.blocks;
+
+    const selectedBlockObjects = selectedIds
+      .map((id) => findBlock(currentBlocks, id))
+      .filter((b): b is BlockInstance => b !== null);
+
+    if (selectedBlockObjects.length === 0) return;
+
+    const allAlreadySameList = selectedBlockObjects.every(
+      (b) => b.type === 'list' && (b.attributes.style || 'bullet') === listStyle
+    );
+
+    if (allAlreadySameList) {
+      // Toggle OFF: Convert list items to separate paragraph blocks
+      const allParagraphs: BlockInstance[] = [];
+      selectedBlockObjects.forEach((listBlock) => {
+        const items = (listBlock.attributes.items as { id: string; content: RichTextValue }[]) || [];
+        if (items.length === 0) {
+          allParagraphs.push({
+            id: createId(),
+            type: 'paragraph',
+            attributes: { content: [] },
+          });
+        } else {
+          items.forEach((it) => {
+            allParagraphs.push({
+              id: createId(),
+              type: 'paragraph',
+              attributes: { content: it.content || [] },
+            });
+          });
+        }
+      });
+
+      const firstIdx = currentBlocks.findIndex((b) => selectedIds.includes(b.id));
+
+      useEditorStore.setState((st) => {
+        const newBlocks = st.blocks.filter((b) => !selectedIds.includes(b.id));
+        newBlocks.splice(firstIdx !== -1 ? firstIdx : newBlocks.length, 0, ...allParagraphs);
+        return {
+          blocks: newBlocks,
+          selectedIds: allParagraphs.map((p) => p.id),
+        };
+      });
+      showNotification('Converted blocks to paragraphs');
+      return;
+    }
+
+    // Convert ALL selected blocks into a SINGLE merged list block
+    const listItems: { id: string; content: RichTextValue; level: number }[] = [];
+
+    selectedBlockObjects.forEach((b) => {
+      if (b.type === 'list') {
+        const items = (b.attributes.items as { id: string; content: RichTextValue; level?: number }[]) || [];
+        items.forEach((it) => {
+          listItems.push({
+            id: createId(),
+            content: it.content || [],
+            level: it.level || 0,
+          });
+        });
+      } else {
+        const content = Array.isArray(b.attributes.content)
+          ? (b.attributes.content as RichTextValue)
+          : b.attributes.content ? [{ text: String(b.attributes.content) }] : [];
+        listItems.push({
+          id: createId(),
+          content,
+          level: 0,
+        });
+      }
+    });
+
+    const newListBlock: BlockInstance = {
+      id: createId(),
+      type: 'list',
+      attributes: {
+        style: listStyle,
+        items: listItems,
+      },
+    };
+
+    const firstIdx = currentBlocks.findIndex((b) => selectedIds.includes(b.id));
+
+    useEditorStore.setState((st) => {
+      const newBlocks = st.blocks.filter((b) => !selectedIds.includes(b.id));
+      newBlocks.splice(firstIdx !== -1 ? firstIdx : newBlocks.length, 0, newListBlock);
+      return {
+        blocks: newBlocks,
+        selectedIds: [newListBlock.id],
+      };
+    });
+
+    showNotification(`Converted ${selectedBlockObjects.length} blocks to ${listStyle} list`);
+  };
+
+  const convertSelectedToParagraphs = () => {
+    const state = useEditorStore.getState();
+    const currentBlocks = state.blocks;
+    const selectedBlockObjects = selectedIds
+      .map((id) => findBlock(currentBlocks, id))
+      .filter((b): b is BlockInstance => b !== null);
+
+    const allParagraphs: BlockInstance[] = [];
+    selectedBlockObjects.forEach((b) => {
+      if (b.type === 'list') {
+        const items = (b.attributes.items as { id: string; content: RichTextValue }[]) || [];
+        items.forEach((it) => {
+          allParagraphs.push({
+            id: createId(),
+            type: 'paragraph',
+            attributes: { content: it.content || [] },
+          });
+        });
+      } else {
+        allParagraphs.push({
+          id: createId(),
+          type: 'paragraph',
+          attributes: { content: b.attributes.content || [] },
+        });
+      }
+    });
+
+    const firstIdx = currentBlocks.findIndex((b) => selectedIds.includes(b.id));
+
+    useEditorStore.setState((st) => {
+      const newBlocks = st.blocks.filter((b) => !selectedIds.includes(b.id));
+      newBlocks.splice(firstIdx !== -1 ? firstIdx : newBlocks.length, 0, ...allParagraphs);
+      return {
+        blocks: newBlocks,
+        selectedIds: allParagraphs.map((p) => p.id),
+      };
+    });
+    showNotification('Converted blocks to paragraphs');
+  };
+
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2.5 py-1 rounded-md">
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+      <span className="text-xs font-semibold px-2.5 py-1 bg-primary-50 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 rounded-lg border border-primary-200/60 dark:border-primary-800/60 select-none">
         {selectedIds.length} blocks selected
       </span>
-      <button
-        onClick={() => {
-          duplicateSelectedBlocks();
-          showNotification('Blocks duplicated');
-        }}
-        className="px-2.5 py-1 text-xs font-medium rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-colors cursor-pointer flex items-center gap-1"
-      >
-        <CopyPlus size={13} /> Duplicate
-      </button>
-      <button
-        onClick={() => {
-          deleteSelectedBlocks();
-          showNotification('Blocks deleted');
-        }}
-        className="px-2.5 py-1 text-xs font-medium rounded-md bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 hover:bg-red-100 transition-colors cursor-pointer flex items-center gap-1"
-      >
-        <Trash2 size={13} /> Delete
-      </button>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      <Tooltip text="Convert all selected to Bullet List">
+        <button
+          onClick={() => convertSelectedToList('bullet')}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+        >
+          <List size={16} />
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Convert all selected to Numbered List">
+        <button
+          onClick={() => convertSelectedToList('number')}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+        >
+          <ListOrdered size={16} />
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Convert all selected to Paragraphs">
+        <button
+          onClick={convertSelectedToParagraphs}
+          className="px-2.5 py-1 text-xs font-semibold rounded-lg text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+        >
+          ¶ Paragraphs
+        </button>
+      </Tooltip>
+
+      <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+
+      <Tooltip text="Duplicate selected blocks">
+        <button
+          onClick={duplicateSelectedBlocks}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer shrink-0"
+        >
+          <CopyPlus size={15} />
+        </button>
+      </Tooltip>
+
+      <Tooltip text="Delete selected blocks">
+        <button
+          onClick={deleteSelectedBlocks}
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer shrink-0"
+        >
+          <Trash2 size={15} />
+        </button>
+      </Tooltip>
     </div>
   );
 }
 
 // ==========================================
-// MAIN GOOGLE DOCS FORMATTING TOOLBAR
+// MAIN TOP TOOLBAR HOST
 // ==========================================
 
 export default function BlockFormattingToolbar() {
@@ -680,54 +2019,34 @@ export default function BlockFormattingToolbar() {
   const htmlModeBlockIds = useEditorStore((s) => s.htmlModeBlockIds);
   const toggleHtmlMode = useEditorStore((s) => s.toggleHtmlMode);
   const updateBlock = useEditorStore((s) => s.updateBlock);
-  const insertBlock = useEditorStore((s) => s.insertBlock);
   const moveBlock = useEditorStore((s) => s.moveBlock);
   const duplicateBlock = useEditorStore((s) => s.duplicateBlock);
   const removeBlock = useEditorStore((s) => s.removeBlock);
-  const undo = useEditorStore((s) => s.undo);
-  const redo = useEditorStore((s) => s.redo);
-  const past = useEditorStore((s) => s.past);
-  const future = useEditorStore((s) => s.future);
-  const zoomLevel = useEditorStore((s) => s.zoomLevel);
-  const setZoomLevel = useEditorStore((s) => s.setZoomLevel);
 
-  // Popover States
   const [showLink, setShowLink] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
-  const [showTextColor, setShowTextColor] = useState(false);
-  const [showHighlightColor, setShowHighlightColor] = useState(false);
-  const [showAlignMenu, setShowAlignMenu] = useState(false);
-  const [showSpacingMenu, setShowSpacingMenu] = useState(false);
-  const [showFontSizeDropdown, setShowFontSizeDropdown] = useState(false);
-  const [formatPainterActive, setFormatPainterActive] = useState(false);
-  const [copiedFormat, setCopiedFormat] = useState<Record<string, unknown> | null>(null);
+  const [mobileExpanded, setMobileExpanded] = useState(false);
+
+  // Auto-open format tools when a block is selected on mobile
+  useEffect(() => {
+    if (selectedIds.length > 0) {
+      setMobileExpanded(true);
+    }
+  }, [selectedIds]);
 
   const [toast, setToast] = useState<string | null>(null);
+
   const savedRangeRef = useRef<Range | null>(null);
-  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   const blockId = selectedIds[0];
   const block = blockId ? findBlock(blocks, blockId) : null;
   const blockType = block?.type || 'paragraph';
-  const a = block?.attributes || {};
 
   const showNotification = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
   };
-
-  // Close popovers on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
-        setShowMoreMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const saveSelection = () => {
     const sel = window.getSelection();
@@ -755,20 +2074,32 @@ export default function BlockFormattingToolbar() {
     }
 
     if (cmd === 'hiliteColor') {
-      if (value === 'transparent') {
+      const sel = window.getSelection();
+      let hasHighlight = false;
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        let node: Node | null = range.commonAncestorContainer;
+        if (node.nodeType === 3) node = node.parentNode;
+        while (node && node !== document.body && !(node as HTMLElement).hasAttribute('contenteditable')) {
+          if (node.nodeType === 1) {
+            const bg = (node as HTMLElement).style?.backgroundColor || window.getComputedStyle(node as HTMLElement).backgroundColor;
+            if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'none') {
+              hasHighlight = true;
+              break;
+            }
+          }
+          node = node.parentNode;
+        }
+      }
+
+      if (hasHighlight) {
         document.execCommand('hiliteColor', false, 'transparent');
         document.execCommand('backColor', false, 'transparent');
-        if (block) updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, backgroundColor: '' } }));
         showNotification('Highlight removed');
       } else {
-        document.execCommand('hiliteColor', false, value || '#ffff00');
-        if (block) updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, backgroundColor: value } }));
+        document.execCommand('hiliteColor', false, value || '#fef08a');
         showNotification('Highlight applied');
       }
-    } else if (cmd === 'foreColor') {
-      document.execCommand('foreColor', false, value || '#000000');
-      if (block) updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, textColor: value } }));
-      showNotification('Text color applied');
     } else {
       document.execCommand(cmd, false, value);
     }
@@ -784,160 +2115,6 @@ export default function BlockFormattingToolbar() {
     }
   };
 
-  // Format Painter
-  const handleFormatPainter = () => {
-    if (!formatPainterActive) {
-      // Copy format
-      const currentFormat = {
-        fontWeight: a.fontWeight,
-        fontStyle: a.fontStyle,
-        textDecoration: a.textDecoration,
-        textColor: a.textColor,
-        backgroundColor: a.backgroundColor,
-        fontSize: a.fontSize,
-        fontFamily: a.fontFamily,
-      };
-      setCopiedFormat(currentFormat);
-      setFormatPainterActive(true);
-      showNotification('Formatting copied. Click text/block to apply.');
-    } else {
-      setFormatPainterActive(false);
-      setCopiedFormat(null);
-    }
-  };
-
-  // Block Style / Normal text changes
-  const changeBlockStyle = (styleVal: string) => {
-    if (!block) {
-      insertBlock(styleVal === 'title' || styleVal === 'subtitle' ? 'heading' : styleVal);
-      return;
-    }
-
-    if (styleVal === 'title') {
-      updateBlock(block.id, (b) => ({ ...b, type: 'heading', attributes: { ...b.attributes, level: 1, fontSize: 32, fontWeight: 700 } }));
-      showNotification('Applied Title style');
-    } else if (styleVal === 'subtitle') {
-      updateBlock(block.id, (b) => ({ ...b, type: 'heading', attributes: { ...b.attributes, level: 2, fontSize: 24, fontWeight: 500 } }));
-      showNotification('Applied Subtitle style');
-    } else if (styleVal.startsWith('h')) {
-      const lvl = parseInt(styleVal.replace('h', ''), 10);
-      updateBlock(block.id, (b) => ({ ...b, type: 'heading', attributes: { ...b.attributes, level: lvl } }));
-      showNotification(`Applied Heading ${lvl}`);
-    } else {
-      updateBlock(block.id, (b) => ({ ...b, type: styleVal }));
-      showNotification(`Applied ${styleVal} style`);
-    }
-  };
-
-  // Font Family change
-  const changeFontFamily = (fontKey: string) => {
-    if (block) {
-      updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, fontFamily: fontKey } }));
-      execCmd('fontName', fontKey);
-      showNotification(`Font set to ${fontKey}`);
-    }
-  };
-
-  // Font Size Stepper
-  const currentFontSize = (a.fontSize as number) || (blockType === 'heading' ? (a.level === 1 ? 32 : 24) : 16);
-
-  const changeFontSize = (newSize: number) => {
-    const clamped = Math.max(6, Math.min(120, newSize));
-    if (block) {
-      updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, fontSize: clamped } }));
-      showNotification(`Font size: ${clamped}px`);
-    }
-    setShowFontSizeDropdown(false);
-  };
-
-  // Inline Toggles
-  const isBold = (a.fontWeight as number) === 700 || a.fontWeight === 'bold';
-  const isItalic = a.fontStyle === 'italic';
-  const isUnderline = a.textDecoration === 'underline';
-  const currentAlign = (a.align as TextAlign) || 'left';
-
-  const toggleBold = () => {
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed && sel.toString().length > 0) {
-      execCmd('bold');
-    } else if (block) {
-      updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, fontWeight: isBold ? 400 : 700 } }));
-    } else {
-      execCmd('bold');
-    }
-  };
-
-  const toggleItalic = () => {
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed && sel.toString().length > 0) {
-      execCmd('italic');
-    } else if (block) {
-      updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, fontStyle: isItalic ? 'normal' : 'italic' } }));
-    } else {
-      execCmd('italic');
-    }
-  };
-
-  const toggleUnderline = () => {
-    const sel = window.getSelection();
-    if (sel && !sel.isCollapsed && sel.toString().length > 0) {
-      execCmd('underline');
-    } else if (block) {
-      updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, textDecoration: isUnderline ? 'none' : 'underline' } }));
-    } else {
-      execCmd('underline');
-    }
-  };
-
-  const setAlign = (align: TextAlign) => {
-    if (block) {
-      updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, align } }));
-      showNotification(`Aligned ${align}`);
-    }
-    setShowAlignMenu(false);
-  };
-
-  const setLineSpacing = (spacing: string) => {
-    if (!block) return;
-    if (spacing === 'add-space-before') {
-      updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, marginTop: '16px' } }));
-      showNotification('Added space before paragraph');
-    } else if (spacing === 'add-space-after') {
-      updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, marginBottom: '16px' } }));
-      showNotification('Added space after paragraph');
-    } else {
-      const num = parseFloat(spacing) || 1.5;
-      updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, lineHeight: num } }));
-      showNotification(`Line spacing: ${spacing}`);
-    }
-    setShowSpacingMenu(false);
-  };
-
-  // Convert to List
-  const toggleList = (style: ListStyle) => {
-    if (!block) return;
-    if (block.type === 'list' && (block.attributes.style || 'bullet') === style) {
-      // Toggle OFF back to paragraph
-      updateBlock(block.id, (b) => ({ ...b, type: 'paragraph' }));
-      showNotification('Converted to paragraph');
-    } else {
-      updateBlock(block.id, (b) => ({ ...b, type: 'list', attributes: { ...b.attributes, style } }));
-      showNotification(`Applied ${style} list`);
-    }
-  };
-
-  // Indent / Outdent
-  const handleIndent = (dir: 'in' | 'out') => {
-    if (dir === 'in') {
-      execCmd('indent');
-      showNotification('Indented');
-    } else {
-      execCmd('outdent');
-      showNotification('Decreased indent');
-    }
-  };
-
-  // Link Popover Handler
   const openLinkPopover = () => {
     saveSelection();
     const sel = window.getSelection();
@@ -962,684 +2139,321 @@ export default function BlockFormattingToolbar() {
     setShowLink((prev) => !prev);
   };
 
-  const applyLink = () => {
-    if (!linkUrl.trim()) {
-      setShowLink(false);
-      return;
-    }
-    let formatted = linkUrl.trim();
-    if (!/^https?:\/\//i.test(formatted) && !/^mailto:/i.test(formatted) && !/^#/i.test(formatted)) {
-      formatted = 'https://' + formatted;
-    }
+  const removeLink = () => {
     restoreSelection();
+
     const sel = window.getSelection();
-    if (sel && !sel.isCollapsed && sel.toString().trim().length > 0) {
-      document.execCommand('createLink', false, formatted);
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      let node: Node | null = range.commonAncestorContainer;
+      if (node.nodeType === 3) node = node.parentNode;
+      const anchor = (node as HTMLElement)?.closest('a');
+
+      if (anchor) {
+        const parent = anchor.parentNode;
+        while (anchor.firstChild) {
+          const child = anchor.firstChild;
+          if (child.nodeType === 1) {
+            (child as HTMLElement).style.color = '';
+            (child as HTMLElement).style.textDecoration = '';
+          }
+          parent?.insertBefore(child, anchor);
+        }
+        anchor.remove();
+      } else {
+        document.execCommand('unlink', false);
+      }
     } else {
-      const textToDisplay = linkText.trim() || formatted;
-      document.execCommand('insertHTML', false, `<a href="${formatted}" target="_blank" rel="noopener noreferrer">${textToDisplay}</a>&nbsp;`);
+      document.execCommand('unlink', false);
+    }
+
+    if (block) {
+      const activeEditable = (savedRangeRef.current?.commonAncestorContainer?.nodeType === 1
+        ? (savedRangeRef.current.commonAncestorContainer as HTMLElement)
+        : savedRangeRef.current?.commonAncestorContainer?.parentElement)?.closest('[contenteditable]') as HTMLElement | null
+        || document.querySelector(`[data-block-id="${block.id}"] [contenteditable]`) as HTMLElement | null;
+      if (activeEditable) {
+        activeEditable.dispatchEvent(new Event('input', { bubbles: true }));
+      }
     }
     setLinkUrl('');
     setLinkText('');
     setShowLink(false);
-    showNotification('Link applied');
+    showNotification('Link removed');
   };
 
-  // Current Style Value
-  const currentStyleValue =
-    block?.type === 'heading'
-      ? block.attributes.level === 1
-        ? 'h1'
-        : block.attributes.level === 2
-          ? 'h2'
-          : `h${block.attributes.level || 2}`
-      : block?.type || 'paragraph';
+  const applyLink = () => {
+    if (!linkUrl.trim()) {
+      removeLink();
+      return;
+    }
 
-  // Active specialized component (e.g. ImageToolbar, TableToolbar, etc.)
-  const SpecializedToolbar = block && BLOCK_TOOLBAR_REGISTRY[block.type];
+    let formattedUrl = linkUrl.trim();
+    if (!/^https?:\/\//i.test(formattedUrl) && !/^mailto:/i.test(formattedUrl) && !/^#/i.test(formattedUrl)) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
 
-  const btnBaseClass =
-    'h-7 sm:h-8 px-1.5 sm:px-2 rounded-md flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 transition-colors cursor-pointer text-xs font-semibold shrink-0 select-none';
+    restoreSelection();
+
+    const sel = window.getSelection();
+    const hasSelection = sel && !sel.isCollapsed && sel.toString().trim().length > 0;
+
+    if (hasSelection) {
+      document.execCommand('createLink', false, formattedUrl);
+      if (sel && sel.rangeCount > 0) {
+        const parent = sel.getRangeAt(0).commonAncestorContainer;
+        const elem = parent.nodeType === 1 ? (parent as HTMLElement) : parent.parentElement;
+        const anchor = elem?.closest('a') || elem?.querySelector('a');
+        if (anchor) {
+          anchor.setAttribute('target', '_blank');
+          anchor.setAttribute('rel', 'noopener noreferrer');
+        }
+      }
+    } else {
+      const textToDisplay = linkText.trim() || formattedUrl;
+      const anchorHtml = `<a href="${formattedUrl}" target="_blank" rel="noopener noreferrer">${textToDisplay}</a>&nbsp;`;
+      document.execCommand('insertHTML', false, anchorHtml);
+    }
+
+    if (block) {
+      const activeEditable = (savedRangeRef.current?.commonAncestorContainer?.nodeType === 1
+        ? (savedRangeRef.current.commonAncestorContainer as HTMLElement)
+        : savedRangeRef.current?.commonAncestorContainer?.parentElement)?.closest('[contenteditable]') as HTMLElement | null
+        || document.querySelector(`[data-block-id="${block.id}"] [contenteditable]`) as HTMLElement | null;
+      if (activeEditable) {
+        activeEditable.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+
+    setLinkUrl('');
+    setLinkText('');
+    setShowLink(false);
+    showNotification('Link saved');
+  };
+
+  // Lookup the exact block toolbar component from the registry
+  const ActiveBlockToolbarComponent = (block ? BLOCK_TOOLBAR_REGISTRY[blockType] : ParagraphToolbar) || DefaultBlockToolbar;
+
+  const supportsInlineLink = blockType === 'paragraph' || blockType === 'heading' || blockType === 'list' || blockType === 'quote';
 
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 border-b border-slate-200/90 dark:border-slate-800 px-2 sm:px-4 py-1.5 flex items-center justify-between gap-1 sm:gap-1.5 shrink-0 transition-all select-none w-full overflow-visible backdrop-blur-md"
+      className="sticky top-0 z-40 shadow-xs backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border-b border-slate-200/90 dark:border-slate-800 px-3 sm:px-4 py-1.5 sm:py-2 flex flex-col shrink-0 transition-all select-none w-full overflow-visible"
     >
       {/* Toast Notification */}
       {toast && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-lg shadow-xl z-[110] animate-bounce">
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-gray-900 text-white text-xs font-semibold rounded-lg shadow-xl z-[110] animate-bounce">
           {toast}
         </div>
       )}
 
-      {/* Main Google Docs Pill Bar */}
-      <div className="flex items-center gap-0.5 sm:gap-1 bg-[#edf2fa] dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700/80 rounded-full px-2 sm:px-3 py-1 w-full max-w-full overflow-visible shadow-2xs">
-        {/* Multi-select indicator if multiple blocks selected */}
-        {selectedIds.length > 1 ? (
-          <MultiSelectToolbar selectedIds={selectedIds} showNotification={showNotification} />
-        ) : (
-          <>
-            {/* 1. Undo & Redo */}
-            <Tooltip text="Undo (Ctrl+Z)">
-              <button
-                type="button"
-                onClick={undo}
-                disabled={past.length === 0}
-                className={`${btnBaseClass} disabled:opacity-30 disabled:cursor-not-allowed`}
-              >
-                <Undo2 size={15} />
-              </button>
-            </Tooltip>
+      {/* Mobile Bar: Block Info & Open/Close Format Tools Button (Visible below 576px / xs) */}
+      <div className="xs:hidden flex items-center justify-between gap-2 w-full py-0.5">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+          <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+          <span className="truncate">{block ? getBlockLabel(blockType) : 'Document Tools'}</span>
+        </div>
 
-            <Tooltip text="Redo (Ctrl+Y)">
-              <button
-                type="button"
-                onClick={redo}
-                disabled={future.length === 0}
-                className={`${btnBaseClass} disabled:opacity-30 disabled:cursor-not-allowed`}
-              >
-                <Redo2 size={15} />
-              </button>
-            </Tooltip>
+        <button
+          type="button"
+          onClick={() => setMobileExpanded(!mobileExpanded)}
+          className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all cursor-pointer shadow-2xs be-icon-btn ${mobileExpanded
+            ? 'bg-blue-600 text-white'
+            : 'bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700'
+            }`}
+          title={mobileExpanded ? 'Close Tools' : 'Format Tools'}
+        >
+          <Sliders size={15} />
+        </button>
+      </div>
 
-            {/* 2. Print */}
-            <Tooltip text="Print (Ctrl+P)">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className={btnBaseClass}
-              >
-                <Printer size={15} />
-              </button>
-            </Tooltip>
+      {/* Unified Single Row Toolbar */}
+      <div className={`${mobileExpanded ? 'flex' : 'hidden xs:flex'} items-center justify-between gap-2 flex-wrap w-full animate-in fade-in zoom-in-95 duration-150`}>
+        {/* Left Side: Content & Block Formatting Tools */}
+        <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
+          {selectedIds.length > 1 ? (
+            <MultiSelectToolbar selectedIds={selectedIds} showNotification={showNotification} />
+          ) : block ? (
+            <ActiveBlockToolbarComponent
+              block={block}
+              execCmd={execCmd}
+              saveSelection={saveSelection}
+              showNotification={showNotification}
+            />
+          ) : (
+            <div className="text-xs text-gray-400 py-1">Select a block to format</div>
+          )}
+        </div>
 
-            {/* 3. Format Painter */}
-            <Tooltip text="Paint format">
-              <button
-                type="button"
-                onClick={handleFormatPainter}
-                className={`${btnBaseClass} ${formatPainterActive ? 'bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-300 font-bold' : ''}`}
-              >
-                <Paintbrush size={14} />
-              </button>
-            </Tooltip>
-
-            {/* 4. Zoom Dropdown */}
-            <Tooltip text="Zoom">
-              <div className="w-18 sm:w-20">
-                <CustomSelect
-                  value={`${zoomLevel}%`}
-                  options={[
-                    { value: '50%', label: '50%' },
-                    { value: '75%', label: '75%' },
-                    { value: '90%', label: '90%' },
-                    { value: '100%', label: '100%' },
-                    { value: '125%', label: '125%' },
-                    { value: '150%', label: '150%' },
-                  ]}
-                  onChange={(val) => {
-                    const num = parseInt(String(val).replace('%', ''), 10) || 100;
-                    setZoomLevel(num);
-                  }}
-                  size="sm"
-                  buttonClassName="border-transparent bg-transparent hover:bg-slate-200/80 dark:hover:bg-slate-700/80 px-2 py-1 text-xs"
-                />
-              </div>
-            </Tooltip>
-
-            <div className="w-px h-4.5 bg-slate-300 dark:bg-slate-700 mx-0.5 sm:mx-1 shrink-0" />
-
-            {/* 5. Styles Dropdown (Normal text ▾) */}
-            <Tooltip text="Styles">
-              <div className="w-28 sm:w-32">
-                <CustomSelect
-                  value={currentStyleValue}
-                  options={GOOGLE_DOCS_STYLES}
-                  onChange={(val) => changeBlockStyle(String(val))}
-                  size="sm"
-                  buttonClassName="border-transparent bg-transparent hover:bg-slate-200/80 dark:hover:bg-slate-700/80 px-2 py-1 text-xs font-medium truncate"
-                />
-              </div>
-            </Tooltip>
-
-            <div className="w-px h-4.5 bg-slate-300 dark:bg-slate-700 mx-0.5 sm:mx-1 shrink-0" />
-
-            {/* 6. Font Family Dropdown (Arial ▾) */}
-            <Tooltip text="Font">
-              <div className="w-26 sm:w-30">
-                <CustomSelect
-                  value={(a.fontFamily as string) || 'arial'}
-                  options={GOOGLE_DOCS_FONTS}
-                  onChange={(val) => changeFontFamily(String(val))}
-                  size="sm"
-                  buttonClassName="border-transparent bg-transparent hover:bg-slate-200/80 dark:hover:bg-slate-700/80 px-2 py-1 text-xs font-medium truncate"
-                />
-              </div>
-            </Tooltip>
-
-            <div className="w-px h-4.5 bg-slate-300 dark:bg-slate-700 mx-0.5 sm:mx-1 shrink-0" />
-
-            {/* 7. Font Size Stepper (- 11 +) */}
-            <div className="flex items-center gap-0.5 shrink-0">
-              <Tooltip text="Decrease font size (Ctrl+Shift+,)">
-                <button
-                  type="button"
-                  onClick={() => changeFontSize(currentFontSize - 1)}
-                  className="w-6 h-7 rounded-md flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 cursor-pointer"
-                >
-                  <Minus size={13} />
-                </button>
-              </Tooltip>
-
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowFontSizeDropdown(!showFontSizeDropdown)}
-                  className="w-8 h-7 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs font-bold flex items-center justify-center cursor-pointer shadow-2xs hover:border-blue-500"
-                >
-                  {currentFontSize}
-                </button>
-                {showFontSizeDropdown && (
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1.5 w-16 max-h-48 overflow-y-auto be-scroll bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl z-[150] p-1">
-                    {FONT_SIZE_PRESETS.map((sz) => (
-                      <button
-                        key={sz}
-                        type="button"
-                        onClick={() => changeFontSize(sz)}
-                        className={`w-full py-1 text-xs text-center rounded-md cursor-pointer ${currentFontSize === sz ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-                      >
-                        {sz}
-                      </button>
-                    ))}
+        {/* Right Side: Global Block Actions (Link, HTML, Move, Duplicate, Delete, Pin) */}
+        {(block || supportsInlineLink) && (
+          <div className="flex items-center gap-1 flex-wrap ml-auto">
+            {supportsInlineLink && (
+              <div className="relative inline-flex items-center shrink-0">
+                <Tooltip text="Insert / Edit Link (Ctrl+K)">
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); }}
+                    onClick={openLinkPopover}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+                  >
+                    <LinkIcon size={15} />
+                  </button>
+                </Tooltip>
+                {showLink && (
+                  <div className="absolute top-full right-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                      {linkUrl ? 'Edit Link' : 'Insert Link'}
+                    </span>
+                    <input
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                      placeholder="https://example.com"
+                      className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
+                      onKeyDown={(e) => e.key === 'Enter' && applyLink()}
+                      autoFocus
+                    />
+                    <input
+                      value={linkText}
+                      onChange={(e) => setLinkText(e.target.value)}
+                      placeholder="Link text (optional)"
+                      className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
+                      onKeyDown={(e) => e.key === 'Enter' && applyLink()}
+                    />
+                    <div className="flex justify-between items-center mt-1">
+                      {linkUrl ? (
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={removeLink}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 hover:bg-red-100 transition-colors cursor-pointer"
+                        >
+                          Remove Link
+                        </button>
+                      ) : (
+                        <button onClick={() => setShowLink(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
+                          Cancel
+                        </button>
+                      )}
+                      <div className="flex gap-1.5">
+                        {linkUrl && (
+                          <button onClick={() => setShowLink(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
+                            Cancel
+                          </button>
+                        )}
+                        <button
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={applyLink}
+                          className="px-3 py-1 text-xs font-semibold rounded-lg bg-primary-600 text-white cursor-pointer shadow-2xs hover:bg-primary-700 transition-colors"
+                        >
+                          {linkUrl ? 'Update' : 'Apply'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
+            )}
 
-              <Tooltip text="Increase font size (Ctrl+Shift+.)">
+            {/* Edit HTML Toggle Button */}
+            {block && (
+              <Tooltip text="Edit HTML">
                 <button
-                  type="button"
-                  onClick={() => changeFontSize(currentFontSize + 1)}
-                  className="w-6 h-7 rounded-md flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 cursor-pointer"
+                  onClick={() => toggleHtmlMode(block.id)}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${htmlModeBlockIds.includes(block.id)
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40'
+                    }`}
+                  title="Edit HTML"
                 >
-                  <Plus size={13} />
+                  <Code2 size={15} />
                 </button>
               </Tooltip>
-            </div>
+            )}
 
-            <div className="w-px h-4.5 bg-slate-300 dark:bg-slate-700 mx-0.5 sm:mx-1 shrink-0" />
-
-            {/* 8. Bold, Italic, Underline */}
-            <Tooltip text="Bold (Ctrl+B)">
-              <button
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
-                onClick={toggleBold}
-                className={`${btnBaseClass} ${isBold ? 'bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 font-bold shadow-2xs' : ''}`}
-              >
-                <Bold size={15} />
-              </button>
-            </Tooltip>
-
-            <Tooltip text="Italic (Ctrl+I)">
-              <button
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
-                onClick={toggleItalic}
-                className={`${btnBaseClass} ${isItalic ? 'bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 font-bold shadow-2xs' : ''}`}
-              >
-                <Italic size={15} />
-              </button>
-            </Tooltip>
-
-            <Tooltip text="Underline (Ctrl+U)">
-              <button
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
-                onClick={toggleUnderline}
-                className={`${btnBaseClass} ${isUnderline ? 'bg-blue-100 dark:bg-blue-950/70 text-blue-700 dark:text-blue-300 font-bold shadow-2xs' : ''}`}
-              >
-                <Underline size={15} />
-              </button>
-            </Tooltip>
-
-            {/* 9. Text Color (A_) */}
-            <div className="relative inline-flex items-center">
-              <Tooltip text="Text color">
-                <button
-                  type="button"
-                  onClick={() => setShowTextColor(!showTextColor)}
-                  className="h-7 sm:h-8 px-1.5 rounded-md flex flex-col items-center justify-center hover:bg-slate-200/80 dark:hover:bg-slate-700/80 cursor-pointer"
-                >
-                  <span className="font-extrabold text-xs text-slate-800 dark:text-slate-100 leading-none">A</span>
-                  <span
-                    className="w-4 h-1 rounded-full mt-0.5 shadow-xs"
-                    style={{ backgroundColor: (a.textColor as string) || '#111827' }}
-                  />
-                </button>
-              </Tooltip>
-              {showTextColor && (
-                <div className="absolute top-full left-0 mt-2 p-2.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 z-[160] w-64 max-w-[calc(100vw-2rem)]">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Text Color</span>
-                  <div className="grid grid-cols-10 gap-1.5 mb-2">
-                    {GOOGLE_DOCS_TEXT_COLORS.map((clr, idx) => (
-                      <button
-                        key={`${clr}-${idx}`}
-                        type="button"
-                        onClick={() => {
-                          execCmd('foreColor', clr);
-                          setShowTextColor(false);
-                        }}
-                        className="w-4.5 h-4.5 rounded-full border border-slate-300/80 dark:border-slate-600 hover:scale-125 transition-transform cursor-pointer shadow-2xs"
-                        style={{ backgroundColor: clr }}
-                        title={clr}
-                      />
-                    ))}
-                  </div>
-                  <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                    <span className="text-xs text-slate-500">Custom:</span>
-                    <input
-                      type="color"
-                      value={(a.textColor as string) || '#111827'}
-                      onChange={(e) => execCmd('foreColor', e.target.value)}
-                      className="w-6 h-6 rounded cursor-pointer border-0 p-0"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 10. Highlight Color (Highlighter) */}
-            <div className="relative inline-flex items-center">
-              <Tooltip text="Highlight color">
-                <button
-                  type="button"
-                  onClick={() => setShowHighlightColor(!showHighlightColor)}
-                  className="h-7 sm:h-8 px-1.5 rounded-md flex flex-col items-center justify-center hover:bg-slate-200/80 dark:hover:bg-slate-700/80 cursor-pointer text-slate-700 dark:text-slate-200"
-                >
-                  <Highlighter size={14} />
-                  <span
-                    className="w-4 h-1 rounded-full mt-0.5 shadow-xs"
-                    style={{ backgroundColor: (a.backgroundColor as string) || '#ffff00' }}
-                  />
-                </button>
-              </Tooltip>
-              {showHighlightColor && (
-                <div className="absolute top-full left-0 mt-2 p-2.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 z-[160] w-56 max-w-[calc(100vw-2rem)]">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Highlight Color</span>
-                  <div className="grid grid-cols-4 gap-2 mb-2">
-                    {GOOGLE_DOCS_HIGHLIGHT_COLORS.map((hc) => (
-                      <button
-                        key={hc.color}
-                        type="button"
-                        onClick={() => {
-                          execCmd('hiliteColor', hc.color);
-                          setShowHighlightColor(false);
-                        }}
-                        className={`h-7 rounded-lg text-xs font-semibold flex items-center justify-center border cursor-pointer ${hc.color === 'transparent' ? 'border-slate-300 dark:border-slate-700 text-slate-500' : 'border-transparent shadow-2xs'}`}
-                        style={{ backgroundColor: hc.color }}
-                      >
-                        {hc.label === 'None' ? 'None' : ''}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="w-px h-4.5 bg-slate-300 dark:bg-slate-700 mx-0.5 sm:mx-1 shrink-0" />
-
-            {/* 11. Insert Link */}
-            <div className="relative inline-flex items-center">
-              <Tooltip text="Insert link (Ctrl+K)">
-                <button
-                  type="button"
-                  onClick={openLinkPopover}
-                  className={btnBaseClass}
-                >
-                  <LinkIcon size={15} />
-                </button>
-              </Tooltip>
-              {showLink && (
-                <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col gap-2 z-[160] w-64 max-w-[calc(100vw-2rem)]">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    {linkUrl ? 'Edit Link' : 'Insert Link'}
-                  </span>
-                  <input
-                    value={linkUrl}
-                    onChange={(e) => setLinkUrl(e.target.value)}
-                    placeholder="https://example.com"
-                    className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
-                    onKeyDown={(e) => e.key === 'Enter' && applyLink()}
-                    autoFocus
-                  />
-                  <input
-                    value={linkText}
-                    onChange={(e) => setLinkText(e.target.value)}
-                    placeholder="Link text (optional)"
-                    className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 outline-none focus:border-blue-500"
-                    onKeyDown={(e) => e.key === 'Enter' && applyLink()}
-                  />
-                  <div className="flex justify-end gap-1.5 mt-1">
-                    <button onClick={() => setShowLink(false)} className="px-2.5 py-1 text-xs text-slate-500 cursor-pointer">
-                      Cancel
-                    </button>
-                    <button
-                      onClick={applyLink}
-                      className="px-3 py-1 text-xs font-semibold rounded-lg bg-blue-600 text-white cursor-pointer shadow-2xs hover:bg-blue-700 transition-colors"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 12. Add Comment / Note */}
-            <Tooltip text="Add comment">
-              <button
-                type="button"
-                onClick={() => showNotification('Comment thread opened')}
-                className={btnBaseClass}
-              >
-                <MessageSquare size={15} />
-              </button>
-            </Tooltip>
-
-            {/* 13. Insert Image */}
-            <Tooltip text="Insert image">
-              <button
-                type="button"
-                onClick={() => {
-                  insertBlock('image');
-                  showNotification('Image block inserted');
-                }}
-                className={btnBaseClass}
-              >
-                <ImageIcon size={15} />
-              </button>
-            </Tooltip>
-
-            {/* If specialized block (Image, Table, Columns, Button) is active, show its quick controls */}
-            {SpecializedToolbar && (
+            {/* Move Up / Move Down */}
+            {block && (
               <>
-                <div className="w-px h-4.5 bg-slate-300 dark:bg-slate-700 mx-0.5 sm:mx-1 shrink-0" />
-                <SpecializedToolbar
-                  block={block}
-                  execCmd={execCmd}
-                  saveSelection={saveSelection}
-                  showNotification={showNotification}
-                />
+                <Tooltip text="Move Block Up (Up Arrow)">
+                  <button
+                    onClick={() => {
+                      moveBlock(block.id, 'up');
+                      showNotification('Moved block up');
+                    }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+                  >
+                    <ArrowUp size={15} />
+                  </button>
+                </Tooltip>
+
+                <Tooltip text="Move Block Down (Down Arrow)">
+                  <button
+                    onClick={() => {
+                      moveBlock(block.id, 'down');
+                      showNotification('Moved block down');
+                    }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+                  >
+                    <ArrowDown size={15} />
+                  </button>
+                </Tooltip>
+
+                {/* Duplicate Block Button */}
+                <Tooltip text="Duplicate Block">
+                  <button
+                    onClick={() => {
+                      duplicateBlock(block.id);
+                      showNotification('Block duplicated');
+                    }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer shrink-0"
+                    title="Duplicate this block"
+                  >
+                    <CopyPlus size={15} />
+                  </button>
+                </Tooltip>
+
+                {/* Delete Selected Block Button */}
+                <Tooltip text="Delete Block (Trash)">
+                  <button
+                    onClick={() => {
+                      removeBlock(block.id);
+                      showNotification('Block deleted');
+                    }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-700 transition-all cursor-pointer shrink-0"
+                    title="Delete this block"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </Tooltip>
               </>
             )}
 
-            <div className="w-px h-4.5 bg-slate-300 dark:bg-slate-700 mx-0.5 sm:mx-1 shrink-0" />
-
-            {/* 14. Google Docs 3-DOTS MORE BUTTON (⋮) */}
-            <div ref={moreMenuRef} className="relative inline-flex items-center ml-auto">
-              <Tooltip text="More">
-                <button
-                  type="button"
-                  onClick={() => setShowMoreMenu(!showMoreMenu)}
-                  className={`h-7 sm:h-8 px-2 rounded-md flex items-center justify-center transition-all cursor-pointer ${showMoreMenu
-                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 font-bold shadow-2xs ring-1 ring-blue-400'
-                    : 'text-slate-700 dark:text-slate-200 hover:bg-slate-200/80 dark:hover:bg-slate-700/80'
-                    }`}
-                >
-                  <MoreVertical size={16} />
-                </button>
-              </Tooltip>
-
-              {/* 3-DOTS FLOATING OVERFLOW POPUP (Exact Google Docs Layout) */}
-              {showMoreMenu && (
-                <div className="absolute top-full right-0 mt-2 p-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-1 z-[200] animate-in fade-in zoom-in-95 duration-100 max-w-[calc(100vw-1.5rem)] overflow-x-auto be-scroll">
-                  {/* A. Align Dropdown (≡ ▾) */}
-                  <div className="relative inline-flex items-center">
-                    <Tooltip text="Align">
-                      <button
-                        type="button"
-                        onClick={() => setShowAlignMenu(!showAlignMenu)}
-                        className="h-8 px-2 rounded-lg flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-slate-700 dark:text-slate-200 text-xs font-semibold"
-                      >
-                        {currentAlign === 'center' ? (
-                          <AlignCenter size={16} />
-                        ) : currentAlign === 'right' ? (
-                          <AlignRight size={16} />
-                        ) : currentAlign === 'justify' ? (
-                          <AlignJustify size={16} />
-                        ) : (
-                          <AlignLeft size={16} />
-                        )}
-                        <ChevronDown size={12} className="text-slate-400" />
-                      </button>
-                    </Tooltip>
-                    {showAlignMenu && (
-                      <div className="absolute top-full left-0 mt-1 p-1 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-1 z-[210]">
-                        <button
-                          onClick={() => setAlign('left')}
-                          className={`p-1.5 rounded-lg cursor-pointer ${currentAlign === 'left' ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100'}`}
-                          title="Left align"
-                        >
-                          <AlignLeft size={15} />
-                        </button>
-                        <button
-                          onClick={() => setAlign('center')}
-                          className={`p-1.5 rounded-lg cursor-pointer ${currentAlign === 'center' ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100'}`}
-                          title="Center align"
-                        >
-                          <AlignCenter size={15} />
-                        </button>
-                        <button
-                          onClick={() => setAlign('right')}
-                          className={`p-1.5 rounded-lg cursor-pointer ${currentAlign === 'right' ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100'}`}
-                          title="Right align"
-                        >
-                          <AlignRight size={15} />
-                        </button>
-                        <button
-                          onClick={() => setAlign('justify')}
-                          className={`p-1.5 rounded-lg cursor-pointer ${currentAlign === 'justify' ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100'}`}
-                          title="Justify"
-                        >
-                          <AlignJustify size={15} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* B. Line & Paragraph Spacing (↕≡) */}
-                  <div className="relative inline-flex items-center">
-                    <Tooltip text="Line & paragraph spacing">
-                      <button
-                        type="button"
-                        onClick={() => setShowSpacingMenu(!showSpacingMenu)}
-                        className="h-8 px-2 rounded-lg flex items-center gap-1 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-slate-700 dark:text-slate-200"
-                      >
-                        <ArrowUpDown size={15} />
-                        <ChevronDown size={12} className="text-slate-400" />
-                      </button>
-                    </Tooltip>
-                    {showSpacingMenu && (
-                      <div className="absolute top-full left-0 mt-1 p-1 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col gap-0.5 z-[210] w-48">
-                        <button onClick={() => setLineSpacing('1')} className="px-3 py-1.5 text-xs text-left rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
-                          Single (1.0)
-                        </button>
-                        <button onClick={() => setLineSpacing('1.15')} className="px-3 py-1.5 text-xs text-left rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
-                          1.15
-                        </button>
-                        <button onClick={() => setLineSpacing('1.5')} className="px-3 py-1.5 text-xs text-left rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
-                          1.5
-                        </button>
-                        <button onClick={() => setLineSpacing('2')} className="px-3 py-1.5 text-xs text-left rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
-                          Double (2.0)
-                        </button>
-                        <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
-                        <button onClick={() => setLineSpacing('add-space-before')} className="px-3 py-1.5 text-xs text-left rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
-                          Add space before paragraph
-                        </button>
-                        <button onClick={() => setLineSpacing('add-space-after')} className="px-3 py-1.5 text-xs text-left rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
-                          Add space after paragraph
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* C. Checklist (☑≡) */}
-                  <Tooltip text="Checklist menu">
-                    <button
-                      type="button"
-                      onClick={() => toggleList('checklist')}
-                      className={`h-8 px-2 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer ${block?.type === 'list' && block.attributes.style === 'checklist' ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 font-bold' : 'text-slate-700 dark:text-slate-200'}`}
-                    >
-                      <CheckSquare size={16} />
-                    </button>
-                  </Tooltip>
-
-                  {/* D. Bulleted List (•≡) */}
-                  <Tooltip text="Bulleted list (Ctrl+Shift+8)">
-                    <button
-                      type="button"
-                      onClick={() => toggleList('bullet')}
-                      className={`h-8 px-2 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer ${block?.type === 'list' && (block.attributes.style === 'bullet' || !block.attributes.style) ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 font-bold' : 'text-slate-700 dark:text-slate-200'}`}
-                    >
-                      <List size={16} />
-                    </button>
-                  </Tooltip>
-
-                  {/* E. Numbered List (1≡) */}
-                  <Tooltip text="Numbered list (Ctrl+Shift+7)">
-                    <button
-                      type="button"
-                      onClick={() => toggleList('number')}
-                      className={`h-8 px-2 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer ${block?.type === 'list' && block.attributes.style === 'number' ? 'bg-blue-50 text-blue-600 dark:bg-blue-950 font-bold' : 'text-slate-700 dark:text-slate-200'}`}
-                    >
-                      <ListOrdered size={16} />
-                    </button>
-                  </Tooltip>
-
-                  {/* F. Decrease Indent (⇤) */}
-                  <Tooltip text="Decrease indent (Ctrl+[)">
-                    <button
-                      type="button"
-                      onClick={() => handleIndent('out')}
-                      className="h-8 px-2 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-slate-700 dark:text-slate-200"
-                    >
-                      <Outdent size={16} />
-                    </button>
-                  </Tooltip>
-
-                  {/* G. Increase Indent (⇥) */}
-                  <Tooltip text="Increase indent (Ctrl+])">
-                    <button
-                      type="button"
-                      onClick={() => handleIndent('in')}
-                      className="h-8 px-2 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-slate-700 dark:text-slate-200"
-                    >
-                      <Indent size={16} />
-                    </button>
-                  </Tooltip>
-
-                  {/* H. Clear Formatting (T̸) */}
-                  <Tooltip text="Clear formatting (Ctrl+\)">
-                    <button
-                      type="button"
-                      onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
-                      onClick={() => {
-                        execCmd('removeFormat');
-                        showNotification('Formatting cleared');
-                      }}
-                      className="h-8 px-2 rounded-lg flex items-center justify-center hover:bg-red-50 text-slate-700 hover:text-red-600 dark:text-slate-200 dark:hover:text-red-400 cursor-pointer"
-                    >
-                      <Eraser size={16} />
-                    </button>
-                  </Tooltip>
-
-                  <div className="w-px h-5 bg-slate-200 dark:bg-slate-800 mx-1 shrink-0" />
-
-                  {/* I. Block Specific Operations */}
-                  {block && (
-                    <div className="flex items-center gap-0.5">
-                      <Tooltip text="Move Up">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            moveBlock(block.id, 'up');
-                            showNotification('Moved up');
-                          }}
-                          className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-slate-700 dark:text-slate-200"
-                        >
-                          <ArrowUp size={15} />
-                        </button>
-                      </Tooltip>
-
-                      <Tooltip text="Move Down">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            moveBlock(block.id, 'down');
-                            showNotification('Moved down');
-                          }}
-                          className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-slate-700 dark:text-slate-200"
-                        >
-                          <ArrowDown size={15} />
-                        </button>
-                      </Tooltip>
-
-                      <Tooltip text="Duplicate Block">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            duplicateBlock(block.id);
-                            showNotification('Duplicated block');
-                          }}
-                          className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-blue-50 text-slate-700 hover:text-blue-600 dark:text-slate-200 cursor-pointer"
-                        >
-                          <CopyPlus size={15} />
-                        </button>
-                      </Tooltip>
-
-                      <Tooltip text="Edit HTML">
-                        <button
-                          type="button"
-                          onClick={() => toggleHtmlMode(block.id)}
-                          className={`h-8 w-8 rounded-lg flex items-center justify-center cursor-pointer ${htmlModeBlockIds.includes(block.id) ? 'bg-blue-600 text-white' : 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
-                        >
-                          <Code2 size={15} />
-                        </button>
-                      </Tooltip>
-
-                      <Tooltip text={block.attributes?.pinned ? 'Unpin' : 'Pin'}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const isPinned = Boolean(block.attributes?.pinned);
-                            updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, pinned: !isPinned } }));
-                            showNotification(!isPinned ? 'Block pinned' : 'Block unpinned');
-                          }}
-                          className={`h-8 w-8 rounded-lg flex items-center justify-center cursor-pointer ${block.attributes?.pinned ? 'bg-amber-500 text-white font-bold' : 'text-slate-700 dark:text-slate-200 hover:bg-amber-50'}`}
-                        >
-                          <Pin size={15} className={block.attributes?.pinned ? 'rotate-45' : ''} />
-                        </button>
-                      </Tooltip>
-
-                      <Tooltip text="Delete Block">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            removeBlock(block.id);
-                            showNotification('Block deleted');
-                          }}
-                          className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-red-50 text-red-600 dark:hover:bg-red-950/40 cursor-pointer"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </>
+            {/* Pin Block Toggle Button */}
+            {block && (
+              <>
+                <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
+                <Tooltip text={block.attributes?.pinned ? 'Unpin Block' : 'Pin Block'}>
+                  <button
+                    onClick={() => {
+                      const isCurrentlyPinned = Boolean(block.attributes?.pinned);
+                      updateBlock(block.id, (b) => ({
+                        ...b,
+                        attributes: { ...b.attributes, pinned: !isCurrentlyPinned },
+                      }));
+                      showNotification(!isCurrentlyPinned ? 'Block pinned to top' : 'Block unpinned');
+                    }}
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 ${block.attributes?.pinned
+                      ? 'bg-amber-500 text-white shadow-md ring-2 ring-amber-400 font-bold'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                      }`}
+                    title="Pin / Unpin this block"
+                  >
+                    <Pin size={15} className={block.attributes?.pinned ? 'rotate-45 text-white' : ''} />
+                  </button>
+                </Tooltip>
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>
