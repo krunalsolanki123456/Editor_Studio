@@ -29,6 +29,7 @@ export default function CustomSelect<T extends string | number>({
 }: CustomSelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const [openUpward, setOpenUpward] = useState(false);
+  const [alignRight, setAlignRight] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find((opt) => opt.value === value);
@@ -51,6 +52,14 @@ export default function CustomSelect<T extends string | number>({
         setOpenUpward(true);
       } else {
         setOpenUpward(false);
+      }
+
+      // Check horizontal space: if not enough space on the right, open to the left (alignRight)
+      const dropdownWidth = 190;
+      if (rect.left + dropdownWidth > window.innerWidth - 12) {
+        setAlignRight(true);
+      } else {
+        setAlignRight(false);
       }
     }
   }, [isOpen]);
@@ -79,7 +88,9 @@ export default function CustomSelect<T extends string | number>({
 
       {isOpen && (
         <div
-          className={`absolute left-0 right-0 p-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl z-[9999] max-h-56 overflow-y-auto be-scroll animate-scale-in ${
+          className={`absolute ${
+            alignRight ? 'right-0 left-auto' : 'left-0 right-auto min-w-full'
+          } min-w-[170px] max-w-[calc(100vw-1.5rem)] p-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl z-[9999] max-h-56 overflow-y-auto be-scroll animate-scale-in ${
             openUpward ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'
           }`}
         >

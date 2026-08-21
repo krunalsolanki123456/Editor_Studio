@@ -263,11 +263,10 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
 
       {/* Desktop / Tablet Animated Sidebar (>= 576px) — Smoothly expands/collapses width */}
       <aside
-        className={`hidden xs:flex h-full min-h-0 flex-col overflow-hidden shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-[width,min-width,max-width] duration-300 ease-in-out select-none relative z-30 ${
-          open
-            ? 'w-80 min-w-[20rem] max-w-[20rem]'
-            : 'w-16 min-w-[4rem] max-w-[4rem]'
-        }`}
+        className={`hidden xs:flex h-full min-h-0 flex-col overflow-hidden shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 transition-[width,min-width,max-width] duration-300 ease-in-out select-none relative z-30 ${open
+          ? 'w-80 min-w-[20rem] max-w-[20rem]'
+          : 'w-16 min-w-[4rem] max-w-[4rem]'
+          }`}
       >
         {!open ? (
           /* Collapsed Rail (64px) */

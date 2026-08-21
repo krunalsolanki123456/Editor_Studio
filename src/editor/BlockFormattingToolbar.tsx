@@ -494,7 +494,7 @@ function ParagraphToolbar({ block, execCmd, saveSelection }: CommonToolbarProps)
           </button>
         </Tooltip>
         {showEmoji && (
-          <div className="absolute top-full left-0 mt-2 p-2 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 z-[100] w-72 flex flex-col gap-2">
+          <div className="absolute top-full left-0 mt-2 p-2 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 z-[100] w-72 max-w-[calc(100vw-2rem)] flex flex-col gap-2">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 pb-1.5 px-0.5">
               {(Object.keys(emojiCategories) as (keyof typeof emojiCategories)[]).map((catKey) => (
                 <button
@@ -652,7 +652,7 @@ function ImageToolbar({ block, showNotification }: CommonToolbarProps) {
           </button>
         </Tooltip>
         {showCropMenu && (
-          <div className="absolute top-full left-0 mt-2 p-1.5 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-1 z-[100] w-36">
+          <div className="absolute top-full left-0 mt-2 p-1.5 bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-1 z-[100] w-36 max-w-[calc(100vw-2rem)]">
             {['auto', '16:9', '4:3', '1:1', '9:16', '3:2', '2:1'].map((ratio) => (
               <button
                 key={ratio}
@@ -676,7 +676,7 @@ function ImageToolbar({ block, showNotification }: CommonToolbarProps) {
           </button>
         </Tooltip>
         {showLinkPopover && (
-          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64">
+          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
             <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Image Destination Link</span>
             <input
               value={linkInput}
@@ -720,7 +720,7 @@ function ImageToolbar({ block, showNotification }: CommonToolbarProps) {
           </button>
         </Tooltip>
         {showAltPopover && (
-          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64">
+          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
             <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Alt Text (Accessibility)</span>
             <input
               value={altInput}
@@ -776,7 +776,7 @@ function ButtonToolbar({ block, showNotification }: CommonToolbarProps) {
           </button>
         </Tooltip>
         {showUrlPopover && (
-          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64">
+          <div className="absolute top-full left-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
             <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Button Destination</span>
             <input
               value={urlInput}
@@ -2318,7 +2318,7 @@ export default function BlockFormattingToolbar() {
                   </button>
                 </Tooltip>
                 {showLink && (
-                  <div className="absolute top-full right-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64">
+                  <div className="absolute top-full left-0 xl:right-0 xl:left-auto mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64 max-w-[calc(100vw-2rem)]">
                     <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                       {linkUrl ? 'Edit Link' : 'Insert Link'}
                     </span>
