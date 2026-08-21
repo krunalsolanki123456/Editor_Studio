@@ -26,59 +26,30 @@ function Tooltip({
   children: React.ReactNode;
   align?: 'center' | 'left' | 'right';
 }) {
-  const [computedAlign, setComputedAlign] = useState<'center' | 'left' | 'right'>(align);
-  const [openAbove, setOpenAbove] = useState(false);
-
-  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const spaceLeft = rect.left;
-    const spaceRight = window.innerWidth - rect.right;
-    const spaceBelow = window.innerHeight - rect.bottom;
-
-    if (spaceLeft < 80) {
-      setComputedAlign('left');
-    } else if (spaceRight < 80) {
-      setComputedAlign('right');
-    } else {
-      setComputedAlign(align);
-    }
-
-    if (spaceBelow < 45 && rect.top > 45) {
-      setOpenAbove(true);
-    } else {
-      setOpenAbove(false);
-    }
-  };
-
   const alignClasses =
-    computedAlign === 'left'
+    align === 'left'
       ? 'left-0 translate-x-0 items-start'
-      : computedAlign === 'right'
+      : align === 'right'
         ? 'right-0 translate-x-0 items-end'
         : 'left-1/2 -translate-x-1/2 items-center';
 
   const arrowAlignClasses =
-    computedAlign === 'left'
-      ? 'left-3 translate-x-0'
-      : computedAlign === 'right'
-        ? 'right-3 translate-x-0'
+    align === 'left'
+      ? 'left-3.5'
+      : align === 'right'
+        ? 'right-3.5'
         : 'left-1/2 -translate-x-1/2';
 
   return (
-    <div
-      onMouseEnter={handleMouseEnter}
-      className="relative group inline-flex items-center shrink-0"
-    >
+    <div className="relative group inline-flex items-center shrink-0">
       {children}
       <div
-        className={`absolute ${openAbove ? 'bottom-full mb-2 flex-col-reverse' : 'top-full mt-2 flex-col'} ${alignClasses} hidden group-hover:flex pointer-events-none z-[99999]`}
+        className={`absolute top-full mt-2.5 ${alignClasses} hidden group-hover:flex flex-col pointer-events-none z-[99999]`}
       >
         <div
-          className={`w-2 h-2 bg-slate-900 dark:bg-slate-800 rotate-45 ${
-            openAbove ? '-mt-1 border-b border-r' : '-mb-1 border-t border-l'
-          } border-slate-700/60 shadow-xs relative z-10 ${arrowAlignClasses}`}
+          className={`w-2 h-2 bg-slate-900 dark:bg-slate-800 rotate-45 -mb-1 shadow-xs border-t border-l border-slate-700/60 relative z-10 ${arrowAlignClasses}`}
         />
-        <span className="px-2.5 py-1 text-[11px] font-semibold text-white bg-slate-900 dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-700/60 whitespace-nowrap block max-w-[calc(100vw-1rem)]">
+        <span className="px-2.5 py-1 text-[11px] font-semibold text-white bg-slate-900 dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-700/60 whitespace-nowrap block">
           {text}
         </span>
       </div>
