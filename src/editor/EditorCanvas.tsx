@@ -203,6 +203,7 @@ export default function EditorCanvas() {
   }, []);
 
   const handleCanvasClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const target = e.target as HTMLElement;
 
     // Check if an anchor link was clicked
@@ -211,7 +212,6 @@ export default function EditorCanvas() {
       const href = anchor.getAttribute('href');
       if (href && href !== '#' && !href.startsWith('javascript:')) {
         e.preventDefault();
-        e.stopPropagation();
         window.open(anchor.href, '_blank', 'noopener,noreferrer');
         return;
       }
@@ -224,7 +224,6 @@ export default function EditorCanvas() {
     if (isBlock || isControl || isToolbar) return;
 
     if (blocks.length === 0) {
-      e.stopPropagation();
       const id = insertBlock('paragraph');
       if (id) {
         setTimeout(() => {
@@ -309,7 +308,6 @@ export default function EditorCanvas() {
         >
           <div
             className={`${getCanvasContainerClass()} ${isPreviewMode ? 'cursor-default select-none' : 'cursor-text'} mb-20`}
-            onClick={isPreviewMode ? undefined : handleCanvasClick}
           >
             <div>
               {blocks.map((block, index) => (
