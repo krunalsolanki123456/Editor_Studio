@@ -220,9 +220,10 @@ body, html {
   overflow-x: hidden;
 }
 
-/* Touch Target Minimum (44px) for Mobile Accessibility */
+
+/* Touch Target Minimum (40px) for Mobile Accessibility — excludes small editor icon buttons */
 @media (max-width: 768px) {
-  button, [role="button"], input[type="button"], input[type="submit"] {
+  button:not(.be-icon-btn), [role="button"]:not(.be-icon-btn), input[type="button"], input[type="submit"] {
     min-height: 40px;
   }
 }
@@ -555,28 +556,78 @@ pre, code {
 }
 
 /* ==========================================
-   MEDIA & TEXT RESPONSIVE STYLES
+   PREMIUM STUDIO DESIGN SYSTEM & UTILITIES
    ========================================== */
-.be-media-text,
-.wp-block-media-text {
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 100%;
+
+/* Ultra-Smooth Modern Scrollbars */
+.be-scroll::-webkit-scrollbar,
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-@media (max-width: 768px) {
-  .be-media-text .flex,
-  .wp-block-media-text.is-stacked-on-mobile {
-    flex-direction: column !important;
-    gap: 14px !important;
-    padding: 12px !important;
-  }
+.be-scroll::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-  .be-media-text .flex > div,
-  .wp-block-media-text.is-stacked-on-mobile .wp-block-media-text__media,
-  .wp-block-media-text.is-stacked-on-mobile .wp-block-media-text__content {
-    flex-basis: 100% !important;
-    max-width: 100% !important;
-    width: 100% !important;
-  }
+.be-scroll::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+
+.be-scroll::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.7);
+}
+
+.dark .be-scroll::-webkit-scrollbar-thumb,
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.5);
+}
+
+.dark .be-scroll::-webkit-scrollbar-thumb:hover,
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.8);
+}
+
+/* Glassmorphism Surface Tokens */
+.be-glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.dark .be-glass {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(30, 41, 59, 0.8);
+}
+
+.be-glass-dark {
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.be-glow-primary {
+  box-shadow: 0 0 20px -3px rgba(37, 99, 235, 0.35);
+}
+
+.dark .be-glow-primary {
+  box-shadow: 0 0 25px -3px rgba(59, 130, 246, 0.45);
+}
+
+/* Subtle Shimmer & Pulse */
+@keyframes be-pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.96); }
+}
+
+.be-pulse-dot {
+  animation: be-pulse-subtle 2s infinite ease-in-out;
 }

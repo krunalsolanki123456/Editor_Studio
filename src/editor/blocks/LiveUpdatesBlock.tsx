@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   Radio, Plus, Trash2, Pin, X, Check, Edit2,
-  ChevronUp, ChevronDown, Upload, AlignLeft, AlignCenter, AlignRight,
+  Upload, AlignLeft, AlignCenter, AlignRight,
   FileText, Download, Eye, Code2, Link2, Play, ExternalLink
 } from 'lucide-react';
 import { useEditorStore } from '../store';
@@ -271,15 +271,7 @@ export function LiveUpdatesBlock({ block, selected = false }: BlockProps) {
     });
   };
 
-  const handleMove = (index: number, direction: 'up' | 'down') => {
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= updates.length) return;
-    const copy = [...updates];
-    const temp = copy[index];
-    copy[index] = copy[targetIndex];
-    copy[targetIndex] = temp;
-    updateAttributes({ updates: copy });
-  };
+
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
     const file = e.target.files?.[0];
@@ -867,7 +859,7 @@ export function LiveUpdatesBlock({ block, selected = false }: BlockProps) {
                           <button
                             type="button"
                             onClick={() => handleTogglePin(item.id)}
-                            className={`p-1 rounded-md cursor-pointer transition-colors ${
+                            className={`p-1 rounded-md cursor-pointer transition-colors be-icon-btn ${
                               item.isPinned
                                 ? 'text-amber-600 bg-amber-50 dark:bg-amber-950/40'
                                 : 'text-gray-400 hover:text-amber-600'
@@ -877,30 +869,13 @@ export function LiveUpdatesBlock({ block, selected = false }: BlockProps) {
                             <Pin size={12} className={item.isPinned ? 'fill-amber-600' : ''} />
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleMove(idx, 'up')}
-                            disabled={idx === 0}
-                            className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-20 rounded-md cursor-pointer"
-                            title="Move up"
-                          >
-                            <ChevronUp size={12} />
-                          </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleMove(idx, 'down')}
-                            disabled={idx === sortedUpdates.length - 1}
-                            className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-20 rounded-md cursor-pointer"
-                            title="Move down"
-                          >
-                            <ChevronDown size={12} />
-                          </button>
+
 
                           <button
                             type="button"
                             onClick={() => handleStartEdit(item)}
-                            className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-md cursor-pointer"
+                            className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-md cursor-pointer be-icon-btn"
                             title="Edit update"
                           >
                             <Edit2 size={12} />
@@ -909,7 +884,7 @@ export function LiveUpdatesBlock({ block, selected = false }: BlockProps) {
                           <button
                             type="button"
                             onClick={() => handleDelete(item.id)}
-                            className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-md cursor-pointer"
+                            className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-md cursor-pointer be-icon-btn"
                           >
                             <Trash2 size={12} />
                           </button>

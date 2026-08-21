@@ -6,7 +6,17 @@ import { parseRichPasteToBlocks } from './richPasteEngine';
 
 export type DeviceView = 'desktop' | 'tablet' | 'mobile';
 
-interface EditorStore {
+export interface PageItem {
+  id: string;
+  name: string;
+  blocks: BlockInstance[];
+}
+
+export interface EditorStore {
+  pages: PageItem[];
+  currentPageId: string;
+  isPreviewMode: boolean;
+  zoomLevel: number;
   blocks: BlockInstance[];
   selectedIds: string[];
   clipboard: BlockInstance[] | null;
@@ -21,6 +31,15 @@ interface EditorStore {
   settingsSidebarOpen: boolean;
   slashMenu: { open: boolean; blockId: string | null; anchor: { x: number; y: number } | null };
   filterOptions?: BlockFilterOptions;
+
+  setPages: (pages: PageItem[]) => void;
+  setCurrentPageId: (id: string) => void;
+  addPage: (name?: string) => string;
+  renamePage: (id: string, name: string) => void;
+  duplicatePage: (id: string) => string;
+  deletePage: (id: string) => void;
+  setIsPreviewMode: (preview: boolean) => void;
+  setZoomLevel: (zoom: number) => void;
 
   setFilterOptions: (options?: BlockFilterOptions) => void;
   insertBlock: (type: string, index?: number | null) => string | null;
@@ -56,18 +75,35 @@ interface EditorStore {
   ungroupSelectedBlocks: () => void;
   undo: () => void;
   redo: () => void;
-  loadFromJSON: (data: { blocks: BlockInstance[] }) => void;
-  exportJSON: () => { blocks: BlockInstance[] };
+  loadFromJSON: (data: { blocks: BlockInstance[]; pages?: PageItem[]; currentPageId?: string }) => void;
+  exportJSON: () => { blocks: BlockInstance[]; pages: PageItem[]; currentPageId: string };
 }
 
 const MAX_HISTORY = 100;
 
-function pushHistory(state: EditorStore): Partial<EditorStore> {
-  const lastState = state.past[state.past.length - 1];
-  if (lastState && JSON.stringify(lastState) === JSON.stringify(state.blocks)) {
-    return { future: [] };
+export function syncPages(pages: PageItem[], currentPageId: string, blocks: BlockInstance[]): PageItem[] {
+  if (!Array.isArray(pages) || pages.length === 0) {
+    return [{ id: currentPageId, name: 'Page 1', blocks: deepClone(blocks) }];
   }
-  return { past: [...state.past, deepClone(state.blocks)].slice(-MAX_HISTORY), future: [] };
+  const exists = pages.some((p) => p.id === currentPageId);
+  if (!exists) {
+    return [...pages, { id: currentPageId, name: `Page ${pages.length + 1}`, blocks: deepClone(blocks) }];
+  }
+  return pages.map((p) => (p.id === currentPageId ? { ...p, blocks: deepClone(blocks) } : p));
+}
+
+function pushHistory(state: EditorStore, newBlocks?: BlockInstance[]): Partial<EditorStore> {
+  const lastState = state.past[state.past.length - 1];
+  const historyPart =
+    lastState && JSON.stringify(lastState) === JSON.stringify(state.blocks)
+      ? { future: [] }
+      : { past: [...state.past, deepClone(state.blocks)].slice(-MAX_HISTORY), future: [] };
+
+  const currentBlocks = newBlocks !== undefined ? newBlocks : state.blocks;
+  return {
+    ...historyPart,
+    pages: syncPages(state.pages, state.currentPageId, currentBlocks),
+  };
 }
 
 export function findBlock(blocks: BlockInstance[], id: string): BlockInstance | null {
@@ -237,17 +273,101 @@ function sanitizeBlocks(blocks: any[]): BlockInstance[] {
     }));
 }
 
-function getInitialBlocks(): BlockInstance[] {
+// ==========================================
+// IndexedDB Support for Multi-Page Storage
+// ==========================================
+const DB_NAME = 'EditorStudioDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'documents';
+
+function openDB(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function saveToIndexedDB(data: {
+  pages: PageItem[];
+  currentPageId: string;
+  blocks: BlockInstance[];
+  documentTitle: string;
+}): Promise<void> {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    store.put({ id: 'current_doc', ...data, updatedAt: Date.now() });
+  } catch {
+    /* ignore IndexedDB errors */
+  }
+}
+
+export async function loadFromIndexedDB(): Promise<{
+  pages?: PageItem[];
+  currentPageId?: string;
+  blocks?: BlockInstance[];
+  documentTitle?: string;
+} | null> {
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.get('current_doc');
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+function getInitialState(): {
+  pages: PageItem[];
+  currentPageId: string;
+  blocks: BlockInstance[];
+} {
   try {
     const saved = localStorage.getItem('be-autosave');
     if (saved !== null) {
       const data = JSON.parse(saved);
+      if (Array.isArray(data.pages) && data.pages.length > 0) {
+        const pages: PageItem[] = data.pages.map((p: any) => ({
+          id: p.id || createId(),
+          name: p.name || 'Page 1',
+          blocks: sanitizeBlocks(p.blocks || []),
+        }));
+        const currentPageId = data.currentPageId || pages[0].id;
+        const activePage = pages.find((p) => p.id === currentPageId) || pages[0];
+        return {
+          pages,
+          currentPageId: activePage.id,
+          blocks: sanitizeBlocks(activePage.blocks || []),
+        };
+      }
       if (Array.isArray(data.blocks)) {
-        return sanitizeBlocks(data.blocks);
+        const initialBlocks = sanitizeBlocks(data.blocks);
+        const page1: PageItem = { id: 'page-1', name: 'Page 1', blocks: initialBlocks };
+        return {
+          pages: [page1],
+          currentPageId: 'page-1',
+          blocks: initialBlocks,
+        };
       }
     }
-  } catch { /* ignore */ }
-  return [];
+  } catch {
+    /* ignore */
+  }
+  const defaultPage: PageItem = { id: 'page-1', name: 'Page 1', blocks: [] };
+  return { pages: [defaultPage], currentPageId: 'page-1', blocks: [] };
 }
 
 function getInitialTitle(): string {
@@ -271,8 +391,14 @@ function getInitialTheme(): 'light' | 'dark' {
   return 'light';
 }
 
+const initialState = getInitialState();
+
 export const useEditorStore = create<EditorStore>((set, get) => ({
-  blocks: getInitialBlocks(),
+  pages: initialState.pages,
+  currentPageId: initialState.currentPageId,
+  isPreviewMode: false,
+  zoomLevel: 100,
+  blocks: initialState.blocks,
   selectedIds: [],
   clipboard: null,
   htmlModeBlockIds: [],
@@ -286,6 +412,113 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   settingsSidebarOpen: true,
   slashMenu: { open: false, blockId: null, anchor: null },
   filterOptions: undefined,
+
+  setPages: (pages) => set({ pages }),
+  setCurrentPageId: (id) => {
+    set((state) => {
+      const updatedPages = syncPages(state.pages, state.currentPageId, state.blocks);
+      const targetPage = updatedPages.find((p) => p.id === id);
+      if (!targetPage) return { pages: updatedPages };
+      return {
+        currentPageId: id,
+        pages: updatedPages,
+        blocks: deepClone(targetPage.blocks || []),
+        selectedIds: [],
+        past: [],
+        future: [],
+      };
+    });
+  },
+
+  addPage: (name) => {
+    let newId = '';
+    set((state) => {
+      const updatedPages = syncPages(state.pages, state.currentPageId, state.blocks);
+      const nextNum = updatedPages.length + 1;
+      const pageName = name && name.trim() ? name.trim() : `Page ${nextNum}`;
+      newId = `page-${createId()}`;
+      const newPage: PageItem = {
+        id: newId,
+        name: pageName,
+        blocks: [],
+      };
+      return {
+        pages: [...updatedPages, newPage],
+        currentPageId: newId,
+        blocks: [],
+        selectedIds: [],
+        past: [],
+        future: [],
+      };
+    });
+    return newId;
+  },
+
+  renamePage: (id, name) => {
+    set((state) => {
+      const trimmed = name.trim();
+      if (!trimmed) return {};
+      return {
+        pages: state.pages.map((p) => (p.id === id ? { ...p, name: trimmed } : p)),
+      };
+    });
+  },
+
+  duplicatePage: (id) => {
+    let newId = '';
+    set((state) => {
+      const updatedPages = syncPages(state.pages, state.currentPageId, state.blocks);
+      const targetPage = updatedPages.find((p) => p.id === id);
+      if (!targetPage) return { pages: updatedPages };
+      const duplicatedBlocks = (targetPage.blocks || []).map((b) => cloneBlock(b, true));
+      newId = `page-${createId()}`;
+      const newPage: PageItem = {
+        id: newId,
+        name: `${targetPage.name} (Copy)`,
+        blocks: duplicatedBlocks,
+      };
+      const idx = updatedPages.findIndex((p) => p.id === id);
+      const newPagesList = [...updatedPages];
+      newPagesList.splice(idx + 1, 0, newPage);
+      return {
+        pages: newPagesList,
+        currentPageId: newId,
+        blocks: duplicatedBlocks,
+        selectedIds: [],
+        past: [],
+        future: [],
+      };
+    });
+    return newId;
+  },
+
+  deletePage: (id) => {
+    set((state) => {
+      if (state.pages.length <= 1) return {};
+      const updatedPages = syncPages(state.pages, state.currentPageId, state.blocks);
+      const remaining = updatedPages.filter((p) => p.id !== id);
+      if (state.currentPageId === id) {
+        const nextActive = remaining[0];
+        return {
+          pages: remaining,
+          currentPageId: nextActive.id,
+          blocks: deepClone(nextActive.blocks || []),
+          selectedIds: [],
+          past: [],
+          future: [],
+        };
+      }
+      return { pages: remaining };
+    });
+  },
+
+  setIsPreviewMode: (preview) => {
+    set({ isPreviewMode: preview, selectedIds: [] });
+  },
+
+  setZoomLevel: (zoom) => {
+    set({ zoomLevel: Math.max(50, Math.min(150, zoom)) });
+  },
 
   setFilterOptions: (options) => set({ filterOptions: options }),
   openInserterAtIndex: (index) => set({ inserterOpen: true, inserterTargetIndex: index }),
@@ -754,66 +987,43 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     });
   },
 
-  loadFromJSON: (data) => set({
-    blocks: Array.isArray(data.blocks) ? data.blocks : [],
-    selectedIds: [], past: [], future: [],
-  }),
+  loadFromJSON: (data) =>
+    set((state) => {
+      const pages = Array.isArray(data.pages) && data.pages.length > 0
+        ? data.pages
+        : [{ id: 'page-1', name: 'Page 1', blocks: Array.isArray(data.blocks) ? data.blocks : [] }];
+      const currentPageId = data.currentPageId || pages[0].id;
+      const activePage = pages.find((p) => p.id === currentPageId) || pages[0];
+      return {
+        pages,
+        currentPageId: activePage.id,
+        blocks: activePage.blocks || [],
+        selectedIds: [],
+        past: [],
+        future: [],
+      };
+    }),
 
-  exportJSON: () => ({ blocks: get().blocks }),
-}));
-
-// IndexedDB Persistence Helper for Unlimited & Guaranteed Auto-Save
-const DB_NAME = 'EditorStudioDB';
-const STORE_NAME = 'autosave';
-
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    if (typeof indexedDB === 'undefined') {
-      return reject(new Error('IndexedDB not supported'));
-    }
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
+  exportJSON: () => {
+    const s = get();
+    const syncedPages = syncPages(s.pages, s.currentPageId, s.blocks);
+    return {
+      pages: syncedPages,
+      currentPageId: s.currentPageId,
+      blocks: s.blocks,
     };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-export async function saveToIndexedDB(data: { blocks: BlockInstance[]; documentTitle: string }) {
-  try {
-    const db = await openDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    store.put({ ...data, updatedAt: Date.now() }, 'current');
-  } catch (e) {
-    console.warn('IndexedDB save failed:', e);
-  }
-}
-
-export async function loadFromIndexedDB(): Promise<{ blocks: BlockInstance[]; documentTitle?: string } | null> {
-  try {
-    const db = await openDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const store = tx.objectStore(STORE_NAME);
-      const req = store.get('current');
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => resolve(null);
-    });
-  } catch {
-    return null;
-  }
-}
+  },
+}));
 
 function sanitizeForLocalStorage(blocks: BlockInstance[]): BlockInstance[] {
   return blocks.map((b) => {
     const newAttr: Record<string, unknown> = { ...b.attributes };
     for (const key in newAttr) {
-      if (typeof newAttr[key] === 'string' && (newAttr[key] as string).length > 30000 && (newAttr[key] as string).startsWith('data:')) {
+      if (
+        typeof newAttr[key] === 'string' &&
+        (newAttr[key] as string).length > 30000 &&
+        (newAttr[key] as string).startsWith('data:')
+      ) {
         newAttr[key] = '';
       }
     }
@@ -822,16 +1032,27 @@ function sanitizeForLocalStorage(blocks: BlockInstance[]): BlockInstance[] {
   });
 }
 
-// Automatic subscription to persist blocks in localStorage + IndexedDB on every mutation
+// Automatic subscription to persist pages & blocks in localStorage + IndexedDB on every mutation
 useEditorStore.subscribe((state) => {
-  const fullPayload = { blocks: state.blocks, documentTitle: state.documentTitle };
+  const syncedPages = syncPages(state.pages, state.currentPageId, state.blocks);
+  const fullPayload = {
+    pages: syncedPages,
+    currentPageId: state.currentPageId,
+    blocks: state.blocks,
+    documentTitle: state.documentTitle,
+  };
 
-  // 1. Always save to IndexedDB (unlimited storage, survives refresh 100%)
+  // 1. Save to IndexedDB (unlimited storage, survives refresh 100%)
   saveToIndexedDB(fullPayload);
 
-  // 2. Save sanitized payload to localStorage (no quota warnings!)
+  // 2. Save sanitized payload to localStorage
   try {
-    const localPayload = { blocks: sanitizeForLocalStorage(state.blocks), documentTitle: state.documentTitle };
+    const localPayload = {
+      pages: syncedPages.map((p) => ({ ...p, blocks: sanitizeForLocalStorage(p.blocks) })),
+      currentPageId: state.currentPageId,
+      blocks: sanitizeForLocalStorage(state.blocks),
+      documentTitle: state.documentTitle,
+    };
     localStorage.setItem('be-autosave', JSON.stringify(localPayload));
     localStorage.setItem('be-title', state.documentTitle);
   } catch {
@@ -843,10 +1064,15 @@ useEditorStore.subscribe((state) => {
 if (typeof window !== 'undefined') {
   setTimeout(() => {
     loadFromIndexedDB().then((data) => {
-      if (data && Array.isArray(data.blocks) && data.blocks.length > 0) {
-        const currentBlocks = useEditorStore.getState().blocks;
-        if (JSON.stringify(currentBlocks) !== JSON.stringify(data.blocks)) {
-          useEditorStore.getState().loadFromJSON({ blocks: data.blocks });
+      if (data && Array.isArray(data.pages) && data.pages.length > 0) {
+        const currentState = useEditorStore.getState();
+        const currentPages = currentState.pages;
+        if (JSON.stringify(currentPages) !== JSON.stringify(data.pages)) {
+          useEditorStore.getState().loadFromJSON({
+            pages: data.pages,
+            currentPageId: data.currentPageId,
+            blocks: data.blocks || [],
+          });
           if (data.documentTitle) {
             useEditorStore.getState().setDocumentTitle(data.documentTitle);
           }

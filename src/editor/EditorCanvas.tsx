@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Layout, Sparkles } from 'lucide-react';
 import { useEditorStore } from './store';
 import BlockWrapper from './BlockWrapper';
@@ -28,12 +28,12 @@ export default function EditorCanvas() {
   const getCanvasContainerClass = () => {
     switch (deviceView) {
       case 'tablet':
-        return 'max-w-[768px] mx-auto py-5 sm:py-6 px-3 sm:px-6 w-full my-3 sm:my-6 bg-white dark:bg-gray-900 border border-gray-200/90 dark:border-gray-800/90 rounded-xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out min-h-[calc(100vh-7rem)]';
+        return 'max-w-[768px] mx-auto py-5 sm:py-6 px-3 sm:px-6 w-full my-3 sm:my-6 bg-white dark:bg-gray-900 border border-gray-200/90 dark:border-gray-800/90 rounded-xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out min-h-[calc(100dvh-7rem)]';
       case 'mobile':
-        return 'max-w-[390px] mx-auto py-5 px-3 w-full my-3 sm:my-6 bg-white dark:bg-gray-900 border-4 border-gray-300 dark:border-gray-800 rounded-3xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out min-h-[calc(100vh-7rem)]';
+        return 'max-w-[390px] mx-auto py-5 px-3 w-full my-3 sm:my-6 bg-white dark:bg-gray-900 border-4 border-gray-300 dark:border-gray-800 rounded-3xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out min-h-[calc(100dvh-7rem)]';
       case 'desktop':
       default:
-        return 'max-w-[1200px] mx-auto py-4 sm:py-8 px-2 sm:px-6 md:px-8 w-full my-2 sm:my-6 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800/80 rounded-xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out min-h-[calc(100vh-7rem)]';
+        return 'max-w-[1200px] mx-auto py-4 sm:py-8 px-2 sm:px-6 md:px-8 w-full my-2 sm:my-6 bg-white dark:bg-gray-900 border border-gray-200/80 dark:border-gray-800/80 rounded-xl sm:rounded-2xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 ease-out min-h-[calc(100dvh-7rem)]';
     }
   };
 
@@ -261,38 +261,218 @@ export default function EditorCanvas() {
     }
   };
 
+  // Calculate document metrics
+  const documentMetrics = useMemo(() => {
+    let text = '';
+    const extractText = (list: any[]) => {
+      for (const b of list) {
+        if (b.attributes) {
+          if (typeof b.attributes.content === 'string') text += ' ' + b.attributes.content;
+          else if (Array.isArray(b.attributes.content)) {
+            text += ' ' + b.attributes.content.map((c: any) => c.text || '').join(' ');
+          }
+          if (Array.isArray(b.attributes.items)) {
+            text += ' ' + b.attributes.items.map((it: any) => (typeof it.content === 'string' ? it.content : '')).join(' ');
+          }
+        }
+        if (b.innerBlocks && b.innerBlocks.length > 0) {
+          extractText(b.innerBlocks);
+        }
+      }
+    };
+    extractText(blocks);
+    const cleanText = text.replace(/<[^>]*>/g, '').trim();
+    const words = cleanText ? cleanText.split(/\s+/).filter(Boolean).length : 0;
+    const chars = cleanText.length;
+    const readTime = Math.max(1, Math.ceil(words / 200));
+    return { words, chars, readTime, count: blocks.length };
+  }, [blocks]);
+
+  const addStarterTemplate = (type: 'article' | 'hero' | 'two-column') => {
+    if (type === 'article') {
+      const hId = insertBlock('heading');
+      if (hId) {
+        useEditorStore.getState().updateBlock(hId, (b) => ({
+          ...b,
+          attributes: { ...b.attributes, content: 'Your Compelling Headline Goes Here' },
+        }));
+      }
+      insertBlock('paragraph');
+    } else if (type === 'hero') {
+      const hId = insertBlock('heading');
+      if (hId) {
+        useEditorStore.getState().updateBlock(hId, (b) => ({
+          ...b,
+          attributes: { ...b.attributes, content: 'Breaking Story / Featured Headline' },
+        }));
+      }
+      insertBlock('image');
+      insertBlock('paragraph');
+    } else if (type === 'two-column') {
+      const hId = insertBlock('heading');
+      if (hId) {
+        useEditorStore.getState().updateBlock(hId, (b) => ({
+          ...b,
+          attributes: { ...b.attributes, content: 'Two-Column Overview' },
+        }));
+      }
+      insertBlock('columns');
+    }
+  };
+
+  const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
+  const zoomLevel = useEditorStore((s) => s.zoomLevel);
+  const setZoomLevel = useEditorStore((s) => s.setZoomLevel);
+  const setDeviceView = useEditorStore((s) => s.setDeviceView);
+
   return (
-    <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-dot-grid transition-colors relative">
+    <div className="flex-1 min-h-0 flex flex-col min-w-0 overflow-hidden bg-dot-grid transition-colors relative">
       <div
-        className="flex-1 overflow-y-auto be-scroll"
-        onClick={handleCanvasClick}
+        className="flex-1 min-h-0 overflow-y-auto be-scroll"
+        onClick={isPreviewMode ? undefined : handleCanvasClick}
       >
-        {/* <PublishingHeader /> */}
-        <BlockFormattingToolbar />
-        <div className="p-4 sm:p-6 pb-48">
-          <div className={`${getCanvasContainerClass()} cursor-text mb-20`} onClick={handleCanvasClick}>
+        {!isPreviewMode && <BlockFormattingToolbar />}
+        <div
+          className="p-3 sm:p-6 pb-10 xs:pb-4 transition-transform duration-150 origin-top"
+          style={{ transform: zoomLevel !== 100 ? `scale(${zoomLevel / 100})` : undefined }}
+        >
+          {/* Full-canvas read-only overlay in preview mode */}
+          {isPreviewMode && (
+            <div
+              className="absolute inset-0 z-[9999] cursor-default"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
+            />
+          )}
+          <div
+            className={`${getCanvasContainerClass()} ${isPreviewMode ? 'cursor-default select-none' : 'cursor-text'} mb-20`}
+            onClick={isPreviewMode ? undefined : handleCanvasClick}
+          >
             <div>
               {blocks.map((block, index) => (
                 <BlockWrapper key={block.id} block={block} index={index} total={blocks.length} />
               ))}
             </div>
 
-          {blocks.length === 0 && (
-            <div className="text-center py-16 px-6 cursor-text">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-500 text-white flex items-center justify-center mx-auto mb-4 shadow-lg shadow-primary-500/25">
-                <Layout size={28} />
+            {blocks.length === 0 && (
+              <div className="text-center py-16 px-6 cursor-text max-w-xl mx-auto space-y-6">
+                <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center mx-auto shadow-xl shadow-blue-500/25">
+                  <Layout size={30} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mb-2">
+                    Start creating your page
+                  </h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                    Click anywhere on the canvas to start writing, or choose a quick starter template below.
+                  </p>
+                </div>
+
+                {/* Quick 1-Click Starter Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addStarterTemplate('article');
+                    }}
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-left transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
+                  >
+                    <span className="text-xl mb-1.5 block">📰</span>
+                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                      Standard Story
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Heading + text paragraph
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addStarterTemplate('hero');
+                    }}
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-left transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
+                  >
+                    <span className="text-xl mb-1.5 block">🖼️</span>
+                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                      Hero & Media
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Heading + image + content
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addStarterTemplate('two-column');
+                    }}
+                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-left transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
+                  >
+                    <span className="text-xl mb-1.5 block">📊</span>
+                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                      2-Column Grid
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Side-by-side columns
+                    </p>
+                  </button>
+                </div>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1.5">Start building your page</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
-                Click anywhere on the document or select a block from the left sidebar to start typing.
-              </p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
+
+        {!isPreviewMode && <SlashMenu open={slashMenu.open} blockId={slashMenu.blockId} anchor={slashMenu.anchor} onClose={closeSlashMenu} />}
       </div>
 
-      <SlashMenu open={slashMenu.open} blockId={slashMenu.blockId} anchor={slashMenu.anchor} onClose={closeSlashMenu} />
-    </div>
+      {/* Floating Bottom Document Stats & Zoom Bar */}
+      {/* {!isPreviewMode && (
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-40 hidden sm:flex items-center gap-3 px-4 py-2 rounded-2xl bg-slate-900/90 dark:bg-slate-950/90 text-white backdrop-blur-md border border-white/10 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-200 select-none">
+
+          <div className="flex items-center gap-3 text-xs font-semibold text-slate-300">
+            <span>📝 <strong className="text-white">{documentMetrics.words}</strong> words</span>
+            <span className="w-1 h-1 rounded-full bg-slate-600" />
+            <span>⏱️ <strong className="text-white">{documentMetrics.readTime}</strong> min read</span>
+            <span className="w-1 h-1 rounded-full bg-slate-600" />
+            <span>🧱 <strong className="text-white">{documentMetrics.count}</strong> blocks</span>
+          </div>
+
+          <div className="w-px h-3.5 bg-slate-700 mx-1" />
+
+
+          <div className="flex items-center gap-1 text-xs">
+            <button
+              type="button"
+              onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))}
+              className="px-1.5 py-0.5 rounded hover:bg-white/20 text-slate-300 hover:text-white cursor-pointer"
+              title="Zoom out"
+            >
+              -
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomLevel(100)}
+              className="px-1.5 py-0.5 rounded hover:bg-white/20 text-[11px] font-bold text-blue-400 cursor-pointer"
+              title="Reset zoom"
+            >
+              {zoomLevel}%
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomLevel(Math.min(150, zoomLevel + 10))}
+              className="px-1.5 py-0.5 rounded hover:bg-white/20 text-slate-300 hover:text-white cursor-pointer"
+              title="Zoom in"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      )} */}
 
       {(converting || aiPasteToast) && (
         <div className="fixed bottom-6 right-6 z-[99999] flex items-center gap-3 px-4 py-3 bg-slate-900/95 text-white font-bold text-xs rounded-2xl shadow-2xl border border-slate-700 backdrop-blur-md animate-fade-in">
@@ -312,4 +492,3 @@ export default function EditorCanvas() {
     </div>
   );
 }
-

@@ -1,11 +1,11 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   CheckSquare, Image as ImageIcon, Smile, Columns3, Rows3, Table as TableIcon, Link as LinkIcon,
   Undo2, Redo2, Pin, Code2, Eraser, Indent, Outdent, Crop, ExternalLink,
   Trash2, Video, Highlighter, Upload, Subtitles, Tag as TagIcon,
   Columns as ColumnsIcon, Layers, Plus, Copy as CopyIcon, CopyPlus,
-  ArrowUp, ArrowDown,
+  ArrowUp, ArrowDown, ChevronDown, Sliders,
 } from 'lucide-react';
 import { useEditorStore, findBlock } from './store';
 import { createBlock, getBlockLabel } from './blocks/registry';
@@ -43,9 +43,9 @@ function Tooltip({
   return (
     <div className="relative group inline-flex items-center shrink-0">
       {children}
-      <div className={`absolute top-full mt-1.5 ${alignClasses} hidden group-hover:flex flex-col items-center pointer-events-none z-[9999]`}>
-        <div className={`w-2 h-2 bg-gray-900 dark:bg-gray-800 rotate-45 -mb-1 shadow-xs border-t border-l border-gray-700/50 ${arrowAlignClasses}`} />
-        <span className="px-2.5 py-1 text-[11px] font-medium text-white bg-gray-900 dark:bg-gray-800 rounded-lg shadow-xl border border-gray-700/50 whitespace-nowrap block">
+      <div className={`absolute top-full mt-2.5 ${alignClasses} hidden group-hover:flex flex-col items-center pointer-events-none z-[99999]`}>
+        <div className={`w-2 h-2 bg-slate-900 dark:bg-slate-800 rotate-45 -mb-1 shadow-xs border-t border-l border-slate-700/60 ${arrowAlignClasses}`} />
+        <span className="px-2.5 py-1 text-[11px] font-semibold text-white bg-slate-900 dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-700/60 whitespace-nowrap block">
           {text}
         </span>
       </div>
@@ -214,14 +214,13 @@ function InlineFormattingControls({
   };
 
   const getBtnClass = (active: boolean) =>
-    `w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-xs transition-all cursor-pointer shrink-0 ${
-      active
-        ? 'bg-primary-500 text-white shadow-2xs font-bold'
-        : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40'
+    `w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-xs transition-all cursor-pointer shrink-0 ${active
+      ? 'bg-primary-500 text-white shadow-2xs font-bold'
+      : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40'
     }`;
 
   return (
-    <div className="flex items-center gap-0.5">
+    <div className="flex items-center gap-0.5 flex-wrap">
       <Tooltip text="Bold (Ctrl+B)">
         <button
           type="button"
@@ -588,7 +587,7 @@ function ImageToolbar({ block, showNotification }: CommonToolbarProps) {
   const currentWidth = (block.attributes.width as string) || '100%';
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 rounded-lg border border-blue-200/60 dark:border-blue-800/60">
         <ImageIcon size={14} /> Image
       </span>
@@ -760,7 +759,7 @@ function ButtonToolbar({ block, showNotification }: CommonToolbarProps) {
   };
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-lg border border-emerald-200/60 dark:border-emerald-800/60">
         <LinkIcon size={14} /> Button
       </span>
@@ -864,7 +863,7 @@ function ColumnsToolbar({ block, showNotification }: CommonToolbarProps) {
   };
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300 rounded-lg border border-indigo-200/60 dark:border-indigo-800/60">
         <ColumnsIcon size={14} /> Columns ({cols})
       </span>
@@ -950,7 +949,7 @@ function TableToolbar({ block, showNotification }: CommonToolbarProps) {
   };
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-primary-50 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 rounded-lg border border-primary-200/60 dark:border-primary-800/60">
         <TableIcon size={14} /> Table
       </span>
@@ -1178,7 +1177,7 @@ function ListToolbar({ block, saveSelection, showNotification }: CommonToolbarPr
 
 function MediaEmbedToolbar({ block, showNotification }: CommonToolbarProps) {
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 rounded-lg border border-purple-200/60 dark:border-purple-800/60">
         <Video size={14} /> {getBlockLabel(block.type)}
       </span>
@@ -1229,7 +1228,7 @@ function SliderToolbar({ block, showNotification }: CommonToolbarProps) {
   };
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-violet-50 text-violet-700 dark:bg-violet-950/60 dark:text-violet-300 rounded-lg border border-violet-200/60 dark:border-violet-800/60">
         <Layers size={14} /> Slider ({slides.length} slides)
       </span>
@@ -1311,7 +1310,7 @@ function CodeToolbar({ block, showNotification }: CommonToolbarProps) {
   };
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       {/* Auto-Detected Language Badge (Read-Only) */}
       <span className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-primary-50 text-primary-700 dark:bg-primary-950/60 dark:text-primary-300 border border-primary-200 dark:border-primary-800 select-none pointer-events-none flex items-center gap-1">
         <Code2 size={13} /> {language}
@@ -1459,7 +1458,7 @@ function GalleryToolbar({ block, showNotification }: CommonToolbarProps) {
   // IF AN INDIVIDUAL IMAGE IS SELECTED INSIDE THE GALLERY
   if (selectedIdx !== null) {
     return (
-      <div className="flex items-center gap-1.5 flex-wrap">
+      <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
         {/* Return to Gallery Container Controls */}
         <button
           onClick={() => updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, selectedImageIndex: null } }))}
@@ -1531,7 +1530,7 @@ function GalleryToolbar({ block, showNotification }: CommonToolbarProps) {
 
   // IF GALLERY CONTAINER IS SELECTED
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 rounded-lg border border-emerald-200/60 dark:border-emerald-800/60">
         <ImageIcon size={14} /> Gallery ({images.length} images)
       </span>
@@ -1600,7 +1599,7 @@ function GalleryToolbar({ block, showNotification }: CommonToolbarProps) {
 
 function DefaultBlockToolbar({ block, showNotification }: CommonToolbarProps) {
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200/60 dark:border-gray-700/60">
         {getBlockLabel(block.type)}
       </span>
@@ -1636,7 +1635,7 @@ function CoverToolbar({ block, showNotification }: CommonToolbarProps) {
   };
 
   return (
-    <div className="flex items-center gap-1.5 flex-wrap">
+    <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap">
       <span className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 rounded-lg border border-purple-200/60 dark:border-purple-800/60">
         <ImageIcon size={14} /> Cover Block
       </span>
@@ -1741,11 +1740,10 @@ function MediaTextToolbar({ block, showNotification }: CommonToolbarProps) {
         <Tooltip text="Align Top">
           <button
             onClick={() => setVAlign('top')}
-            className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${
-              verticalAlign === 'top'
-                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs font-bold'
-                : 'text-gray-600 dark:text-gray-400'
-            }`}
+            className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${verticalAlign === 'top'
+              ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs font-bold'
+              : 'text-gray-600 dark:text-gray-400'
+              }`}
           >
             ↑
           </button>
@@ -1753,11 +1751,10 @@ function MediaTextToolbar({ block, showNotification }: CommonToolbarProps) {
         <Tooltip text="Align Center">
           <button
             onClick={() => setVAlign('center')}
-            className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${
-              verticalAlign === 'center'
-                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs font-bold'
-                : 'text-gray-600 dark:text-gray-400'
-            }`}
+            className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${verticalAlign === 'center'
+              ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs font-bold'
+              : 'text-gray-600 dark:text-gray-400'
+              }`}
           >
             ↕
           </button>
@@ -1765,11 +1762,10 @@ function MediaTextToolbar({ block, showNotification }: CommonToolbarProps) {
         <Tooltip text="Align Bottom">
           <button
             onClick={() => setVAlign('bottom')}
-            className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${
-              verticalAlign === 'bottom'
-                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs font-bold'
-                : 'text-gray-600 dark:text-gray-400'
-            }`}
+            className={`w-7 h-7 rounded flex items-center justify-center transition-colors cursor-pointer ${verticalAlign === 'bottom'
+              ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-2xs font-bold'
+              : 'text-gray-600 dark:text-gray-400'
+              }`}
           >
             ↓
           </button>
@@ -1780,11 +1776,10 @@ function MediaTextToolbar({ block, showNotification }: CommonToolbarProps) {
       <Tooltip text="Crop media to fill entire column">
         <button
           onClick={toggleImageFill}
-          className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-            imageFill
-              ? 'bg-primary-500 text-white shadow-2xs'
-              : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-200'
-          }`}
+          className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${imageFill
+            ? 'bg-primary-500 text-white shadow-2xs'
+            : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-200'
+            }`}
         >
           {imageFill ? 'Filled Column' : 'Fit Natural'}
         </button>
@@ -2048,6 +2043,14 @@ export default function BlockFormattingToolbar() {
   const [showLink, setShowLink] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
+  const [mobileExpanded, setMobileExpanded] = useState(false);
+
+  // Auto-open format tools when a block is selected on mobile
+  useEffect(() => {
+    if (selectedIds.length > 0) {
+      setMobileExpanded(true);
+    }
+  }, [selectedIds]);
 
   const [toast, setToast] = useState<string | null>(null);
 
@@ -2253,7 +2256,7 @@ export default function BlockFormattingToolbar() {
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="sticky top-0 z-40 shadow-sm backdrop-blur-md bg-white/95 dark:bg-gray-900/95 ring-1 ring-primary-500/20 border-b border-gray-200/90 dark:border-gray-800 px-3 py-1.5 flex items-center justify-between gap-2 shrink-0 min-h-[46px] overflow-visible transition-all"
+      className="sticky top-0 z-40 shadow-xs backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border-b border-slate-200/90 dark:border-slate-800 px-3 sm:px-4 py-1.5 sm:py-2 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-1.5 xl:gap-2 shrink-0 transition-all select-none w-full overflow-visible"
     >
       {/* Toast Notification */}
       {toast && (
@@ -2262,229 +2265,236 @@ export default function BlockFormattingToolbar() {
         </div>
       )}
 
-      {/* Render MultiSelectToolbar or Active Block Toolbar */}
-      {selectedIds.length > 1 ? (
-        <MultiSelectToolbar selectedIds={selectedIds} showNotification={showNotification} />
-      ) : block ? (
-        <ActiveBlockToolbarComponent
-          block={block}
-          execCmd={execCmd}
-          saveSelection={saveSelection}
-          showNotification={showNotification}
-        />
-      ) : (
-        <div className="text-xs text-gray-400">Select a block to format</div>
-      )}
+      {/* Mobile Bar: Block Info & Open/Close Format Tools Button (Visible below 1280px) */}
+      <div className="xl:hidden flex items-center justify-between gap-2 w-full py-0.5">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+          <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+          <span className="truncate">{block ? getBlockLabel(blockType) : 'Document Tools'}</span>
+        </div>
 
-      {/* Right Fixed Section (Link popover for text blocks, Undo, Redo, Pin) */}
-      <div className="flex items-center gap-1 shrink-0">
-        {supportsInlineLink && (
-          <div className="relative inline-flex items-center shrink-0">
-            <Tooltip text="Insert / Edit Link (Ctrl+K)">
-              <button
-                onMouseDown={(e) => { e.preventDefault(); }}
-                onClick={openLinkPopover}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
-              >
-                <LinkIcon size={15} />
-              </button>
-            </Tooltip>
-            {showLink && (
-              <div className="absolute top-full right-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64">
-                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                  {linkUrl ? 'Edit Link' : 'Insert Link'}
-                </span>
-                <input
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  placeholder="https://example.com"
-                  className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
-                  onKeyDown={(e) => e.key === 'Enter' && applyLink()}
-                  autoFocus
-                />
-                <input
-                  value={linkText}
-                  onChange={(e) => setLinkText(e.target.value)}
-                  placeholder="Link text (optional)"
-                  className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
-                  onKeyDown={(e) => e.key === 'Enter' && applyLink()}
-                />
-                <div className="flex justify-between items-center mt-1">
-                  {linkUrl ? (
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={removeLink}
-                      className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 hover:bg-red-100 transition-colors cursor-pointer"
-                    >
-                      Remove Link
-                    </button>
-                  ) : (
-                    <button onClick={() => setShowLink(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
-                      Cancel
-                    </button>
-                  )}
-                  <div className="flex gap-1.5">
-                    {linkUrl && (
-                      <button onClick={() => setShowLink(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
-                        Cancel
-                      </button>
-                    )}
-                    <button
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={applyLink}
-                      className="px-3 py-1 text-xs font-semibold rounded-lg bg-primary-600 text-white cursor-pointer shadow-2xs hover:bg-primary-700 transition-colors"
-                    >
-                      {linkUrl ? 'Update' : 'Apply'}
-                    </button>
+        <button
+          type="button"
+          onClick={() => setMobileExpanded(!mobileExpanded)}
+          className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all cursor-pointer shadow-2xs be-icon-btn ${mobileExpanded
+            ? 'bg-blue-600 text-white'
+            : 'bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700'
+            }`}
+          title={mobileExpanded ? 'Close Tools' : 'Format Tools'}
+        >
+          <Sliders size={15} />
+        </button>
+      </div>
+
+      {/* Formatting & Controls Area (Collapsible on mobile < xl, always open on desktop xl) */}
+      <div className={`${mobileExpanded ? 'flex' : 'hidden xl:flex'} flex-col xl:flex-row items-stretch xl:items-center justify-between gap-1.5 xl:gap-2 w-full animate-in fade-in zoom-in-95 duration-150`}>
+        {/* Upper Section / Row 1: Formatting & Content Controls */}
+        <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap w-full xl:w-auto">
+          {selectedIds.length > 1 ? (
+            <MultiSelectToolbar selectedIds={selectedIds} showNotification={showNotification} />
+          ) : block ? (
+            <ActiveBlockToolbarComponent
+              block={block}
+              execCmd={execCmd}
+              saveSelection={saveSelection}
+              showNotification={showNotification}
+            />
+          ) : (
+            <div className="text-xs text-gray-400">Select a block to format</div>
+          )}
+        </div>
+
+        {/* Lower Section / Row 2 (100% width below 1280px, right-aligned on desktop xl): Actions & History */}
+        <div className="flex items-center justify-between xl:justify-end gap-1.5 flex-wrap w-full xl:w-auto pt-1.5 xl:pt-0 border-t border-slate-100 dark:border-slate-800/80 xl:border-t-0">
+          <div className="flex items-center gap-1 flex-wrap">
+            {supportsInlineLink && (
+              <div className="relative inline-flex items-center shrink-0">
+                <Tooltip text="Insert / Edit Link (Ctrl+K)">
+                  <button
+                    onMouseDown={(e) => { e.preventDefault(); }}
+                    onClick={openLinkPopover}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+                  >
+                    <LinkIcon size={15} />
+                  </button>
+                </Tooltip>
+                {showLink && (
+                  <div className="absolute top-full right-0 mt-2 p-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 flex flex-col gap-2 z-[100] w-64">
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                      {linkUrl ? 'Edit Link' : 'Insert Link'}
+                    </span>
+                    <input
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                      placeholder="https://example.com"
+                      className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
+                      onKeyDown={(e) => e.key === 'Enter' && applyLink()}
+                      autoFocus
+                    />
+                    <input
+                      value={linkText}
+                      onChange={(e) => setLinkText(e.target.value)}
+                      placeholder="Link text (optional)"
+                      className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
+                      onKeyDown={(e) => e.key === 'Enter' && applyLink()}
+                    />
+                    <div className="flex justify-between items-center mt-1">
+                      {linkUrl ? (
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={removeLink}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 hover:bg-red-100 transition-colors cursor-pointer"
+                        >
+                          Remove Link
+                        </button>
+                      ) : (
+                        <button onClick={() => setShowLink(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
+                          Cancel
+                        </button>
+                      )}
+                      <div className="flex gap-1.5">
+                        {linkUrl && (
+                          <button onClick={() => setShowLink(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
+                            Cancel
+                          </button>
+                        )}
+                        <button
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={applyLink}
+                          className="px-3 py-1 text-xs font-semibold rounded-lg bg-primary-600 text-white cursor-pointer shadow-2xs hover:bg-primary-700 transition-colors"
+                        >
+                          {linkUrl ? 'Update' : 'Apply'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
+
+            {/* Edit HTML Toggle Button */}
+            {block && (
+              <Tooltip text="Edit HTML">
+                <button
+                  onClick={() => toggleHtmlMode(block.id)}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${htmlModeBlockIds.includes(block.id)
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40'
+                    }`}
+                  title="Edit HTML"
+                >
+                  <Code2 size={15} />
+                </button>
+              </Tooltip>
+            )}
+
+            {/* Move Up / Move Down */}
+            {block && (
+              <>
+                <Tooltip text="Move Block Up (Up Arrow)">
+                  <button
+                    onClick={() => {
+                      moveBlock(block.id, 'up');
+                      showNotification('Moved block up');
+                    }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+                  >
+                    <ArrowUp size={15} />
+                  </button>
+                </Tooltip>
+
+                <Tooltip text="Move Block Down (Down Arrow)">
+                  <button
+                    onClick={() => {
+                      moveBlock(block.id, 'down');
+                      showNotification('Moved block down');
+                    }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+                  >
+                    <ArrowDown size={15} />
+                  </button>
+                </Tooltip>
+
+                {/* Duplicate Block Button */}
+                <Tooltip text="Duplicate Block">
+                  <button
+                    onClick={() => {
+                      duplicateBlock(block.id);
+                      showNotification('Block duplicated');
+                    }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer shrink-0"
+                    title="Duplicate this block"
+                  >
+                    <CopyPlus size={15} />
+                  </button>
+                </Tooltip>
+
+                {/* Delete Selected Block Button */}
+                <Tooltip text="Delete Block (Trash)">
+                  <button
+                    onClick={() => {
+                      removeBlock(block.id);
+                      showNotification('Block deleted');
+                    }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-700 transition-all cursor-pointer shrink-0"
+                    title="Delete this block"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </Tooltip>
+              </>
+            )}
           </div>
-        )}
 
-        {/* Edit HTML Toggle Button */}
-        {block && (
-          <Tooltip text="Edit HTML">
-            <button
-              onClick={() => toggleHtmlMode(block.id)}
-              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer shrink-0 ${htmlModeBlockIds.includes(block.id)
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40'
-                }`}
-              title="Edit HTML"
-            >
-              <Code2 size={15} />
-            </button>
-          </Tooltip>
-        )}
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" />
 
-        {/* Move Up / Move Down */}
-        {block && (
-          <>
-            <Tooltip text="Move Block Up (Up Arrow)">
+            {/* Undo */}
+            <Tooltip text="Undo (Ctrl+Z)">
               <button
-                onClick={() => {
-                  moveBlock(block.id, 'up');
-                  showNotification('Moved block up');
-                }}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+                onClick={undo}
+                disabled={past.length === 0}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
               >
-                <ArrowUp size={15} />
+                <Undo2 size={15} />
               </button>
             </Tooltip>
 
-            <Tooltip text="Move Block Down (Down Arrow)">
+            {/* Redo */}
+            <Tooltip text="Redo (Ctrl+Y)">
               <button
-                onClick={() => {
-                  moveBlock(block.id, 'down');
-                  showNotification('Moved block down');
-                }}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-colors cursor-pointer shrink-0"
+                onClick={redo}
+                disabled={future.length === 0}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
               >
-                <ArrowDown size={15} />
+                <Redo2 size={15} />
               </button>
             </Tooltip>
 
-            {/* Duplicate Block Button */}
-            <Tooltip text="Duplicate Block">
-              <button
-                onClick={() => {
-                  duplicateBlock(block.id);
-                  showNotification('Block duplicated');
-                }}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer shrink-0"
-                title="Duplicate this block"
-              >
-                <CopyPlus size={15} />
-              </button>
-            </Tooltip>
-
-            {/* Delete Selected Block Button */}
-            <Tooltip text="Delete Block (Trash)">
-              <button
-                onClick={() => {
-                  removeBlock(block.id);
-                  showNotification('Block deleted');
-                }}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 hover:text-red-700 transition-all cursor-pointer shrink-0"
-                title="Delete this block"
-              >
-                <Trash2 size={15} />
-              </button>
-            </Tooltip>
-          </>
-        )}
-
-        <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" />
-
-        {/* Undo */}
-        <Tooltip text="Undo (Ctrl+Z)">
-          <button
-            onClick={undo}
-            disabled={past.length === 0}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
-          >
-            <Undo2 size={15} />
-          </button>
-        </Tooltip>
-
-        {/* Redo */}
-        <Tooltip text="Redo (Ctrl+Y)">
-          <button
-            onClick={redo}
-            disabled={future.length === 0}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
-          >
-            <Redo2 size={15} />
-          </button>
-        </Tooltip>
-
-        {/* Pin Block Toggle Button */}
-        {block && (
-          <Tooltip text={block.attributes?.pinned ? 'Unpin Block' : 'Pin Block'}>
-            <button
-              onClick={() => {
-                const isCurrentlyPinned = Boolean(block.attributes?.pinned);
-                updateBlock(block.id, (b) => ({
-                  ...b,
-                  attributes: { ...b.attributes, pinned: !isCurrentlyPinned },
-                }));
-                showNotification(!isCurrentlyPinned ? 'Block pinned to top' : 'Block unpinned');
-              }}
-              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 ${block.attributes?.pinned
-                ? 'bg-amber-500 text-white shadow-md ring-2 ring-amber-400 font-bold'
-                : 'text-gray-600 dark:text-gray-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40'
-                }`}
-              title="Pin / Unpin this block"
-            >
-              <Pin size={15} className={block.attributes?.pinned ? 'rotate-45 text-white' : ''} />
-            </button>
-          </Tooltip>
-        )}
-
-        {/* <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" /> */}
-
-        {/* Pin Toolbar */}
-        {/* <Tooltip text={isPinned ? 'Unpin Toolbar from top' : 'Pin Toolbar to top (Sticky)'} align="right">
-          <button
-            onClick={() => {
-              const nextState = !isPinned;
-              setIsPinned(nextState);
-              showNotification(nextState ? 'Toolbar pinned to top (Sticky)' : 'Toolbar unpinned');
-            }}
-            className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${isPinned
-              ? 'bg-gradient-to-r from-primary-600 to-indigo-600 text-white font-bold shadow-md ring-2 ring-primary-400/50'
-              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-medium'
-              }`}
-          >
-            <Pin size={14} className={isPinned ? 'rotate-45 text-white' : ''} />
-            <span className="text-[11px] select-none">
-              {isPinned ? '📌 PINNED TO TOP' : 'Pin Toolbar'}
-            </span>
-          </button>
-        </Tooltip> */}
+            {/* Pin Block Toggle Button */}
+            {block && (
+              <Tooltip text={block.attributes?.pinned ? 'Unpin Block' : 'Pin Block'}>
+                <button
+                  onClick={() => {
+                    const isCurrentlyPinned = Boolean(block.attributes?.pinned);
+                    updateBlock(block.id, (b) => ({
+                      ...b,
+                      attributes: { ...b.attributes, pinned: !isCurrentlyPinned },
+                    }));
+                    showNotification(!isCurrentlyPinned ? 'Block pinned to top' : 'Block unpinned');
+                  }}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 ${block.attributes?.pinned
+                    ? 'bg-amber-500 text-white shadow-md ring-2 ring-amber-400 font-bold'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                    }`}
+                  title="Pin / Unpin this block"
+                >
+                  <Pin size={15} className={block.attributes?.pinned ? 'rotate-45 text-white' : ''} />
+                </button>
+              </Tooltip>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

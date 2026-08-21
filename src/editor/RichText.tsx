@@ -624,21 +624,23 @@ export default function RichText({
     }
   };
 
+  const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
+
   const Tag = tagName as any;
 
   return (
     <Tag
       ref={ref as React.Ref<HTMLElement>}
-      contentEditable
+      contentEditable={!isPreviewMode}
       suppressContentEditableWarning
-      data-placeholder={placeholder}
-      onFocus={handleFocus}
-      onClick={handleClick}
-      onInput={handleInput}
-      onPaste={handlePaste}
-      onKeyDown={handleKeyDown}
-      onBlur={handleInput}
-      className={`outline-none ${className}`}
+      data-placeholder={isPreviewMode ? undefined : placeholder}
+      onFocus={isPreviewMode ? undefined : handleFocus}
+      onClick={isPreviewMode ? undefined : handleClick}
+      onInput={isPreviewMode ? undefined : handleInput}
+      onPaste={isPreviewMode ? undefined : handlePaste}
+      onKeyDown={isPreviewMode ? undefined : handleKeyDown}
+      onBlur={isPreviewMode ? undefined : handleInput}
+      className={`outline-none ${isPreviewMode ? 'cursor-default select-none pointer-events-none' : ''} ${className}`}
       style={{ textAlign: align, ...style }}
     />
   );

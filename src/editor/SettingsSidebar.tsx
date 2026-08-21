@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Range, getTrackBackground } from 'react-range';
 import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
@@ -11,6 +12,7 @@ import {
 import { createId } from './utils';
 import { useEditorStore, findBlock } from './store';
 import { getBlockIcon } from './blocks/registry';
+import ResponsivePanelShell from './ResponsivePanelShell';
 import { fileToDataUrl } from './media';
 import CustomSelect from './CustomSelect';
 import type { TextAlign, ListStyle, HeadingLevel } from './types';
@@ -477,6 +479,7 @@ export default function SettingsSidebar() {
   const [hoveredSettingsTooltip, setHoveredSettingsTooltip] = useState<{
     label: string;
     top: number;
+    left: number;
   } | null>(null);
 
   if (!open) {
@@ -484,11 +487,10 @@ export default function SettingsSidebar() {
 
     return (
       <aside
-        onScroll={() => setHoveredSettingsTooltip(null)}
-        className="hidden md:flex shrink-0 w-16 min-w-16 border-l border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 py-3.5 px-2 flex-col items-center gap-2 overflow-y-auto overflow-x-hidden be-scroll shadow-sm z-20 relative"
+        className="hidden xs:flex shrink-0 w-16 min-w-16 h-full max-h-full border-l border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 py-3.5 px-2 flex-col items-center gap-2 overflow-hidden shadow-sm z-30 relative select-none"
       >
         {/* Toggle Expand Sidebar Button */}
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center shrink-0">
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -497,23 +499,26 @@ export default function SettingsSidebar() {
               setHoveredSettingsTooltip({
                 label: 'Expand Sidebar',
                 top: rect.top + rect.height / 2,
+                left: rect.left - 10,
               });
             }}
             onMouseLeave={() => setHoveredSettingsTooltip(null)}
             className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800/80 text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+            title="Expand Sidebar"
           >
             <PanelRightOpen size={18} />
           </button>
         </div>
 
         {/* Current Selected Block Icon */}
-        <div className="my-1 flex items-center justify-center">
+        <div className="my-1 flex items-center justify-center shrink-0">
           <div
             onMouseEnter={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               setHoveredSettingsTooltip({
                 label: block ? `${block.type} Settings` : 'Block Settings',
                 top: rect.top + rect.height / 2,
+                left: rect.left - 10,
               });
             }}
             onMouseLeave={() => setHoveredSettingsTooltip(null)}
@@ -523,14 +528,17 @@ export default function SettingsSidebar() {
           </div>
         </div>
 
-        <div className="w-8 h-px bg-gray-200/80 dark:bg-gray-800 my-1" />
+        <div className="w-8 h-px bg-gray-200/80 dark:bg-gray-800 my-1 shrink-0" />
 
-        {/* Mini Section Icons List */}
-        <div className="flex-1 flex flex-col items-center gap-2.5 w-full">
+        {/* Scrollable Mini Section Icons List */}
+        <div
+          onScroll={() => setHoveredSettingsTooltip(null)}
+          className="flex-1 min-h-0 w-full flex flex-col items-center gap-2.5 overflow-y-auto be-scroll py-1 px-0.5"
+        >
           {miniSections.map((sec) => {
             const Icon = sec.icon;
             return (
-              <div key={sec.id} className="flex items-center justify-center">
+              <div key={sec.id} className="flex items-center justify-center shrink-0">
                 <button
                   type="button"
                   onClick={() => {
@@ -542,6 +550,7 @@ export default function SettingsSidebar() {
                     setHoveredSettingsTooltip({
                       label: sec.title,
                       top: rect.top + rect.height / 2,
+                      left: rect.left - 10,
                     });
                   }}
                   onMouseLeave={() => setHoveredSettingsTooltip(null)}
@@ -554,14 +563,20 @@ export default function SettingsSidebar() {
           })}
         </div>
 
-        {/* Floating Tooltip Rendered Dynamically at Hovered Icon Y Position */}
-        {hoveredSettingsTooltip && (
+        {/* Dynamic Portal Floating Tooltip Rendered at exact Button Position */}
+        {hoveredSettingsTooltip && typeof document !== 'undefined' && createPortal(
           <div
-            style={{ top: `${hoveredSettingsTooltip.top}px` }}
-            className="fixed right-[72px] -translate-y-1/2 px-3 py-1.5 text-xs font-bold text-white dark:text-gray-900 bg-gray-900/95 dark:bg-gray-100 rounded-xl shadow-2xl whitespace-nowrap pointer-events-none z-30 capitalize border border-gray-700/60 dark:border-gray-300/60 transition-all duration-75"
+            style={{
+              position: 'fixed',
+              top: `${hoveredSettingsTooltip.top}px`,
+              left: `${hoveredSettingsTooltip.left}px`,
+              transform: 'translate(-100%, -50%)',
+            }}
+            className="px-3 py-1.5 text-xs font-bold text-white bg-slate-900/95 dark:bg-slate-800 rounded-xl shadow-2xl whitespace-nowrap pointer-events-none z-[999999] flex items-center gap-1.5 border border-slate-700/60 animate-in fade-in duration-100"
           >
             <span>{hoveredSettingsTooltip.label}</span>
-          </div>
+          </div>,
+          document.body
         )}
       </aside>
     );
@@ -626,52 +641,53 @@ export default function SettingsSidebar() {
 
   return (
     <>
-      {open && (
-        <div
-          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-[90]"
-          onClick={() => setOpen(false)}
-        />
-      )}
-      <aside className="shrink-0 basis-72 w-72 min-w-72 max-md:fixed max-md:inset-y-0 max-md:right-0 max-md:z-[100] max-md:w-80 max-sm:w-[88vw] max-md:h-full max-md:shadow-2xl border-l border-gray-200/80 dark:border-gray-800/80 bg-white dark:bg-gray-900 p-3.5 overflow-y-auto be-scroll">
-        <div className="flex items-center gap-2.5 mb-4 p-3 rounded-2xl bg-gradient-to-r from-primary-500/10 via-indigo-500/5 to-transparent border border-primary-100 dark:border-primary-900/30">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-sm shrink-0">
-            <BlockIcon size={16} />
+      <ResponsivePanelShell
+        open={open}
+        side="right"
+        onClose={() => setOpen(false)}
+        className="bg-white dark:bg-gray-900 border-l border-gray-200/80 dark:border-gray-800/80 p-3.5 shadow-2xl xl:shadow-none flex flex-col"
+        widthClassName="w-[min(18rem,calc(100vw-1rem))] xl:w-72"
+      >
+        <div className="flex h-full min-h-0 flex-col overflow-y-auto be-scroll pr-1 pb-20 xs:pb-4">
+          <div className="flex items-center gap-2.5 mb-4 p-3 rounded-2xl bg-gradient-to-r from-primary-500/10 via-indigo-500/5 to-transparent border border-primary-100 dark:border-primary-900/30">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-sm shrink-0">
+              <BlockIcon size={16} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-bold text-gray-900 dark:text-gray-100 capitalize block truncate">
+                {block ? `${block.type} settings` : 'Block Settings'}
+              </span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium block">
+                {block ? 'Customize properties' : 'Select a block to edit'}
+              </span>
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/60 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
+              title="Close settings"
+            >
+              <PanelRightClose size={18} />
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-xs font-bold text-gray-900 dark:text-gray-100 capitalize block truncate">
-              {block ? `${block.type} settings` : 'Block Settings'}
-            </span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium block">
-              {block ? 'Customize properties' : 'Select a block to edit'}
-            </span>
-          </div>
-          <button
-            onClick={() => setOpen(false)}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/60 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
-            title="Hide settings sidebar"
-          >
-            <PanelRightClose size={17} />
-          </button>
-        </div>
 
-        {!block && (
-          <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500 bg-gray-50/50 dark:bg-gray-800/20 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 p-6">
-            <Sparkles size={24} className="mx-auto mb-2 text-primary-400 animate-pulse" />
-            <p className="font-medium text-gray-600 dark:text-gray-400 mb-1">No block selected</p>
-            <p className="text-xs">Click any block in the canvas to customize its settings.</p>
-          </div>
-        )}
-
-        {block && (block.type === 'paragraph' || block.type === 'heading' || block.type === 'quote' ||
-          block.type === 'pullquote' || block.type === 'list' || block.type === 'code' || block.type === 'preformatted') && (
-            <Section title="Alignment">
-              <AlignControl value={a.align as TextAlign} onChange={(v) => setAttr('align', v)} />
-            </Section>
+          {!block && (
+            <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500 bg-gray-50/50 dark:bg-gray-800/20 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 p-6">
+              <Sparkles size={24} className="mx-auto mb-2 text-primary-400 animate-pulse" />
+              <p className="font-medium text-gray-600 dark:text-gray-400 mb-1">No block selected</p>
+              <p className="text-xs">Click any block in the canvas to customize its settings.</p>
+            </div>
           )}
 
-        {block && typography && (
-          <Section title="Typography">
-            <div className="space-y-3.5">
+          {block && (block.type === 'paragraph' || block.type === 'heading' || block.type === 'quote' ||
+            block.type === 'pullquote' || block.type === 'list' || block.type === 'code' || block.type === 'preformatted') && (
+              <Section title="Alignment">
+                <AlignControl value={a.align as TextAlign} onChange={(v) => setAttr('align', v)} />
+              </Section>
+            )}
+
+          {block && typography && (
+            <Section title="Typography">
+              <div className="space-y-3.5">
               {/* Text Color Control */}
               <ColorPickerControl
                 label="Text color"
@@ -786,9 +802,9 @@ export default function SettingsSidebar() {
                   onChange={(val) => setAttr('textTransform', val)}
                 />
               </div>
-            </div>
-          </Section>
-        )}
+              </div>
+            </Section>
+          )}
 
         {block && block.type === 'heading' && (
           <Section title="Heading Level">
@@ -3506,7 +3522,8 @@ export default function SettingsSidebar() {
             </Section>
           </>
         )}
-      </aside>
+        </div>
+      </ResponsivePanelShell>
     </>
   );
 }

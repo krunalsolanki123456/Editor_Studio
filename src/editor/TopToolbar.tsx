@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import {
   FileDown, Eye, X, Monitor, Tablet, Smartphone, Search, Code, Copy, Check,
-  PanelLeftOpen, Sliders,
+  PanelLeftOpen, Sliders, FileText, ChevronDown, Plus, Trash2, Save, Undo2, Redo2,
+  ZoomIn, ZoomOut, CheckCircle2, Sun, Moon, CopyPlus, Edit3, ArrowLeft,
 } from 'lucide-react';
-import { useEditorStore } from './store';
+import { useEditorStore, saveToIndexedDB, syncPages } from './store';
 import { exportHtml } from './exporter';
 import logo from "../assets/logo-Editor-Studio.png";
 import type { BlockInstance } from './types';
@@ -33,8 +34,9 @@ function Tooltip({
   return (
     <div className="relative group inline-flex items-center">
       {children}
-      <div className={`absolute top-full mt-1 ${alignClasses} hidden group-hover:flex flex-col items-center pointer-events-none z-[110]`}>
-        <span className="px-2 py-0.5 text-[10px] font-semibold text-white bg-gray-900/95 dark:bg-gray-800 rounded-md shadow-lg border border-gray-700/40 whitespace-nowrap">
+      <div className={`absolute top-full mt-2 ${alignClasses} hidden group-hover:flex flex-col items-center pointer-events-none z-[99999]`}>
+        <div className="w-2 h-2 bg-slate-900 dark:bg-slate-800 rotate-45 -mb-1 border-t border-l border-slate-700/60 shadow-xs" />
+        <span className="px-2.5 py-1 text-[11px] font-semibold text-white bg-slate-900 dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-700/60 whitespace-nowrap block">
           {text}
         </span>
       </div>
@@ -55,14 +57,76 @@ export default function TopToolbar({ onOpenInserter, onSave }: TopToolbarProps) 
   const settingsSidebarOpen = useEditorStore((s) => s.settingsSidebarOpen);
   const setSettingsSidebarOpen = useEditorStore((s) => s.setSettingsSidebarOpen);
 
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewTab, setPreviewTab] = useState<'visual' | 'code'>('visual');
-  const [copied, setCopied] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [headerSearch, setHeaderSearch] = useState('');
+  // Multi-Page state
+  const pages = useEditorStore((s) => s.pages);
+  const currentPageId = useEditorStore((s) => s.currentPageId);
+  const setCurrentPageId = useEditorStore((s) => s.setCurrentPageId);
+  const addPage = useEditorStore((s) => s.addPage);
+  const renamePage = useEditorStore((s) => s.renamePage);
+  const duplicatePage = useEditorStore((s) => s.duplicatePage);
+  const deletePage = useEditorStore((s) => s.deletePage);
+
+  // Preview & Zoom state
+  const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
+  const setIsPreviewMode = useEditorStore((s) => s.setIsPreviewMode);
+  const zoomLevel = useEditorStore((s) => s.zoomLevel);
+  const setZoomLevel = useEditorStore((s) => s.setZoomLevel);
+  const undo = useEditorStore((s) => s.undo);
+  const redo = useEditorStore((s) => s.redo);
+  const past = useEditorStore((s) => s.past);
+  const future = useEditorStore((s) => s.future);
+
+  const [pagesDropdownOpen, setPagesDropdownOpen] = useState(false);
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [saveToast, setSaveToast] = useState<string | null>(null);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const currentPage = pages.find((p) => p.id === currentPageId) || pages[0];
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setPagesDropdownOpen(false);
+      }
+    }
+    if (pagesDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [pagesDropdownOpen]);
+
+  const handleSave = () => {
+    const state = useEditorStore.getState();
+    const syncedPages = syncPages(state.pages, state.currentPageId, state.blocks);
+    useEditorStore.setState({ pages: syncedPages });
+
+    const fullPayload = {
+      pages: syncedPages,
+      currentPageId: state.currentPageId,
+      blocks: state.blocks,
+      documentTitle: state.documentTitle,
+    };
+    saveToIndexedDB(fullPayload);
+
+    try {
+      localStorage.setItem('be-autosave', JSON.stringify(fullPayload));
+      localStorage.setItem('be-title', state.documentTitle);
+    } catch {
+      /* ignore */
+    }
+
+    const html = exportHtml(state.blocks, currentPage?.name || state.documentTitle);
+    if (onSave) {
+      onSave(state.blocks, html);
+    }
+    setSaveToast(`Saved "${currentPage?.name || 'Page'}" successfully!`);
+    setTimeout(() => setSaveToast(null), 3000);
+  };
 
   const handleSaveHtml = () => {
-    const html = exportHtml(blocks);
+    const html = exportHtml(blocks, currentPage?.name || documentTitle);
     if (onSave) {
       onSave(blocks, html);
     }
@@ -70,335 +134,443 @@ export default function TopToolbar({ onOpenInserter, onSave }: TopToolbarProps) 
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${documentTitle || 'page'}-${Date.now()}.html`;
+    a.download = `${(currentPage?.name || documentTitle || 'page').toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.html`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const renderActionControls = () => (
-    <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0">
-      {/* 1. Expandable Search Input / Button */}
-      {searchOpen ? (
-        <div className="relative flex items-center transition-all duration-200 ease-out">
-          <Search size={13} className="absolute left-2 text-blue-600 dark:text-blue-400 pointer-events-none" />
-          <input
-            type="text"
-            autoFocus
-            value={headerSearch}
-            onChange={(e) => setHeaderSearch(e.target.value)}
-            placeholder="Search..."
-            className="w-24 sm:w-44 pl-6 pr-5 py-1 text-xs bg-gray-50 dark:bg-gray-800 border border-blue-500/60 rounded-lg text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none shadow-2xs focus:ring-2 focus:ring-blue-500/20"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              setHeaderSearch('');
-              setSearchOpen(false);
-            }}
-            className="absolute right-1 p-0.5 rounded text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer"
-            title="Close Search"
-          >
-            <X size={12} />
-          </button>
+  const handleRenameSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (renameValue.trim() && currentPage) {
+      renamePage(currentPage.id, renameValue.trim());
+      setRenameModalOpen(false);
+    }
+  };
+
+  const handleNewPage = () => {
+    addPage();
+    setPagesDropdownOpen(false);
+  };
+
+  const handleRenameClick = () => {
+    if (currentPage) {
+      setRenameValue(currentPage.name);
+      setRenameModalOpen(true);
+      setPagesDropdownOpen(false);
+    }
+  };
+
+  const handleDuplicatePage = () => {
+    if (currentPage) {
+      duplicatePage(currentPage.id);
+      setPagesDropdownOpen(false);
+    }
+  };
+
+  const handleDeletePage = () => {
+    if (currentPage && pages.length > 1) {
+      deletePage(currentPage.id);
+      setPagesDropdownOpen(false);
+    }
+  };
+
+  // Render Pages Dropdown Component
+  const renderPagesDropdown = () => (
+    <div className="relative inline-block text-left shrink-0" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setPagesDropdownOpen(!pagesDropdownOpen)}
+        className="flex items-center gap-1 sm:gap-2 px-1.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 text-xs font-bold transition-all shadow-2xs hover:shadow-xs cursor-pointer shrink-0"
+        title="Switch or manage pages"
+      >
+        <FileText size={13} className="text-blue-500 shrink-0" />
+        <span className="max-w-[48px] xs:max-w-[70px] sm:max-w-[130px] truncate">{currentPage?.name || 'Page 1'}</span>
+        <ChevronDown size={12} className={`text-slate-400 shrink-0 transition-transform duration-200 ${pagesDropdownOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {pagesDropdownOpen && (
+        <div className="absolute left-0 mt-2 w-64 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl z-[9999] overflow-hidden animate-in fade-in zoom-in-95 duration-150 p-2">
+          <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between mb-1">
+            <span>PAGES ({pages.length})</span>
+          </div>
+
+          <div className="max-h-56 overflow-y-auto be-scroll space-y-0.5 mb-1.5">
+            {pages.map((p) => {
+              const isActive = p.id === (currentPage?.id || currentPageId);
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => {
+                    setCurrentPageId(p.id);
+                    setPagesDropdownOpen(false);
+                  }}
+                  className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${isActive
+                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold border border-blue-200/60 dark:border-blue-800/60'
+                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                    }`}
+                >
+                  <div className="flex items-center gap-2 truncate">
+                    <FileText size={14} className={isActive ? 'text-blue-500' : 'text-slate-400'} />
+                    <span className="truncate">{p.name}</span>
+                  </div>
+                  {isActive && <CheckCircle2 size={14} className="text-blue-500 shrink-0" />}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="border-t border-slate-100 dark:border-slate-800/80 pt-1.5 space-y-1">
+            <button
+              type="button"
+              onClick={handleNewPage}
+              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors cursor-pointer"
+            >
+              <Plus size={14} />
+              <span>+ New Page</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRenameClick}
+              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <Edit3 size={14} className="text-slate-400" />
+              <span>Rename Current Page</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDuplicatePage}
+              className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <CopyPlus size={14} className="text-slate-400" />
+              <span>Duplicate Page</span>
+            </button>
+
+            {pages.length > 1 && (
+              <button
+                type="button"
+                onClick={handleDeletePage}
+                className="w-full flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors cursor-pointer"
+              >
+                <Trash2 size={14} />
+                <span>Delete Page</span>
+              </button>
+            )}
+          </div>
         </div>
-      ) : (
-        <Tooltip text="Search" align="center">
-          <button
-            type="button"
-            onClick={() => setSearchOpen(true)}
-            className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-          >
-            <Search size={15} />
-          </button>
-        </Tooltip>
       )}
-
-      {/* 2. Full Page Preview Button */}
-      <Tooltip text="Preview" align="center">
-        <button
-          onClick={() => { setPreviewTab('visual'); setPreviewOpen(true); }}
-          className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-        >
-          <Eye size={15} />
-        </button>
-      </Tooltip>
-
-      {/* 3. View HTML Code Button (visible on tablet/desktop) */}
-      <div className="hidden sm:inline-flex">
-        <Tooltip text="HTML Code" align="center">
-          <button
-            onClick={() => { setPreviewTab('code'); setPreviewOpen(true); }}
-            className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-          >
-            <Code size={15} />
-          </button>
-        </Tooltip>
-      </div>
-
-      {/* 4. Save as HTML / Download Button */}
-      <Tooltip text="Export HTML" align="center">
-        <button
-          onClick={handleSaveHtml}
-          className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-        >
-          <FileDown size={15} />
-        </button>
-      </Tooltip>
-
-      {/* Device Viewport Segmented Control (Visible on sm+ screens) */}
-      <div className="hidden sm:flex items-center gap-1.5">
-        <div className="w-px h-4 bg-gray-200 dark:bg-gray-800 mx-0.5" />
-        <div className="flex items-center bg-gray-100 dark:bg-gray-800/80 p-0.5 rounded-lg border border-gray-200/60 dark:border-gray-700/60">
-          <Tooltip text="Desktop View" align="center">
-            <button
-              onClick={() => setDeviceView('desktop')}
-              className={`p-1 rounded-md transition-all cursor-pointer ${
-                deviceView === 'desktop'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-xs'
-                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-            >
-              <Monitor size={14} />
-            </button>
-          </Tooltip>
-
-          <Tooltip text="Tablet View" align="center">
-            <button
-              onClick={() => setDeviceView('tablet')}
-              className={`p-1 rounded-md transition-all cursor-pointer ${
-                deviceView === 'tablet'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-xs'
-                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-            >
-              <Tablet size={14} />
-            </button>
-          </Tooltip>
-
-          <Tooltip text="Mobile View" align="center">
-            <button
-              onClick={() => setDeviceView('mobile')}
-              className={`p-1 rounded-md transition-all cursor-pointer ${
-                deviceView === 'mobile'
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-xs'
-                  : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-              }`}
-            >
-              <Smartphone size={14} />
-            </button>
-          </Tooltip>
-        </div>
-      </div>
     </div>
   );
 
-  return (
-    <header className="sticky top-0 z-50 flex items-center justify-between px-2 sm:px-4 py-1.5 sm:py-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200/80 dark:border-gray-800/80 transition-all">
-      {/* Left: Mobile Blocks Toggle + Logo */}
-      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-        <button
-          type="button"
-          onClick={() => {
-            if (onOpenInserter) onOpenInserter();
-            else setInserterOpen(!inserterOpen);
-          }}
-          className="md:hidden p-1.5 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-          title="Toggle Blocks"
-        >
-          <PanelLeftOpen size={16} />
-        </button>
-
-        <div className="shrink-0 flex items-center">
-          <img
-            src={logo}
-            alt="Editor Studio"
-            className="toolbar-logo h-[3rem] max-h-[3rem] sm:h-[3.5rem] sm:max-h-[3.5rem] w-auto object-contain transition-all"
-          />
+  // If in Preview Mode, render the Preview Mode Top Header
+  if (isPreviewMode) {
+    return (
+      <header className="sticky top-0 z-50 flex items-center justify-between px-2 sm:px-6 py-2 sm:py-2.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 transition-all shadow-sm w-full overflow-hidden gap-1 sm:gap-2 select-none">
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          {renderPagesDropdown()}
         </div>
-      </div>
 
-      {/* Right: Action Controls + Mobile Settings Toggle */}
-      <div className="flex items-center gap-0.5 sm:gap-2">
-        {renderActionControls()}
+        <div className="flex items-center gap-1 sm:gap-4 flex-wrap justify-center shrink-0">
+          <div className="hidden xs:flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700/60">
+            <Tooltip text="Undo" align="center">
+              <button
+                type="button"
+                onClick={undo}
+                disabled={past.length === 0}
+                className="p-1 sm:p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition-all cursor-pointer"
+              >
+                <Undo2 size={14} />
+              </button>
+            </Tooltip>
+            <Tooltip text="Redo" align="center">
+              <button
+                type="button"
+                onClick={redo}
+                disabled={future.length === 0}
+                className="p-1 sm:p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition-all cursor-pointer"
+              >
+                <Redo2 size={14} />
+              </button>
+            </Tooltip>
+          </div>
 
-        <button
-          type="button"
-          onClick={() => setSettingsSidebarOpen(!settingsSidebarOpen)}
-          className={`md:hidden p-1.5 rounded-lg transition-colors cursor-pointer ${
-            settingsSidebarOpen
-              ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
-              : 'text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'
-          }`}
-          title="Toggle Settings"
+          <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700/60">
+            <button
+              onClick={() => setDeviceView('desktop')}
+              className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${deviceView === 'desktop'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+            >
+              <Monitor size={14} />
+              <span className="hidden sm:inline">Desktop</span>
+            </button>
+            <button
+              onClick={() => setDeviceView('tablet')}
+              className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${deviceView === 'tablet'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+            >
+              <Tablet size={14} />
+              <span className="hidden sm:inline">Tablet</span>
+            </button>
+            <button
+              onClick={() => setDeviceView('mobile')}
+              className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${deviceView === 'mobile'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+            >
+              <Smartphone size={14} />
+              <span className="hidden sm:inline">Mobile</span>
+            </button>
+          </div>
+
+          <div className="hidden sm:flex items-center bg-slate-100 dark:bg-slate-800/80 px-1.5 py-0.5 rounded-xl border border-slate-200 dark:border-slate-700/60 text-xs font-bold text-slate-700 dark:text-slate-300">
+            <button
+              type="button"
+              onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))}
+              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-100 transition-colors cursor-pointer"
+              title="Zoom out"
+            >
+              <ZoomOut size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomLevel(100)}
+              className="px-1.5 py-0.5 rounded hover:bg-white dark:hover:bg-slate-700 text-[11px] font-extrabold cursor-pointer transition-colors"
+              title="Reset Zoom"
+            >
+              {zoomLevel}%
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomLevel(Math.min(150, zoomLevel + 10))}
+              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-100 transition-colors cursor-pointer"
+              title="Zoom in"
+            >
+              <ZoomIn size={13} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsPreviewMode(false)}
+            className="flex items-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/80 hover:bg-sky-100 dark:hover:bg-sky-900/60 transition-all shadow-2xs cursor-pointer"
+          >
+            <Eye size={14} />
+            <span className="hidden xs:inline">Exit</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSave}
+            className="flex items-center gap-1 px-3 sm:px-4 py-1.5 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-md be-glow-primary transition-all cursor-pointer active:scale-95"
+          >
+            <Save size={14} />
+            <span>Save</span>
+          </button>
+        </div>
+      </header>
+    );
+  }
+
+  // Normal Edit Mode Header
+  return (
+    <>
+      <header className="sticky top-0 z-[100] flex items-center justify-between gap-1 sm:gap-2 px-1.5 sm:px-5 py-1.5 sm:py-2.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 transition-all shadow-2xs select-none w-full overflow-visible">
+        {/* Mobile: logo left, dropdown right — Desktop: both on left */}
+        <div className="flex items-center justify-between md:justify-start md:gap-2 shrink-0 min-w-0 flex-1 md:flex-none">
+          <div className="shrink-0 flex items-center">
+            {/* Desktop & Tablet logo — hidden on mobile */}
+            <img
+              src={logo}
+              alt="Editor Studio"
+              className="hidden md:block toolbar-logo h-9 w-auto object-contain transition-all"
+            />
+            {/* Mobile logo — hidden on md+. Replace `logo` with `mobilelogo` once mobile-logo.png is added to src/assets/ */}
+            <img
+              src={logo}
+              alt="Editor Studio"
+              className="block md:hidden toolbar-logo h-8 w-auto object-contain transition-all"
+            />
+          </div>
+
+          <div className="hidden md:block w-px h-5 bg-slate-200 dark:bg-slate-800 mx-0.5 sm:mx-1" />
+
+          {renderPagesDropdown()}
+        </div>
+
+        <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700/60 shrink-0">
+          <Tooltip text="Desktop Canvas (1200px)" align="center">
+            <button
+              onClick={() => setDeviceView('desktop')}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${deviceView === 'desktop'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+            >
+              <Monitor size={20} />
+            </button>
+          </Tooltip>
+
+          <Tooltip text="Tablet View (768px)" align="center">
+            <button
+              onClick={() => setDeviceView('tablet')}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${deviceView === 'tablet'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+            >
+              <Tablet size={20} />
+            </button>
+          </Tooltip>
+
+          <Tooltip text="Mobile View (390px)" align="center">
+            <button
+              onClick={() => setDeviceView('mobile')}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${deviceView === 'mobile'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
+                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+            >
+              <Smartphone size={20} />
+            </button>
+          </Tooltip>
+        </div>
+
+        <div className="flex items-center gap-1 sm:gap-1.5 justify-end shrink-0">
+          <div className="hidden md:flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700/60 shrink-0">
+            <Tooltip text="Undo (⌘Z)" align="center">
+              <button
+                type="button"
+                onClick={undo}
+                disabled={past.length === 0}
+                className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition-all cursor-pointer"
+              >
+                <Undo2 size={20} />
+              </button>
+            </Tooltip>
+            <Tooltip text="Redo (⌘Y)" align="center">
+              <button
+                type="button"
+                onClick={redo}
+                disabled={future.length === 0}
+                className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 transition-all cursor-pointer"
+              >
+                <Redo2 size={20} />
+              </button>
+            </Tooltip>
+          </div>
+
+          <Tooltip text={theme === 'dark' ? 'Light Mode' : 'Dark Mode'} align="center">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="hidden md:flex p-1.5 sm:p-2 rounded-lg sm:rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+            >
+              {theme === 'dark' ? <Sun size={20} className="text-amber-400" /> : <Moon size={20} />}
+            </button>
+          </Tooltip>
+
+          <Tooltip text="Export HTML" align="center">
+            <button
+              type="button"
+              onClick={handleSaveHtml}
+              className="hidden md:flex p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+            >
+              <FileDown size={20} />
+            </button>
+          </Tooltip>
+
+          <Tooltip text="Preview Page" align="center">
+            <button
+              type="button"
+              onClick={() => setIsPreviewMode(true)}
+              className="hidden md:flex p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+            >
+              <Eye size={20} />
+            </button>
+          </Tooltip>
+
+          <Tooltip text="Save (Ctrl+S)" align="center">
+            <button
+              type="button"
+              onClick={handleSave}
+              className="hidden md:flex p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+            >
+              <Save size={20} />
+            </button>
+          </Tooltip>
+
+        </div>
+      </header>
+
+      {saveToast && (
+        <div className="fixed bottom-6 right-6 z-[99999] flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-slate-900/95 text-white dark:bg-slate-800/95 border border-slate-700 shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+          <span className="text-xs font-bold">{saveToast}</span>
+        </div>
+      )}
+
+      {/* Rename Page Modal */}
+      {renameModalOpen && createPortal(
+        <div
+          className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
+          onClick={() => setRenameModalOpen(false)}
         >
-          <Sliders size={15} />
-        </button>
-      </div>
-
-      {previewOpen && createPortal(
-        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/70 p-4 sm:p-6 backdrop-blur-md" onClick={() => setPreviewOpen(false)}>
-          <div className="flex h-[min(880px,92vh)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-gray-950 border border-gray-200 dark:border-gray-800" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-gray-300 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-6 py-3 flex-wrap gap-3">
-              {/* Tab Switcher: Visual Preview vs HTML Code */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center bg-gray-200 dark:bg-gray-800 p-1 rounded-xl border border-gray-300/60 dark:border-gray-700">
-                  <button
-                    onClick={() => setPreviewTab('visual')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${previewTab === 'visual'
-                        ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                      }`}
-                  >
-                    <Eye size={15} />
-                    <span>Visual Preview</span>
-                  </button>
-
-                  <button
-                    onClick={() => setPreviewTab('code')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${previewTab === 'code'
-                        ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                      }`}
-                  >
-                    <Code size={15} />
-                    <span>View HTML Code</span>
-                  </button>
-                </div>
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-extrabold text-slate-800 dark:text-slate-100">
+                <Edit3 size={16} className="text-blue-500" />
+                <span>Rename Page</span>
               </div>
+              <button
+                type="button"
+                onClick={() => setRenameModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
-              <div className="flex items-center gap-3">
-                {/* Visual Preview Device Viewport Switcher */}
-                {previewTab === 'visual' && (
-                  <div className="flex items-center bg-gray-200/80 dark:bg-gray-800 p-1 rounded-xl shadow-inner border border-gray-300/50 dark:border-gray-700">
-                    <button
-                      onClick={() => setDeviceView('desktop')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${deviceView === 'desktop'
-                        ? 'bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                        }`}
-                      title="Desktop Preview (1200px)"
-                    >
-                      <Monitor size={15} />
-                      <span>Desktop</span>
-                    </button>
-
-                    <button
-                      onClick={() => setDeviceView('tablet')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${deviceView === 'tablet'
-                        ? 'bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                        }`}
-                      title="Tablet Preview (768px)"
-                    >
-                      <Tablet size={15} />
-                      <span>Tablet</span>
-                    </button>
-
-                    <button
-                      onClick={() => setDeviceView('mobile')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${deviceView === 'mobile'
-                        ? 'bg-white dark:bg-gray-900 text-primary-600 dark:text-primary-400 shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                        }`}
-                      title="Mobile Preview (390px)"
-                    >
-                      <Smartphone size={15} />
-                      <span>Mobile</span>
-                    </button>
-                  </div>
-                )}
-
-                {/* HTML Code Copy & Download Actions */}
-                {previewTab === 'code' && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => {
-                        const fullHtml = exportHtml(blocks, documentTitle);
-                        navigator.clipboard.writeText(fullHtml);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
-                      }}
-                      className="px-3.5 py-1.5 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
-                    >
-                      {copied ? <Check size={14} /> : <Copy size={14} />}
-                      <span>{copied ? 'Copied to Clipboard!' : 'Copy HTML Code'}</span>
-                    </button>
-
-                    <button
-                      onClick={handleSaveHtml}
-                      className="px-3 py-1.5 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <FileDown size={14} />
-                      <span>Download</span>
-                    </button>
-                  </div>
-                )}
-
+            <form onSubmit={handleRenameSubmit} className="space-y-4">
+              <input
+                type="text"
+                autoFocus
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                placeholder="Enter page name..."
+                className="w-full px-3.5 py-2.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+              />
+              <div className="flex items-center justify-end gap-2">
                 <button
-                  onClick={() => setPreviewOpen(false)}
-                  className="flex-shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-xl text-gray-500 hover:text-gray-800 dark:hover:text-gray-200 bg-gray-200/60 dark:bg-gray-800/60 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                  title="Close preview"
-                  aria-label="Close preview"
+                  type="button"
+                  onClick={() => setRenameModalOpen(false)}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
                 >
-                  <X size={20} />
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!renameValue.trim()}
+                  className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 disabled:opacity-40 transition-all shadow-md cursor-pointer"
+                >
+                  Save Name
                 </button>
               </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="min-h-0 flex-1 overflow-auto bg-gray-100 dark:bg-gray-900 p-4 flex justify-center items-center">
-              {previewTab === 'visual' ? (
-                <div
-                  className={`h-full transition-all duration-300 ease-out bg-white dark:bg-gray-900 rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-gray-800 ${deviceView === 'mobile'
-                    ? 'w-[390px] max-w-full'
-                    : deviceView === 'tablet'
-                      ? 'w-[768px] max-w-full'
-                      : 'w-full max-w-[1200px]'
-                    }`}
-                >
-                  <iframe
-                    title="Full page preview"
-                    srcDoc={exportHtml(blocks, documentTitle)}
-                    className="w-full h-full border-0"
-                  />
-                </div>
-              ) : (
-                /* CODE VIEWER BOX */
-                <div className="w-full h-full max-w-[1200px] flex flex-col bg-[#0f172a] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden p-4">
-                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-red-500" />
-                      <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                      <div className="w-3 h-3 rounded-full bg-green-500" />
-                      <span className="text-xs font-mono text-slate-400 ml-2">
-                        {documentTitle || 'index'}.html — Produced HTML Output
-                      </span>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        const fullHtml = exportHtml(blocks, documentTitle);
-                        navigator.clipboard.writeText(fullHtml);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
-                      }}
-                      className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer"
-                    >
-                      {copied ? <Check size={13} /> : <Copy size={13} />}
-                      <span>{copied ? 'Copied!' : 'Copy Code'}</span>
-                    </button>
-                  </div>
-
-                  <pre className="flex-1 overflow-auto font-mono text-xs text-blue-300 bg-slate-950 p-4 rounded-xl border border-slate-800/80 leading-relaxed select-all whitespace-pre-wrap break-all">
-                    {exportHtml(blocks, documentTitle)}
-                  </pre>
-                </div>
-              )}
-            </div>
+            </form>
           </div>
         </div>,
         document.body
       )}
-    </header>
+    </>
   );
 }

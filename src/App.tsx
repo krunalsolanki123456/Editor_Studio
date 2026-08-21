@@ -6,7 +6,7 @@ export default function App() {
   const [, setBlocks] = useState<BlockInstance[]>([]);
 
   return (
-    <div className="h-screen w-screen overflow-hidden">
+    <div className="h-screen w-full overflow-hidden bg-slate-50 dark:bg-slate-950">
       <EditorStudio
         onChange={(updatedBlocks) => setBlocks(updatedBlocks)}
         onSave={(savedBlocks, html) => {
@@ -24,5 +24,4 @@ export default function App() {
     </div>
   );
 }
-
 

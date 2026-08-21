@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { BLOCK_CATEGORIES, getBlockIcon, getFilteredBlockDefinitions } from './blocks/registry';
 import { useEditorStore, findBlock } from './store';
+import ResponsivePanelShell from './ResponsivePanelShell';
 import {
   Search,
   X,
@@ -21,12 +23,37 @@ interface InserterProps {
   onInsert: (type: string) => void;
 }
 
-const CATEGORY_ICONS: Record<string, React.ReactNode> = {
-  text: <Type size={16} className="text-blue-600 dark:text-blue-400" />,
-  media: <ImageIcon size={16} className="text-blue-600 dark:text-blue-400" />,
-  layout: <Columns3 size={16} className="text-blue-600 dark:text-blue-400" />,
-  embed: <Upload size={16} className="text-blue-600 dark:text-blue-400" />,
-  content: <LayoutGrid size={16} className="text-blue-600 dark:text-blue-400" />,
+const CATEGORY_STYLES: Record<string, { badgeBg: string; textColor: string; borderColor: string; icon: React.ReactNode }> = {
+  text: {
+    badgeBg: 'bg-blue-50 dark:bg-blue-950/50',
+    textColor: 'text-blue-600 dark:text-blue-400',
+    borderColor: 'border-blue-200 dark:border-blue-800/60',
+    icon: <Type size={15} className="text-blue-600 dark:text-blue-400" />,
+  },
+  media: {
+    badgeBg: 'bg-purple-50 dark:bg-purple-950/50',
+    textColor: 'text-purple-600 dark:text-purple-400',
+    borderColor: 'border-purple-200 dark:border-purple-800/60',
+    icon: <ImageIcon size={15} className="text-purple-600 dark:text-purple-400" />,
+  },
+  layout: {
+    badgeBg: 'bg-emerald-50 dark:bg-emerald-950/50',
+    textColor: 'text-emerald-600 dark:text-emerald-400',
+    borderColor: 'border-emerald-200 dark:border-emerald-800/60',
+    icon: <Columns3 size={15} className="text-emerald-600 dark:text-emerald-400" />,
+  },
+  embed: {
+    badgeBg: 'bg-amber-50 dark:bg-amber-950/50',
+    textColor: 'text-amber-600 dark:text-amber-400',
+    borderColor: 'border-amber-200 dark:border-amber-800/60',
+    icon: <Upload size={15} className="text-amber-600 dark:text-amber-400" />,
+  },
+  content: {
+    badgeBg: 'bg-rose-50 dark:bg-rose-950/50',
+    textColor: 'text-rose-600 dark:text-rose-400',
+    borderColor: 'border-rose-200 dark:border-rose-800/60',
+    icon: <LayoutGrid size={15} className="text-rose-600 dark:text-rose-400" />,
+  },
 };
 
 export default function BlockInserter({ open, onClose, onInsert }: InserterProps) {
@@ -45,10 +72,12 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
   const activeBlockType = selectedBlock?.type;
   const activeCategory = selectedBlock ? availableDefinitions.find((b) => b.type === selectedBlock.type)?.category : null;
 
-  const [hoveredTooltip, setHoveredTooltip] = useState<{
+  const [activeTab, setActiveTab] = useState<string>('all');
+  const [hoveredRailTooltip, setHoveredRailTooltip] = useState<{
     label: string;
     isActive?: boolean;
     top: number;
+    left: number;
   } | null>(null);
 
   const [search, setSearch] = useState('');
@@ -69,6 +98,7 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
 
   const filteredBlocks = useMemo(() => {
     return availableDefinitions.filter((b) => {
+      if (activeTab !== 'all' && b.category !== activeTab) return false;
       if (!search.trim()) return true;
       const q = search.toLowerCase();
       return (
@@ -78,87 +108,97 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
         (b.keywords && b.keywords.some((k) => k.toLowerCase().includes(q)))
       );
     });
-  }, [availableDefinitions, search]);
+  }, [availableDefinitions, search, activeTab]);
 
   const isSearching = search.trim().length > 0;
 
   if (!open) {
     return (
       <aside
-        onScroll={() => setHoveredTooltip(null)}
-        className="hidden md:flex shrink-0 w-16 min-w-16 border-r border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 py-3.5 px-2 flex-col items-center gap-2 overflow-y-auto overflow-x-hidden be-scroll shadow-sm z-20 relative"
+        className="hidden xs:flex shrink-0 w-16 min-w-16 h-full max-h-full border-r border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 py-3.5 px-2 flex-col items-center gap-2 overflow-hidden shadow-sm z-30 relative select-none"
       >
         {/* Top Expand Inserter Button */}
-        <div className="mb-1 flex items-center justify-center">
+        <div className="mb-1 flex items-center justify-center shrink-0">
           <button
             type="button"
             onClick={() => setInserterOpen(true)}
             onMouseEnter={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
-              setHoveredTooltip({
-                label: 'Expand Block Inserter',
+              setHoveredRailTooltip({
+                label: 'Expand Block Library',
                 top: rect.top + rect.height / 2,
+                left: rect.right + 10,
               });
             }}
-            onMouseLeave={() => setHoveredTooltip(null)}
-            className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 border border-gray-200/80 dark:border-gray-700/80 transition-all flex items-center justify-center cursor-pointer shadow-2xs hover:scale-105"
-            title="Expand Block Inserter"
+            onMouseLeave={() => setHoveredRailTooltip(null)}
+            className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 border border-slate-200 dark:border-slate-700 transition-all flex items-center justify-center cursor-pointer shadow-2xs hover:scale-105"
+            title="Expand Block Library"
           >
             <PanelLeftOpen size={18} />
           </button>
         </div>
 
-        <div className="w-8 h-px bg-gray-200/80 dark:border-gray-800 my-0.5" />
+        <div className="w-8 h-px bg-slate-200 dark:border-slate-800 my-0.5 shrink-0" />
 
-        {/* Render filtered definitions with active state */}
-        <div className="flex-1 flex flex-col items-center gap-2 w-full">
+        {/* Scrollable list of ALL block definitions */}
+        <div
+          onScroll={() => setHoveredRailTooltip(null)}
+          className="flex-1 min-h-0 w-full flex flex-col items-center gap-2 overflow-y-auto be-scroll py-1 px-0.5"
+        >
           {availableDefinitions.map((def) => {
             const Icon = getBlockIcon(def.type);
             const isActive = activeBlockType === def.type;
 
             return (
-              <div key={def.type} className="relative flex items-center justify-center">
+              <div key={def.type} className="relative flex items-center justify-center shrink-0">
                 <button
                   type="button"
                   onClick={() => onInsert(def.type)}
                   onMouseEnter={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();
-                    setHoveredTooltip({
+                    setHoveredRailTooltip({
                       label: def.label,
                       isActive,
                       top: rect.top + rect.height / 2,
+                      left: rect.right + 10,
                     });
                   }}
-                  onMouseLeave={() => setHoveredTooltip(null)}
+                  onMouseLeave={() => setHoveredRailTooltip(null)}
                   className={`w-10 h-10 rounded-xl border flex items-center justify-center transition-all cursor-pointer ${isActive
-                    ? 'bg-primary-600 text-white ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 border-primary-600 shadow-md scale-105 z-10'
-                    : 'bg-gray-50 dark:bg-gray-800/60 hover:bg-primary-50 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 border-gray-200/70 dark:border-gray-700/70 shadow-2xs hover:scale-105'
+                    ? 'bg-blue-600 text-white ring-2 ring-blue-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 border-blue-600 shadow-md scale-105 z-10'
+                    : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 border-slate-200/70 dark:border-slate-700/70 shadow-2xs hover:scale-105'
                     }`}
                 >
                   <Icon size={18} />
                 </button>
 
                 {isActive && (
-                  <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-gray-900 z-20 shadow-2xs pointer-events-none" />
+                  <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 z-20 shadow-2xs pointer-events-none" />
                 )}
               </div>
             );
           })}
         </div>
 
-        {/* Floating Tooltip Rendered Dynamically at Hovered Icon Y Position */}
-        {hoveredTooltip && (
+        {/* Dynamic Portal Floating Tooltip Rendered at exact Button Position */}
+        {hoveredRailTooltip && typeof document !== 'undefined' && createPortal(
           <div
-            style={{ top: `${hoveredTooltip.top}px` }}
-            className="fixed left-[72px] -translate-y-1/2 px-3 py-1.5 text-xs font-bold text-white dark:text-gray-900 bg-gray-900/95 dark:bg-gray-100 rounded-xl shadow-2xl whitespace-nowrap pointer-events-none z-[9999] flex items-center gap-1.5 border border-gray-700/60 dark:border-gray-300/60 transition-all duration-75"
+            style={{
+              position: 'fixed',
+              top: `${hoveredRailTooltip.top}px`,
+              left: `${hoveredRailTooltip.left}px`,
+              transform: 'translateY(-50%)',
+            }}
+            className="px-3 py-1.5 text-xs font-bold text-white bg-slate-900/95 dark:bg-slate-800 rounded-xl shadow-2xl whitespace-nowrap pointer-events-none z-[999999] flex items-center gap-1.5 border border-slate-700/60 animate-in fade-in duration-100"
           >
-            <span>{hoveredTooltip.label}</span>
-            {hoveredTooltip.isActive && (
-              <span className="text-[10px] text-emerald-400 dark:text-emerald-600 uppercase font-extrabold">
+            <span>{hoveredRailTooltip.label}</span>
+            {hoveredRailTooltip.isActive && (
+              <span className="text-[10px] text-emerald-400 uppercase font-extrabold">
                 (Active)
               </span>
             )}
-          </div>
+          </div>,
+          document.body
         )}
       </aside>
     );
@@ -167,134 +207,87 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
   const selectedIndex = selectedBlock ? blocks.findIndex((b) => b.id === selectedBlock.id) : -1;
   const isInsertingAbove = inserterTargetIndex !== null && selectedIndex !== -1 && inserterTargetIndex <= selectedIndex;
 
+  const handleInsertBlock = (type: string) => {
+    onInsert(type);
+    if (typeof window !== 'undefined' && window.innerWidth < 1280) {
+      setInserterOpen(false);
+      if (onClose) onClose();
+    }
+  };
+
   return (
     <>
-      {open && (
-        <div
-          className="xl:hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-[90]"
-          onClick={onClose || (() => setInserterOpen(false))}
-        />
-      )}
-      <div
-        className={`
-        transition-all duration-300 ease-out
-        bg-[#f8fafc] dark:bg-gray-900
-        border-r border-gray-200/90 dark:border-gray-800
-        flex flex-col shadow-2xl xl:shadow-none
-        max-xl:fixed max-xl:inset-y-0 max-xl:left-0 max-xl:z-[100] max-xl:w-80 max-sm:w-[88vw] max-xl:h-full
-        ${open ? 'max-xl:translate-x-0 xl:w-72' : 'max-xl:-translate-x-full xl:w-0 xl:overflow-hidden'}
-        `}
+      <ResponsivePanelShell
+        open={open}
+        side="left"
+        onClose={onClose || (() => setInserterOpen(false))}
+        className="bg-slate-50/95 dark:bg-slate-900/95 border-r border-slate-200/90 dark:border-slate-800 flex flex-col shadow-2xl xl:shadow-none transition-transform duration-300 ease-out backdrop-blur-md"
+        widthClassName="w-[min(20rem,calc(100vw-1rem))] xl:w-80"
       >
-        {/* Search Header Container */}
-        <div className="p-3.5 border-b border-gray-200/70 dark:border-gray-800 bg-white dark:bg-gray-900 sticky top-0 z-10 space-y-2.5">
+        {/* Search & Header Container */}
+        <div className="p-3.5 sm:p-4 border-b border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 sticky top-0 z-10 space-y-2.5 backdrop-blur-md">
           <div className="flex items-center justify-between">
-            <span className="font-bold text-xs uppercase tracking-wider text-gray-700 dark:text-gray-300">
-              Blocks
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                Blocks Library
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                {availableDefinitions.length}
+              </span>
+            </div>
             <button
               type="button"
-              onClick={() => setInserterOpen(false)}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-              title="Collapse Block Inserter"
+              onClick={() => (onClose ? onClose() : setInserterOpen(false))}
+              className="p-1.5 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1 text-xs font-bold"
+              title="Close Blocks Library"
             >
-              <PanelLeftClose size={18} />
+              <X size={18} />
             </button>
-          </div>
-
-          {/* Position Selector when a Block is Selected in Canvas */}
-          {selectedBlock && selectedIndex !== -1 && (
-            <div className="p-2 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 space-y-1.5">
-              <div className="flex items-center justify-between text-[11px] font-bold text-blue-900 dark:text-blue-200">
-                <span>Insert Position / સ્થિતિ:</span>
-                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold truncate max-w-[120px]">
-                  {selectedBlock.type}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-1.5 p-0.5 bg-white dark:bg-gray-800 rounded-lg border border-blue-200/60 dark:border-blue-800/40">
-                <button
-                  type="button"
-                  onClick={() => openInserterAtIndex(selectedIndex)}
-                  className={`py-1 px-2 rounded text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                    isInsertingAbove
-                      ? 'bg-blue-600 text-white shadow-2xs'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
-                  }`}
-                >
-                  <span>⬆️ Above (ઉપર)</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openInserterAtIndex(selectedIndex + 1)}
-                  className={`py-1 px-2 rounded text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                    !isInsertingAbove
-                      ? 'bg-blue-600 text-white shadow-2xs'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
-                  }`}
-                >
-                  <span>⬇️ Below (નીચે)</span>
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="relative flex items-center">
-            <Search className="absolute left-3 text-gray-400 pointer-events-none" size={15} />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search"
-              className="w-full pl-9 pr-7 py-2 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-800 dark:text-gray-100 placeholder-gray-400 outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 transition-all shadow-2xs"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch('')}
-                className="absolute right-2.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
-              >
-                <X size={13} />
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Blocks Accordion Container */}
-        <div className="flex-1 overflow-y-auto be-scroll p-3.5 space-y-2.5">
+        {/* Blocks Accordion / Grid Container with extra bottom padding on mobile */}
+        <div className="flex-1 min-h-0 overflow-y-auto be-scroll p-3.5 space-y-3 pb-24 xs:pb-4">
           {BLOCK_CATEGORIES.map((cat) => {
+            if (activeTab !== 'all' && activeTab !== cat.id) return null;
             const catBlocks = filteredBlocks.filter((b) => b.category === cat.id);
             if (catBlocks.length === 0) return null;
 
             const isActiveCat = activeCategory === cat.id;
-            const isOpen = isSearching || isActiveCat || !!openCategories[cat.id];
+            const isOpen = isSearching || activeTab !== 'all' || isActiveCat || !!openCategories[cat.id];
+            const catStyle = CATEGORY_STYLES[cat.id] || CATEGORY_STYLES.content;
 
             return (
               <div
                 key={cat.id}
-                className={`rounded-2xl border border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900/90 shadow-2xs transition-all ${isOpen ? 'overflow-visible relative z-10' : 'overflow-hidden'
+                className={`rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-2xs transition-all ${isOpen ? 'overflow-visible relative z-10' : 'overflow-hidden'
                   }`}
               >
                 {/* Accordion Header */}
                 <button
                   type="button"
                   onClick={() => toggleCategory(cat.id)}
-                  className="w-full flex items-center justify-between p-3.5 text-left cursor-pointer hover:bg-gray-50/80 dark:hover:bg-gray-800/50 transition-colors"
+                  className="w-full flex items-center justify-between p-3 text-left cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
-                    {CATEGORY_ICONS[cat.id]}
-                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+                    <span className={`p-1 rounded-lg ${catStyle.badgeBg}`}>
+                      {catStyle.icon}
+                    </span>
+                    <span className={`text-xs font-extrabold uppercase tracking-wider ${catStyle.textColor}`}>
                       {cat.label}
                     </span>
                   </div>
                   {isOpen ? (
-                    <ChevronUp size={16} className="text-blue-600 dark:text-blue-400" />
+                    <ChevronUp size={15} className={catStyle.textColor} />
                   ) : (
-                    <ChevronDown size={16} className="text-gray-400 dark:text-gray-500" />
+                    <ChevronDown size={15} className="text-slate-400 dark:text-slate-500" />
                   )}
                 </button>
 
                 {/* Accordion Body */}
                 {isOpen && (
-                  <div className="px-3 pb-3 pt-1 border-t border-gray-100 dark:border-gray-800/60">
-                    <div className="grid grid-cols-2 gap-2.5 pt-2">
+                  <div className="px-3 pb-3 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                    <div className="grid grid-cols-2 gap-2 pt-1.5">
                       {catBlocks.map((block) => {
                         const Icon = getBlockIcon(block.type);
                         const isActive = activeBlockType === block.type;
@@ -303,27 +296,26 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
                           <button
                             key={block.type}
                             type="button"
-                            onClick={() => onInsert(block.type)}
-                            className={`group flex flex-col items-center justify-center p-3 h-[82px] rounded-xl border transition-all duration-150 cursor-pointer text-center overflow-hidden relative ${isActive
-                              ? 'bg-blue-50/80 dark:bg-blue-950/60 border-blue-500 ring-2 ring-blue-500/80 shadow-md font-bold'
-                              : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-800/80 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md shadow-2xs'
+                            onClick={() => handleInsertBlock(block.type)}
+                            className={`group flex flex-col items-center justify-center p-2.5 h-[84px] rounded-xl border transition-all duration-150 cursor-pointer text-center overflow-hidden relative hover:-translate-y-0.5 ${isActive
+                              ? 'bg-blue-50/90 dark:bg-blue-950/60 border-blue-500 ring-2 ring-blue-500/80 shadow-md font-bold'
+                              : 'bg-slate-50/60 dark:bg-slate-800/60 border-slate-200/70 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-white dark:hover:bg-slate-800 hover:shadow-md shadow-2xs'
                               }`}
                             title={block.description}
                           >
                             {isActive && (
-                              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white dark:border-gray-900 shadow-2xs" />
+                              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-2xs" />
                             )}
-                            <Icon
-                              size={20}
-                              className={`mb-1.5 transition-all shrink-0 ${isActive
-                                ? 'text-blue-600 dark:text-blue-400 scale-110'
-                                : 'text-gray-800 dark:text-gray-200 group-hover:scale-110 group-hover:text-blue-600 dark:group-hover:text-blue-400'
-                                }`}
-                            />
+                            <div className={`p-1.5 rounded-xl mb-1 transition-all ${isActive
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white dark:bg-slate-700/80 text-slate-700 dark:text-slate-200 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/50 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                              }`}>
+                              <Icon size={17} />
+                            </div>
                             <span
                               className={`text-[11px] truncate w-full px-0.5 leading-tight ${isActive
                                 ? 'font-bold text-blue-700 dark:text-blue-300'
-                                : 'font-semibold text-gray-800 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                                : 'font-semibold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400'
                                 }`}
                             >
                               {block.label}
@@ -339,12 +331,13 @@ export default function BlockInserter({ open, onClose, onInsert }: InserterProps
           })}
 
           {filteredBlocks.length === 0 && (
-            <div className="py-8 text-center text-xs text-gray-400 dark:text-gray-500">
-              No blocks found matching "{search}"
+            <div className="py-12 text-center text-xs text-slate-400 dark:text-slate-500 space-y-1">
+              <p className="font-bold">No blocks found</p>
+              <p className="text-[11px]">Try searching with a different keyword</p>
             </div>
           )}
         </div>
-      </div>
+      </ResponsivePanelShell>
     </>
   );
 }

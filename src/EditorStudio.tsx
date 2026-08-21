@@ -5,6 +5,7 @@ import EditorCanvas from './editor/EditorCanvas';
 import BlockInserter from './editor/BlockInserter';
 import SettingsSidebar from './editor/SettingsSidebar';
 import InlineToolbar from './editor/InlineToolbar';
+import MobileBottomBar from './editor/MobileBottomBar';
 import { blockToHtmlCode } from './editor/utils';
 import { createBlock, BlockFilterOptions } from './editor/blocks/registry';
 import type { BlockInstance } from './editor/types';
@@ -197,17 +198,19 @@ export function EditorStudio({
   };
 
   return (
-    <div className={`h-screen flex flex-col editor-surface ${className}`}>
+    <div className={`h-screen max-h-screen w-full flex flex-col overflow-hidden editor-surface ${className}`}>
       {!hideToolbar && (
-        <TopToolbar
-          onSave={onSave}
-          onOpenInserter={() => {
-            setInsertIndex(blocks.length);
-            setInserterOpen(true);
-          }}
-        />
+        <div className="relative z-[200] shrink-0">
+          <TopToolbar
+            onSave={onSave}
+            onOpenInserter={() => {
+              setInsertIndex(blocks.length);
+              setInserterOpen(true);
+            }}
+          />
+        </div>
       )}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 min-h-0 flex overflow-hidden relative z-10">
         <BlockInserter
           open={inserterOpen}
           onClose={() => setInserterOpen(false)}
@@ -217,6 +220,7 @@ export function EditorStudio({
         <SettingsSidebar />
       </div>
       <InlineToolbar />
+      <MobileBottomBar />
     </div>
   );
 }
