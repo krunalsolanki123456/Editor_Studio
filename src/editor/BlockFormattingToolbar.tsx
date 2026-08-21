@@ -5,8 +5,8 @@ import {
   Undo2, Redo2, Pin, Code2, Eraser, Indent, Outdent, Crop, ExternalLink,
   Trash2, Video, Highlighter, Upload, Subtitles, Tag as TagIcon,
   Columns as ColumnsIcon, Layers, Plus, Copy as CopyIcon, CopyPlus,
-  ArrowUp, ArrowDown, ChevronDown, Sliders, MoreVertical, ChevronRight, X,
-  Bold, Italic, Underline, Maximize2,
+  ArrowUp, ArrowDown, ChevronDown, Sliders, MoreVertical, MoreHorizontal, ChevronRight, X,
+  Bold, Italic, Underline, Maximize2, Square, Settings, PenTool,
 } from 'lucide-react';
 import { useEditorStore, findBlock } from './store';
 import { createBlock, getBlockLabel, getBlockIcon } from './blocks/registry';
