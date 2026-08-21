@@ -189,7 +189,7 @@ export default function TopToolbar({ onOpenInserter, onSave }: TopToolbarProps) 
       </button>
 
       {pagesDropdownOpen && (
-        <div className="absolute left-0 mt-2 w-64 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl z-[9999] overflow-hidden animate-in fade-in zoom-in-95 duration-150 p-2">
+        <div className="absolute right-0 md:left-0 md:right-auto mt-2 w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl z-[9999] overflow-hidden animate-in fade-in zoom-in-95 duration-150 p-2">
           <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800/80 flex items-center justify-between mb-1">
             <span>PAGES ({pages.length})</span>
           </div>
@@ -266,7 +266,7 @@ export default function TopToolbar({ onOpenInserter, onSave }: TopToolbarProps) 
   // If in Preview Mode, render the Preview Mode Top Header
   if (isPreviewMode) {
     return (
-      <header className="sticky top-0 z-50 flex items-center justify-between px-2 sm:px-6 py-2 sm:py-2.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 transition-all shadow-sm w-full overflow-hidden gap-1 sm:gap-2 select-none">
+      <header className="sticky top-0 z-50 flex items-center justify-between px-2 sm:px-6 py-2 sm:py-2.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 transition-all shadow-sm w-full overflow-visible gap-1 sm:gap-2 select-none">
         <div className="flex items-center gap-1 sm:gap-2 shrink-0">
           {renderPagesDropdown()}
         </div>
@@ -360,19 +360,11 @@ export default function TopToolbar({ onOpenInserter, onSave }: TopToolbarProps) 
           <button
             type="button"
             onClick={() => setIsPreviewMode(false)}
-            className="flex items-center gap-1 px-2.5 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800/80 hover:bg-sky-100 dark:hover:bg-sky-900/60 transition-all shadow-2xs cursor-pointer"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-xl text-xs font-extrabold bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200/80 dark:border-blue-800/80 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-all shadow-2xs cursor-pointer active:scale-95"
+            title="Exit Preview Mode"
           >
             <Eye size={14} />
-            <span className="hidden xs:inline">Exit</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleSave}
-            className="flex items-center gap-1 px-3 sm:px-4 py-1.5 rounded-xl text-xs font-extrabold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-md be-glow-primary transition-all cursor-pointer active:scale-95"
-          >
-            <Save size={14} />
-            <span>Save</span>
+            <span>Exit Preview</span>
           </button>
         </div>
       </header>
@@ -405,43 +397,7 @@ export default function TopToolbar({ onOpenInserter, onSave }: TopToolbarProps) 
           {renderPagesDropdown()}
         </div>
 
-        <div className="hidden lg:flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200/80 dark:border-slate-700/60 shrink-0">
-          <Tooltip text="Desktop Canvas (1200px)" align="center">
-            <button
-              onClick={() => setDeviceView('desktop')}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer ${deviceView === 'desktop'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
-                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                }`}
-            >
-              <Monitor size={20} />
-            </button>
-          </Tooltip>
 
-          <Tooltip text="Tablet View (768px)" align="center">
-            <button
-              onClick={() => setDeviceView('tablet')}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer ${deviceView === 'tablet'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
-                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                }`}
-            >
-              <Tablet size={20} />
-            </button>
-          </Tooltip>
-
-          <Tooltip text="Mobile View (390px)" align="center">
-            <button
-              onClick={() => setDeviceView('mobile')}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer ${deviceView === 'mobile'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs'
-                : 'text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                }`}
-            >
-              <Smartphone size={20} />
-            </button>
-          </Tooltip>
-        </div>
 
         <div className="flex items-center gap-1 sm:gap-1.5 justify-end shrink-0">
           <div className="hidden md:flex items-center bg-slate-100 dark:bg-slate-800/80 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700/60 shrink-0">

@@ -28,7 +28,7 @@ export default function ResponsivePanelShell({
       {/* Backdrop Overlay — only on screens below 576px (bottom sheet mode) */}
       {mobileSheet && (
         <div
-          className={`fixed inset-0 z-[190] bg-black/60 backdrop-blur-xs xs:hidden ${overlayClassName}`}
+          className={`fixed inset-0 z-[190] bg-black/60 backdrop-blur-xs xs:hidden be-animate-overlay ${overlayClassName}`}
           onClick={onClose}
         />
       )}
@@ -40,14 +40,14 @@ export default function ResponsivePanelShell({
           border-gray-200/80 dark:border-gray-800/80
           ${
             mobileSheet
-              ? /* < 576px: bottom sheet  |  576px+: side panel */
-                'max-xs:fixed max-xs:inset-x-0 max-xs:bottom-0 max-xs:top-auto max-xs:h-[82vh] max-xs:max-h-[88vh] max-xs:w-full max-xs:rounded-t-3xl max-xs:border-t max-xs:z-[200] max-xs:shadow-2xl max-xs:animate-in max-xs:slide-in-from-bottom max-xs:duration-300'
+              ? /* < 576px: bottom sheet with smooth slide up  |  576px+: side panel */
+                'max-xs:fixed max-xs:inset-x-0 max-xs:bottom-0 max-xs:top-auto max-xs:h-[82vh] max-xs:max-h-[88vh] max-xs:w-full max-xs:rounded-t-3xl max-xs:border-t max-xs:z-[200] max-xs:shadow-2xl max-xs:be-animate-sheet-up'
               : /* Fallback side drawer for all sizes */
-                `max-xs:fixed max-xs:inset-y-0 max-xs:h-dvh max-xs:z-[200] max-xs:shadow-2xl ${side === 'left' ? 'max-xs:left-0' : 'max-xs:right-0'}`
+                `max-xs:fixed max-xs:inset-y-0 max-xs:h-dvh max-xs:z-[200] max-xs:shadow-2xl ${side === 'left' ? 'max-xs:left-0 max-xs:be-animate-panel-left' : 'max-xs:right-0 max-xs:be-animate-panel-right'}`
           }
-          /* 576px+ : static flex child, pushes canvas */
+          /* 576px+ : static flex child with smooth slide-in */
           xs:relative xs:z-30 xs:shadow-none xs:h-full xs:w-72 xs:shrink-0
-          ${side === 'left' ? 'xs:border-r' : 'xs:border-l'}
+          ${side === 'left' ? 'xs:border-r xs:be-animate-panel-left' : 'xs:border-l xs:be-animate-panel-right'}
           ${className}
         `}
       >

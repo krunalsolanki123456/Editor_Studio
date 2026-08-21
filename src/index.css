@@ -631,3 +631,77 @@ pre, code {
 .be-pulse-dot {
   animation: be-pulse-subtle 2s infinite ease-in-out;
 }
+
+/* Smooth Sidebar & Bottom Sheet Animations */
+@keyframes be-sheet-slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes be-panel-slide-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 0.85;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes be-panel-slide-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0.85;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes be-fade-in-overlay {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes be-rail-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.be-animate-sheet-up {
+  animation: be-sheet-slide-up 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.be-animate-panel-left {
+  animation: be-panel-slide-left 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.be-animate-panel-right {
+  animation: be-panel-slide-right 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.be-animate-overlay {
+  animation: be-fade-in-overlay 0.2s ease-out forwards;
+}
+
+.be-animate-rail {
+  animation: be-rail-fade-in 0.16s ease-out forwards;
+}

@@ -328,103 +328,221 @@ export default function EditorCanvas() {
   return (
     <div className="flex-1 min-h-0 flex flex-col min-w-0 overflow-hidden bg-dot-grid transition-colors relative">
       <div
-        className="flex-1 min-h-0 overflow-y-auto be-scroll"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-auto be-scroll overscroll-contain"
         onClick={isPreviewMode ? undefined : handleCanvasClick}
       >
         {!isPreviewMode && <BlockFormattingToolbar />}
         <div
-          className="p-3 sm:p-6 pb-10 xs:pb-4 transition-transform duration-150 origin-top"
+          className={`transition-transform duration-150 origin-top ${isPreviewMode ? 'px-3 sm:px-6 py-4' : 'px-3 sm:px-6 pt-3 sm:pt-6 pb-20 xs:pb-12'}`}
           style={{ transform: zoomLevel !== 100 ? `scale(${zoomLevel / 100})` : undefined }}
         >
-          {/* Full-canvas read-only overlay in preview mode */}
-          {isPreviewMode && (
-            <div
-              className="absolute inset-0 z-[9999] cursor-default"
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-              style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
-            />
-          )}
-          <div
-            className={`${getCanvasContainerClass()} ${isPreviewMode ? 'cursor-default select-none' : 'cursor-text'} mb-20`}
-            onClick={isPreviewMode ? undefined : handleCanvasClick}
-          >
-            <div>
-              {blocks.map((block, index) => (
-                <BlockWrapper key={block.id} block={block} index={index} total={blocks.length} />
-              ))}
-            </div>
+          {/* Device Mockup Wrapper — ONLY in Preview Mode */}
+          {isPreviewMode && deviceView === 'mobile' ? (
+            /* 📱 Ultra-Realistic Mobile Phone Mockup (iPhone Style) */
+            <div className="relative w-full max-w-[390px] h-[calc(100dvh-7.5rem)] max-h-[720px] min-h-[460px] mx-auto my-2 bg-slate-900 dark:bg-slate-950 p-[10px] rounded-[48px] sm:rounded-[52px] shadow-[0_0_0_2px_rgba(255,255,255,0.12),0_20px_60px_-10px_rgba(0,0,0,0.5)] ring-1 ring-slate-800 transition-all duration-300 flex flex-col shrink-0">
+              {/* Left Hardware Buttons (Action + Volume Up/Down) */}
+              <div className="absolute -left-[3px] top-24 w-[3px] h-6 bg-slate-700 rounded-l-xs pointer-events-none" />
 
-            {blocks.length === 0 && (
-              <div className="text-center py-16 px-6 cursor-text max-w-xl mx-auto space-y-6">
-                <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center mx-auto shadow-xl shadow-blue-500/25">
-                  <Layout size={30} />
+              <div className="absolute -left-[3px] top-48 w-[3px] h-11 bg-slate-700 rounded-l-xs pointer-events-none" />
+
+              {/* Right Hardware Button (Power / Side Button) */}
+              <div className="absolute -right-[3px] top-32 w-[3px] h-16 bg-slate-700 rounded-r-xs pointer-events-none" />
+
+              {/* Mobile Phone Screen */}
+              <div
+                className="bg-white dark:bg-slate-900 rounded-[42px] overflow-hidden flex-1 min-h-0 border border-slate-200/80 dark:border-slate-800 flex flex-col cursor-default select-none"
+              >
+                {/* Mobile Top Status Bar & Dynamic Island */}
+                <div className="w-full pt-3 pb-1.5 px-6 flex items-center justify-between text-slate-900 dark:text-white select-none pointer-events-none shrink-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs z-10">
+                  <span className="text-[11px] font-black tracking-tight">9:41</span>
+                  {/* Dynamic Island */}
+                  <div className="w-24 h-5.5 bg-black rounded-full flex items-center justify-between px-2.5 shadow-sm ring-1 ring-white/10">
+                    <div className="w-2.5 h-2.5 rounded-full bg-slate-900 ring-1 ring-slate-800" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-blue-950 ring-1 ring-blue-500/30" />
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-slate-800 dark:text-slate-200">
+                    <span>5G</span>
+                    <span className="w-4 h-2 border border-current rounded-xs inline-block relative p-0.5">
+                      <span className="w-full h-full bg-current block rounded-2xs" />
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mb-2">
-                    Start creating your page
-                  </h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
-                    Click anywhere on the canvas to start writing, or choose a quick starter template below.
-                  </p>
+
+                {/* Main Content Area (Scrolls Inside Screen) */}
+                <div className="p-3.5 sm:p-4 flex-1 min-h-0 overflow-y-auto be-scroll overscroll-contain">
+                  <div>
+                    {blocks.map((block, index) => (
+                      <BlockWrapper key={block.id} block={block} index={index} total={blocks.length} />
+                    ))}
+                  </div>
+
+                  {blocks.length === 0 && (
+                    <div className="text-center py-12 px-4 cursor-text max-w-sm mx-auto space-y-4">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-blue-500/25">
+                        <Layout size={26} />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 mb-1">
+                          Mobile Preview
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Empty page preview
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Quick 1-Click Starter Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addStarterTemplate('article');
-                    }}
-                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-left transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
-                  >
-                    <span className="text-xl mb-1.5 block">📰</span>
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                      Standard Story
-                    </h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Heading + text paragraph
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addStarterTemplate('hero');
-                    }}
-                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-left transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
-                  >
-                    <span className="text-xl mb-1.5 block">🖼️</span>
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                      Hero & Media
-                    </h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Heading + image + content
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addStarterTemplate('two-column');
-                    }}
-                    className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-left transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
-                  >
-                    <span className="text-xl mb-1.5 block">📊</span>
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                      2-Column Grid
-                    </h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Side-by-side columns
-                    </p>
-                  </button>
+                {/* Bottom Home Indicator */}
+                <div className="w-full flex items-center justify-center pt-2 pb-2 select-none pointer-events-none shrink-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs z-10">
+                  <div className="w-32 h-1 bg-slate-400 dark:bg-slate-500 rounded-full" />
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          ) : isPreviewMode && deviceView === 'tablet' ? (
+            /* 📱 Ultra-Realistic Tablet Mockup (iPad Style) */
+            <div className="relative w-full max-w-[768px] h-[calc(100dvh-7.5rem)] max-h-[760px] min-h-[460px] mx-auto my-2 bg-slate-900 dark:bg-slate-950 p-[12px] sm:p-[14px] rounded-[32px] sm:rounded-[40px] shadow-[0_0_0_2px_rgba(255,255,255,0.12),0_20px_60px_-10px_rgba(0,0,0,0.5)] ring-1 ring-slate-800 transition-all duration-300 flex flex-col shrink-0">
+              {/* Top Hardware Power Button */}
+              <div className="absolute -top-[3px] right-20 w-12 h-[3px] bg-slate-700 rounded-t-xs pointer-events-none" />
+
+              {/* Right Hardware Volume Buttons */}
+              <div className="absolute -right-[3px] top-16 w-[3px] h-16 bg-slate-700 rounded-r-xs pointer-events-none" />
+
+              {/* Front Camera Dot in Bezel */}
+              <div className="w-full flex items-center justify-center pb-2 select-none pointer-events-none shrink-0">
+                <div className="w-2.5 h-2.5 bg-black rounded-full ring-1 ring-slate-700/80 shadow-inner" />
+              </div>
+
+              {/* Tablet Screen */}
+              <div
+                className={`bg-white dark:bg-slate-900 rounded-[28px] overflow-hidden flex-1 min-h-0 border border-slate-200/80 dark:border-slate-800 flex flex-col ${isPreviewMode ? 'cursor-default select-none' : 'cursor-text'}`}
+                onClick={isPreviewMode ? undefined : handleCanvasClick}
+              >
+                {/* Tablet Top Status Bar */}
+                <div className="w-full pt-3 pb-1 px-8 flex items-center justify-between text-slate-800 dark:text-slate-200 select-none pointer-events-none text-xs font-bold shrink-0 border-b border-slate-100 dark:border-slate-800/40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs z-10">
+                  <span>9:41 AM, Tuesday</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-semibold text-slate-500">100%</span>
+                    <span className="w-4.5 h-2.5 border border-current rounded-xs inline-block relative p-0.5">
+                      <span className="w-full h-full bg-current block rounded-2xs" />
+                    </span>
+                  </div>
+                </div>
+
+                {/* Main Content Area (Scrolls Inside Screen) */}
+                <div className="p-6 sm:p-8 flex-1 min-h-0 overflow-y-auto be-scroll overscroll-contain">
+                  <div>
+                    {blocks.map((block, index) => (
+                      <BlockWrapper key={block.id} block={block} index={index} total={blocks.length} />
+                    ))}
+                  </div>
+
+                  {blocks.length === 0 && (
+                    <div className="text-center py-16 px-6 cursor-text max-w-md mx-auto space-y-6">
+                      <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center mx-auto shadow-xl shadow-blue-500/25">
+                        <Layout size={30} />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mb-2">
+                          Tablet Preview
+                        </h3>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                          Click anywhere to start writing, or choose a starter template below.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom Home Indicator */}
+                <div className="w-full flex items-center justify-center pt-2 pb-2.5 select-none pointer-events-none shrink-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xs z-10">
+                  <div className="w-44 h-1 bg-slate-400 dark:bg-slate-500 rounded-full" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* 💻 Default Desktop Canvas */
+            <div
+              className={`${getCanvasContainerClass()} ${isPreviewMode ? 'cursor-default select-none' : 'cursor-text'} mb-20`}
+              onClick={isPreviewMode ? undefined : handleCanvasClick}
+            >
+              <div>
+                {blocks.map((block, index) => (
+                  <BlockWrapper key={block.id} block={block} index={index} total={blocks.length} />
+                ))}
+              </div>
+
+              {blocks.length === 0 && (
+                <div className="text-center py-16 px-6 cursor-text max-w-xl mx-auto space-y-6">
+                  <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 text-white flex items-center justify-center mx-auto shadow-xl shadow-blue-500/25">
+                    <Layout size={30} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 mb-2">
+                      Start creating your page
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                      Click anywhere on the canvas to start writing, or choose a quick starter template below.
+                    </p>
+                  </div>
+
+                  {/* Quick 1-Click Starter Cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addStarterTemplate('article');
+                      }}
+                      className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-left transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
+                    >
+                      <span className="text-xl mb-1.5 block">📰</span>
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                        Standard Story
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Heading + text paragraph
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addStarterTemplate('hero');
+                      }}
+                      className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-left transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
+                    >
+                      <span className="text-xl mb-1.5 block">🖼️</span>
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                        Hero & Media
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Heading + image + content
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addStarterTemplate('two-column');
+                      }}
+                      className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-left transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer group"
+                    >
+                      <span className="text-xl mb-1.5 block">📊</span>
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                        2-Column Grid
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Side-by-side columns
+                      </p>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {!isPreviewMode && <SlashMenu open={slashMenu.open} blockId={slashMenu.blockId} anchor={slashMenu.anchor} onClose={closeSlashMenu} />}

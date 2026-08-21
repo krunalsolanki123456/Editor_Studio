@@ -1021,7 +1021,7 @@ function sanitizeForLocalStorage(blocks: BlockInstance[]): BlockInstance[] {
     for (const key in newAttr) {
       if (
         typeof newAttr[key] === 'string' &&
-        (newAttr[key] as string).length > 30000 &&
+        (newAttr[key] as string).length > 2000000 &&
         (newAttr[key] as string).startsWith('data:')
       ) {
         newAttr[key] = '';
@@ -1032,8 +1032,12 @@ function sanitizeForLocalStorage(blocks: BlockInstance[]): BlockInstance[] {
   });
 }
 
+let isInitialMount = true;
+
 // Automatic subscription to persist pages & blocks in localStorage + IndexedDB on every mutation
 useEditorStore.subscribe((state) => {
+  if (isInitialMount) return; // Prevent initial boot from overwriting IndexedDB with empty/partial state
+
   const syncedPages = syncPages(state.pages, state.currentPageId, state.blocks);
   const fullPayload = {
     pages: syncedPages,
@@ -1042,42 +1046,52 @@ useEditorStore.subscribe((state) => {
     documentTitle: state.documentTitle,
   };
 
-  // 1. Save to IndexedDB (unlimited storage, survives refresh 100%)
+  // 1. Save full data to IndexedDB (unlimited storage, preserves all images & large media 100%)
   saveToIndexedDB(fullPayload);
 
-  // 2. Save sanitized payload to localStorage
+  // 2. Save full payload to localStorage (with try-catch fallback if quota exceeded)
   try {
-    const localPayload = {
-      pages: syncedPages.map((p) => ({ ...p, blocks: sanitizeForLocalStorage(p.blocks) })),
-      currentPageId: state.currentPageId,
-      blocks: sanitizeForLocalStorage(state.blocks),
-      documentTitle: state.documentTitle,
-    };
-    localStorage.setItem('be-autosave', JSON.stringify(localPayload));
+    localStorage.setItem('be-autosave', JSON.stringify(fullPayload));
     localStorage.setItem('be-title', state.documentTitle);
   } catch {
-    /* IndexedDB holds full data safely */
+    try {
+      const localPayload = {
+        pages: syncedPages.map((p) => ({ ...p, blocks: sanitizeForLocalStorage(p.blocks) })),
+        currentPageId: state.currentPageId,
+        blocks: sanitizeForLocalStorage(state.blocks),
+        documentTitle: state.documentTitle,
+      };
+      localStorage.setItem('be-autosave', JSON.stringify(localPayload));
+      localStorage.setItem('be-title', state.documentTitle);
+    } catch {
+      /* IndexedDB holds full data safely */
+    }
   }
 });
 
 // Auto-sync from IndexedDB on startup if IndexedDB has saved data
 if (typeof window !== 'undefined') {
-  setTimeout(() => {
-    loadFromIndexedDB().then((data) => {
-      if (data && Array.isArray(data.pages) && data.pages.length > 0) {
-        const currentState = useEditorStore.getState();
-        const currentPages = currentState.pages;
-        if (JSON.stringify(currentPages) !== JSON.stringify(data.pages)) {
-          useEditorStore.getState().loadFromJSON({
-            pages: data.pages,
-            currentPageId: data.currentPageId,
-            blocks: data.blocks || [],
-          });
-          if (data.documentTitle) {
-            useEditorStore.getState().setDocumentTitle(data.documentTitle);
-          }
+  loadFromIndexedDB().then((data) => {
+    if (data && Array.isArray(data.pages) && data.pages.length > 0) {
+      const currentState = useEditorStore.getState();
+      const currentPages = currentState.pages;
+      const currentHasBlocks = currentPages.some((p) => p.blocks && p.blocks.length > 0);
+      const dbHasBlocks = data.pages.some((p) => p.blocks && p.blocks.length > 0);
+
+      if (dbHasBlocks || !currentHasBlocks) {
+        useEditorStore.getState().loadFromJSON({
+          pages: data.pages,
+          currentPageId: data.currentPageId || data.pages[0].id,
+          blocks: data.blocks || data.pages[0].blocks || [],
+        });
+        if (data.documentTitle) {
+          useEditorStore.getState().setDocumentTitle(data.documentTitle);
         }
       }
-    });
-  }, 50);
+    }
+    isInitialMount = false;
+  }).catch(() => {
+    isInitialMount = false;
+  });
 }
+

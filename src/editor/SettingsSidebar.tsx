@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, Sliders, Plus, Trash2, Crop, RotateCcw,
   Upload, Image as ImageIcon, Layout, Layers, Palette, Square,
   Rows, Columns as ColumnsIcon, Grid, Move, Code, Maximize2,
-  Link as LinkIcon, Video,
+  Link as LinkIcon, Video, X,
 } from 'lucide-react';
 import { createId } from './utils';
 import { useEditorStore, findBlock } from './store';
@@ -482,13 +482,67 @@ export default function SettingsSidebar() {
     left: number;
   } | null>(null);
 
-  if (!open) {
-    const miniSections = getMiniSections();
+  const setAttr = (key: string, value: unknown) => {
+    if (!block) return;
 
+    if (block.type === 'columns' && key === 'columns') {
+      const nextColumns = Number(value);
+      updateBlock(block.id, (b) => {
+        const currentInner = b.innerBlocks ?? [];
+        const nextInner = [...currentInner];
+
+        if (nextColumns > currentInner.length) {
+          for (let i = currentInner.length; i < nextColumns; i += 1) {
+            nextInner.push({ id: createId(), type: 'column', attributes: {}, innerBlocks: [] });
+          }
+        } else if (nextColumns < currentInner.length) {
+          nextInner.length = nextColumns;
+        }
+
+        return { ...b, attributes: { ...b.attributes, [key]: nextColumns }, innerBlocks: nextInner };
+      });
+      return;
+    }
+
+    if (key === 'level') {
+      updateBlock(block.id, (b) => {
+        const nextAttrs: Record<string, unknown> = { ...b.attributes, level: value };
+        delete nextAttrs.fontSize;
+        delete nextAttrs.fontWeight;
+        return { ...b, attributes: nextAttrs };
+      });
+      return;
+    }
+
+    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, [key]: value } }));
+  };
+
+  const setTableRowAttr = (rowIndex: number, key: string, value: unknown) => {
+    if (!block || block.type !== 'table') return;
+    updateBlock(block.id, (b) => ({
+      ...b,
+      attributes: {
+        ...b.attributes,
+        rowStyles: updateTableRowStyle(b.attributes, rowIndex, { [key]: value }),
+      },
+    }));
+  };
+
+  const setTableColumnAttr = (columnIndex: number, key: string, value: unknown) => {
+    if (!block || block.type !== 'table') return;
+    updateBlock(block.id, (b) => ({
+      ...b,
+      attributes: {
+        ...b.attributes,
+        columnStyles: updateTableColumnStyle(b.attributes, columnIndex, { [key]: value }),
+      },
+    }));
+  };
+
+  const renderRail = () => {
+    const miniSections = getMiniSections();
     return (
-      <aside
-        className="hidden xs:flex shrink-0 w-16 min-w-16 h-full max-h-full border-l border-gray-200/80 dark:border-gray-800 bg-white dark:bg-gray-900 py-3.5 px-2 flex-col items-center gap-2 overflow-hidden shadow-sm z-30 relative select-none"
-      >
+      <div className="w-16 h-full flex flex-col items-center py-3.5 px-2 gap-2 shrink-0 animate-in fade-in duration-200">
         {/* Toggle Expand Sidebar Button */}
         <div className="flex items-center justify-center shrink-0">
           <button
@@ -578,105 +632,45 @@ export default function SettingsSidebar() {
           </div>,
           document.body
         )}
-      </aside>
+      </div>
     );
-  }
-
-  const setAttr = (key: string, value: unknown) => {
-    if (!block) return;
-
-    if (block.type === 'columns' && key === 'columns') {
-      const nextColumns = Number(value);
-      updateBlock(block.id, (b) => {
-        const currentInner = b.innerBlocks ?? [];
-        const nextInner = [...currentInner];
-
-        if (nextColumns > currentInner.length) {
-          for (let i = currentInner.length; i < nextColumns; i += 1) {
-            nextInner.push({ id: createId(), type: 'column', attributes: {}, innerBlocks: [] });
-          }
-        } else if (nextColumns < currentInner.length) {
-          nextInner.length = nextColumns;
-        }
-
-        return { ...b, attributes: { ...b.attributes, [key]: nextColumns }, innerBlocks: nextInner };
-      });
-      return;
-    }
-
-    if (key === 'level') {
-      updateBlock(block.id, (b) => {
-        const nextAttrs: Record<string, unknown> = { ...b.attributes, level: value };
-        delete nextAttrs.fontSize;
-        delete nextAttrs.fontWeight;
-        return { ...b, attributes: nextAttrs };
-      });
-      return;
-    }
-
-    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, [key]: value } }));
   };
 
-  const setTableRowAttr = (rowIndex: number, key: string, value: unknown) => {
-    if (!block || block.type !== 'table') return;
-    updateBlock(block.id, (b) => ({
-      ...b,
-      attributes: {
-        ...b.attributes,
-        rowStyles: updateTableRowStyle(b.attributes, rowIndex, { [key]: value }),
-      },
-    }));
-  };
-
-  const setTableColumnAttr = (columnIndex: number, key: string, value: unknown) => {
-    if (!block || block.type !== 'table') return;
-    updateBlock(block.id, (b) => ({
-      ...b,
-      attributes: {
-        ...b.attributes,
-        columnStyles: updateTableColumnStyle(b.attributes, columnIndex, { [key]: value }),
-      },
-    }));
-  };
-
-  return (
-    <>
-      <ResponsivePanelShell
-        open={open}
-        side="right"
-        onClose={() => setOpen(false)}
-        className="bg-white dark:bg-gray-900 border-l border-gray-200/80 dark:border-gray-800/80 p-3.5 shadow-2xl xl:shadow-none flex flex-col"
-        widthClassName="w-[min(18rem,calc(100vw-1rem))] xl:w-72"
-      >
-        <div className="flex h-full min-h-0 flex-col overflow-y-auto be-scroll pr-1 pb-20 xs:pb-4">
-          <div className="flex items-center gap-2.5 mb-4 p-3 rounded-2xl bg-gradient-to-r from-primary-500/10 via-indigo-500/5 to-transparent border border-primary-100 dark:border-primary-900/30">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-sm shrink-0">
-              <BlockIcon size={16} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-xs font-bold text-gray-900 dark:text-gray-100 capitalize block truncate">
-                {block ? `${block.type} settings` : 'Block Settings'}
-              </span>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium block">
-                {block ? 'Customize properties' : 'Select a block to edit'}
-              </span>
-            </div>
-            <button
-              onClick={() => setOpen(false)}
-              className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/60 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
-              title="Close settings"
-            >
-              <PanelRightClose size={18} />
-            </button>
+  const renderContent = () => (
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto be-scroll pr-1 pb-20 xs:pb-4">
+      <div className="flex items-center justify-between gap-2 mb-4 p-3 rounded-2xl bg-gradient-to-r from-primary-500/10 via-indigo-500/5 to-transparent border border-primary-100 dark:border-primary-900/30 sticky top-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-sm shrink-0">
+            <BlockIcon size={16} />
           </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-xs font-bold text-gray-900 dark:text-gray-100 capitalize block truncate">
+              {block ? `${block.type} Settings` : 'Block Settings'}
+            </span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium block truncate">
+              {block ? 'Customize properties' : 'Select a block to edit'}
+            </span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="p-1.5 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+          title="Close Settings"
+        >
+          <X size={18} />
+        </button>
+      </div>
 
-          {!block && (
-            <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500 bg-gray-50/50 dark:bg-gray-800/20 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 p-6">
-              <Sparkles size={24} className="mx-auto mb-2 text-primary-400 animate-pulse" />
-              <p className="font-medium text-gray-600 dark:text-gray-400 mb-1">No block selected</p>
-              <p className="text-xs">Click any block in the canvas to customize its settings.</p>
-            </div>
-          )}
+      {!block && (
+        <div className="py-12 text-center text-sm text-gray-400 dark:text-gray-500 bg-gray-50/50 dark:bg-gray-800/20 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 p-6">
+          <Sparkles size={24} className="mx-auto mb-2 text-primary-400 animate-pulse" />
+          <p className="font-medium text-gray-600 dark:text-gray-400 mb-1">No block selected</p>
+          <p className="text-xs">Click any block in the canvas to customize its settings.</p>
+        </div>
+      )}
+
+
 
           {block && (block.type === 'paragraph' || block.type === 'heading' || block.type === 'quote' ||
             block.type === 'pullquote' || block.type === 'list' || block.type === 'code' || block.type === 'preformatted') && (
@@ -3523,7 +3517,40 @@ export default function SettingsSidebar() {
           </>
         )}
         </div>
-      </ResponsivePanelShell>
+  );
+
+  return (
+    <>
+      {/* Mobile-only Bottom Sheet (< 576px) */}
+      <div className="xs:hidden">
+        <ResponsivePanelShell
+          open={open}
+          side="right"
+          onClose={() => setOpen(false)}
+          className="bg-white dark:bg-gray-900 border-l border-gray-200/80 dark:border-gray-800/80 p-3.5 shadow-2xl xl:shadow-none flex flex-col"
+          widthClassName="w-full"
+        >
+          {renderContent()}
+        </ResponsivePanelShell>
+      </div>
+
+      {/* Desktop / Tablet Animated Sidebar (>= 576px) — Smoothly expands/collapses width */}
+      <aside
+        className={`hidden xs:flex h-full min-h-0 flex-col overflow-hidden shrink-0 bg-white dark:bg-gray-900 border-l border-gray-200/80 dark:border-gray-800 transition-[width,min-width,max-width] duration-300 ease-in-out select-none relative z-30 ${
+          open
+            ? 'w-72 min-w-[18rem] max-w-[18rem]'
+            : 'w-16 min-w-[4rem] max-w-[4rem]'
+        }`}
+      >
+        {!open ? (
+          renderRail()
+        ) : (
+          <div className="w-72 h-full flex flex-col p-3.5 animate-in fade-in duration-200 shrink-0">
+            {renderContent()}
+          </div>
+        )}
+      </aside>
     </>
   );
 }
+

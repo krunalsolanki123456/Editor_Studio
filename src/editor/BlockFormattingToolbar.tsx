@@ -5,10 +5,11 @@ import {
   Undo2, Redo2, Pin, Code2, Eraser, Indent, Outdent, Crop, ExternalLink,
   Trash2, Video, Highlighter, Upload, Subtitles, Tag as TagIcon,
   Columns as ColumnsIcon, Layers, Plus, Copy as CopyIcon, CopyPlus,
-  ArrowUp, ArrowDown, ChevronDown, Sliders,
+  ArrowUp, ArrowDown, ChevronDown, Sliders, MoreVertical, ChevronRight, X,
+  Bold, Italic, Underline, Maximize2,
 } from 'lucide-react';
 import { useEditorStore, findBlock } from './store';
-import { createBlock, getBlockLabel } from './blocks/registry';
+import { createBlock, getBlockLabel, getBlockIcon } from './blocks/registry';
 import { fileToDataUrl } from './media';
 import CustomSelect, { type SelectOption } from './CustomSelect';
 import type { RichTextValue, ListStyle, TextAlign, BlockInstance } from './types';
@@ -2023,46 +2024,628 @@ function MultiSelectToolbar({ selectedIds, showNotification }: { selectedIds: st
 }
 
 // ==========================================
-// MAIN TOP TOOLBAR HOST
+// MOBILE TWO-ROW TOOLBAR COMPONENT
 // ==========================================
+function MobileTwoRowToolbar({
+  block,
+  execCmd,
+  saveSelection,
+  showNotification,
+  openLinkPopover,
+}: {
+  block: BlockInstance | null;
+  execCmd: (cmd: string, value?: string) => void;
+  saveSelection: () => void;
+  showNotification: (msg: string) => void;
+  openLinkPopover: () => void;
+}) {
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const removeBlock = useEditorStore((s) => s.removeBlock);
+  const duplicateBlock = useEditorStore((s) => s.duplicateBlock);
+  const moveBlock = useEditorStore((s) => s.moveBlock);
+  const setSettingsSidebarOpen = useEditorStore((s) => s.setSettingsSidebarOpen);
 
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [showWidthDropdown, setShowWidthDropdown] = useState(false);
+  const [showRatioDropdown, setShowRatioDropdown] = useState(false);
+  const [altDialogOpen, setAltDialogOpen] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [altText, setAltText] = useState((block?.attributes?.alt as string) || '');
+  const [linkUrl, setLinkUrl] = useState((block?.attributes?.link as string) || '');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  if (!block) {
+    return (
+      <div className="flex items-center justify-between px-3 py-2 bg-slate-50 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold text-slate-500">
+        <span>Click any block to edit format</span>
+      </div>
+    );
+  }
+
+  const blockType = block.type;
+  const BlockIcon = getBlockIcon(blockType);
+  const blockLabel = getBlockLabel(blockType);
+  const align = (block.attributes?.align as string) || 'left';
+  const width = (block.attributes?.width as string) || '100%';
+
+  const handleImageReplace = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    fileToDataUrl(file).then((url) => {
+      updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, url } }));
+      showNotification('Image updated');
+    });
+  };
+
+  const handleAlign = (newAlign: TextAlign) => {
+    updateBlock(block.id, (b) => ({
+      ...b,
+      attributes: { ...b.attributes, align: newAlign },
+    }));
+    showNotification(`Aligned ${newAlign}`);
+  };
+
+  const handleWidth = (newWidth: string) => {
+    updateBlock(block.id, (b) => ({
+      ...b,
+      attributes: { ...b.attributes, width: newWidth },
+    }));
+    showNotification(`Width set to ${newWidth}`);
+  };
+
+  return (
+    <div className="flex flex-col gap-2 w-full select-none">
+      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageReplace} className="hidden" />
+
+      {/* 1. PRIMARY ROW (Essential Controls) */}
+      <div className="flex items-center justify-between gap-1.5 w-full bg-slate-50 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-700/80">
+        {/* Block Badge */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 font-bold text-xs shadow-2xs border border-slate-200/60 dark:border-slate-600 shrink-0">
+          <BlockIcon size={14} className="shrink-0" />
+          <span className="truncate max-w-[70px]">{blockLabel}</span>
+        </div>
+
+        <span className="w-px h-4 bg-slate-200 dark:bg-slate-700 shrink-0" />
+
+        {/* Alignment Segmented Control */}
+        <div className="flex items-center bg-white dark:bg-slate-700 p-0.5 rounded-xl border border-slate-200/60 dark:border-slate-600 shrink-0">
+          {(['left', 'center', 'right', 'justify'] as TextAlign[]).map((al) => {
+            const Icon = al === 'left' ? AlignLeft : al === 'center' ? AlignCenter : al === 'right' ? AlignRight : AlignJustify;
+            const isActive = align === al;
+            return (
+              <button
+                key={al}
+                type="button"
+                onClick={() => handleAlign(al)}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800'
+                }`}
+                title={`Align ${al}`}
+              >
+                <Icon size={13} />
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Quick Contextual Property Selector */}
+        {blockType === 'image' ? (
+          <div className="w-20 shrink-0">
+            <CustomSelect
+              value={width}
+              options={[
+                { value: 'auto', label: 'Auto' },
+                { value: '25%', label: '25%' },
+                { value: '50%', label: '50%' },
+                { value: '75%', label: '75%' },
+                { value: '100%', label: '100%' },
+              ]}
+              onChange={handleWidth}
+              size="sm"
+            />
+          </div>
+        ) : blockType === 'heading' ? (
+          <div className="w-20 shrink-0">
+            <CustomSelect
+              value={String(block.attributes?.level || 2)}
+              options={[
+                { value: '1', label: 'H1' },
+                { value: '2', label: 'H2' },
+                { value: '3', label: 'H3' },
+                { value: '4', label: 'H4' },
+                { value: '5', label: 'H5' },
+                { value: '6', label: 'H6' },
+              ]}
+              onChange={(val) => {
+                updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, level: Number(val) } }));
+                showNotification(`Heading Level ${val}`);
+              }}
+              size="sm"
+            />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setSettingsSidebarOpen(true)}
+            className="px-2 py-1 rounded-xl bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200/60 dark:border-slate-600 shadow-2xs cursor-pointer flex items-center gap-1 shrink-0"
+          >
+            <Sliders size={12} className="text-blue-500" />
+            <span>Styles</span>
+          </button>
+        )}
+
+        {/* More Menu (Additional Options) Button */}
+        <button
+          type="button"
+          onClick={() => setMoreMenuOpen(true)}
+          className="w-7.5 h-7.5 rounded-xl flex items-center justify-center bg-white dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-700 dark:text-slate-200 hover:text-blue-600 border border-slate-200/60 dark:border-slate-600 shadow-2xs transition-colors cursor-pointer shrink-0"
+          title="More options"
+        >
+          <MoreVertical size={15} />
+        </button>
+      </div>
+
+      {/* 2. SECONDARY ROW (Quick Actions Cards) */}
+      <div className="flex items-center gap-2 overflow-x-auto be-scroll pb-1 w-full shrink-0">
+        {blockType === 'image' && (
+          <>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="flex flex-col items-center justify-center gap-1 min-w-[70px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <Upload size={17} className="text-blue-500" />
+              <span className="text-[10px] font-bold">Replace</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const nextRatio = block.attributes?.aspectRatio === '16/9' ? '4/3' : block.attributes?.aspectRatio === '4/3' ? '1/1' : '16/9';
+                updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, aspectRatio: nextRatio } }));
+                showNotification(`Aspect ratio: ${nextRatio}`);
+              }}
+              className="flex flex-col items-center justify-center gap-1 min-w-[70px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <Crop size={17} className="text-indigo-500" />
+              <span className="text-[10px] font-bold">Crop</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setLinkDialogOpen(true)}
+              className="flex flex-col items-center justify-center gap-1 min-w-[70px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <LinkIcon size={17} className="text-emerald-500" />
+              <span className="text-[10px] font-bold">Link</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAltDialogOpen(true)}
+              className="flex flex-col items-center justify-center gap-1 min-w-[70px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <TagIcon size={17} className="text-amber-500" />
+              <span className="text-[10px] font-bold">Alt Text</span>
+            </button>
+          </>
+        )}
+
+        {(blockType === 'paragraph' || blockType === 'heading' || blockType === 'quote' || blockType === 'pullquote') && (
+          <>
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+              onClick={() => execCmd('bold')}
+              className="flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <Bold size={16} className="text-blue-500" />
+              <span className="text-[10px] font-bold">Bold</span>
+            </button>
+
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+              onClick={() => execCmd('italic')}
+              className="flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <Italic size={16} className="text-indigo-500" />
+              <span className="text-[10px] font-bold">Italic</span>
+            </button>
+
+            <button
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); saveSelection(); }}
+              onClick={() => execCmd('underline')}
+              className="flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <Underline size={16} className="text-purple-500" />
+              <span className="text-[10px] font-bold">Underline</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={openLinkPopover}
+              className="flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <LinkIcon size={16} className="text-emerald-500" />
+              <span className="text-[10px] font-bold">Link</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSettingsSidebarOpen(true)}
+              className="flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+            >
+              <Highlighter size={16} className="text-amber-500" />
+              <span className="text-[10px] font-bold">Color</span>
+            </button>
+          </>
+        )}
+
+        {/* Universal Actions */}
+        <button
+          type="button"
+          onClick={() => {
+            duplicateBlock(block.id);
+            showNotification('Block duplicated');
+          }}
+          className="flex flex-col items-center justify-center gap-1 min-w-[64px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+        >
+          <CopyPlus size={16} className="text-sky-500" />
+          <span className="text-[10px] font-bold">Duplicate</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            moveBlock(block.id, 'up');
+            showNotification('Moved up');
+          }}
+          className="flex flex-col items-center justify-center gap-1 min-w-[60px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+        >
+          <ArrowUp size={16} className="text-slate-500" />
+          <span className="text-[10px] font-bold">Up</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            moveBlock(block.id, 'down');
+            showNotification('Moved down');
+          }}
+          className="flex flex-col items-center justify-center gap-1 min-w-[60px] h-[58px] rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 shadow-2xs text-slate-700 dark:text-slate-200 hover:text-blue-600 hover:bg-blue-50 transition-all cursor-pointer shrink-0 active:scale-95"
+        >
+          <ArrowDown size={16} className="text-slate-500" />
+          <span className="text-[10px] font-bold">Down</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            removeBlock(block.id);
+            showNotification('Block deleted');
+          }}
+          className="flex flex-col items-center justify-center gap-1 min-w-[60px] h-[58px] rounded-2xl bg-red-50/60 dark:bg-red-950/40 border border-red-200/60 dark:border-red-800/60 shadow-2xs text-red-600 dark:text-red-400 hover:bg-red-100 transition-all cursor-pointer shrink-0 active:scale-95"
+        >
+          <Trash2 size={16} className="text-red-500" />
+          <span className="text-[10px] font-bold">Delete</span>
+        </button>
+      </div>
+
+      {/* 3. MORE MENU (Additional Options) Popup Card Dropdown */}
+      {moreMenuOpen && (
+        <div
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => {
+            setMoreMenuOpen(false);
+            setShowWidthDropdown(false);
+            setShowRatioDropdown(false);
+          }}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 rounded-[28px] shadow-2xl w-full max-w-[320px] p-4 animate-in zoom-in-95 duration-200 select-none relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drag Handle Top Bar */}
+            <div className="w-10 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto mb-3" />
+
+            {/* Header: Clean title and X close button */}
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                {blockType === 'image' ? 'Image Settings' : `${blockLabel} Settings`}
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setMoreMenuOpen(false);
+                  setShowWidthDropdown(false);
+                  setShowRatioDropdown(false);
+                }}
+                className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-1 rounded-lg cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Inner Bordered Card with Dividers (Exact match to reference photo!) */}
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+              {blockType === 'image' ? (
+                <>
+                  {/* Row 1: Width */}
+                  <div>
+                    <div
+                      onClick={() => {
+                        setShowWidthDropdown(!showWidthDropdown);
+                        setShowRatioDropdown(false);
+                      }}
+                      className="flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer text-xs font-semibold text-slate-800 dark:text-slate-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Maximize2 size={16} className="text-slate-600 dark:text-slate-400" />
+                        <span>Width</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-blue-600 font-medium text-xs">
+                        <span>{width}</span>
+                        <ChevronRight size={14} className="text-slate-400" />
+                      </div>
+                    </div>
+                    {showWidthDropdown && (
+                      <div className="bg-slate-50 dark:bg-slate-800/80 px-3 py-2 flex items-center justify-between gap-1 border-t border-slate-100 dark:border-slate-800 animate-in fade-in">
+                        {['auto', '25%', '50%', '75%', '100%'].map((w) => (
+                          <button
+                            key={w}
+                            type="button"
+                            onClick={() => {
+                              handleWidth(w);
+                              setShowWidthDropdown(false);
+                            }}
+                            className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                              width === w
+                                ? 'bg-blue-600 text-white shadow-2xs'
+                                : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-blue-50'
+                            }`}
+                          >
+                            {w}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Row 2: Aspect Ratio */}
+                  <div>
+                    <div
+                      onClick={() => {
+                        setShowRatioDropdown(!showRatioDropdown);
+                        setShowWidthDropdown(false);
+                      }}
+                      className="flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer text-xs font-semibold text-slate-800 dark:text-slate-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Crop size={16} className="text-slate-600 dark:text-slate-400" />
+                        <span>Aspect Ratio</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-blue-600 font-medium text-xs">
+                        <span>{(block.attributes?.aspectRatio as string) || 'Auto'}</span>
+                        <ChevronRight size={14} className="text-slate-400" />
+                      </div>
+                    </div>
+                    {showRatioDropdown && (
+                      <div className="bg-slate-50 dark:bg-slate-800/80 px-3 py-2 flex items-center justify-between gap-1 border-t border-slate-100 dark:border-slate-800 animate-in fade-in">
+                        {['Auto', '16/9', '4/3', '1/1'].map((r) => {
+                          const val = r === 'Auto' ? 'auto' : r;
+                          const currentVal = (block.attributes?.aspectRatio as string) || 'auto';
+                          const isAct = currentVal === val;
+                          return (
+                            <button
+                              key={r}
+                              type="button"
+                              onClick={() => {
+                                updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, aspectRatio: val } }));
+                                setShowRatioDropdown(false);
+                                showNotification(`Aspect Ratio: ${r}`);
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                                isAct
+                                  ? 'bg-blue-600 text-white shadow-2xs'
+                                  : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-blue-50'
+                              }`}
+                            >
+                              {r}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Row 3: Caption */}
+                  <div
+                    onClick={() => {
+                      setMoreMenuOpen(false);
+                      const activeEditable = document.querySelector(`[data-block-id="${block.id}"] figcaption, [data-block-id="${block.id}"] [contenteditable]`) as HTMLElement | null;
+                      activeEditable?.focus();
+                      showNotification('Edit caption in image');
+                    }}
+                    className="flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer text-xs font-semibold text-slate-800 dark:text-slate-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Subtitles size={16} className="text-slate-600 dark:text-slate-400" />
+                      <span>Caption</span>
+                    </div>
+                    <ChevronRight size={14} className="text-slate-400" />
+                  </div>
+
+                  {/* Row 4: Alt Text */}
+                  <div
+                    onClick={() => {
+                      setMoreMenuOpen(false);
+                      setAltDialogOpen(true);
+                    }}
+                    className="flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer text-xs font-semibold text-slate-800 dark:text-slate-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <TagIcon size={16} className="text-slate-600 dark:text-slate-400" />
+                      <span>Alt Text</span>
+                    </div>
+                    <ChevronRight size={14} className="text-slate-400" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Non-image blocks */}
+                  <div
+                    onClick={() => {
+                      setMoreMenuOpen(false);
+                      setSettingsSidebarOpen(true);
+                    }}
+                    className="flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer text-xs font-semibold text-slate-800 dark:text-slate-200"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Sliders size={16} className="text-slate-600 dark:text-slate-400" />
+                      <span>Block Properties</span>
+                    </div>
+                    <ChevronRight size={14} className="text-slate-400" />
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alt Text Dialog */}
+      {altDialogOpen && (
+        <div
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
+          onClick={() => setAltDialogOpen(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">Image Alt Text</h4>
+            <input
+              type="text"
+              value={altText}
+              onChange={(e) => setAltText(e.target.value)}
+              placeholder="Describe image for accessibility..."
+              className="w-full px-3 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setAltDialogOpen(false)}
+                className="px-3 py-1.5 text-xs text-slate-500 font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, alt: altText.trim() } }));
+                  setAltDialogOpen(false);
+                  showNotification('Alt text saved');
+                }}
+                className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl cursor-pointer"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Link Dialog */}
+      {linkDialogOpen && (
+        <div
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
+          onClick={() => setLinkDialogOpen(false)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 w-full max-w-sm shadow-2xl space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">Image Link URL</h4>
+            <input
+              type="url"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="https://example.com"
+              className="w-full px-3 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setLinkDialogOpen(false)}
+                className="px-3 py-1.5 text-xs text-slate-500 font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  let formatted = linkUrl.trim();
+                  if (formatted && !/^https?:\/\//i.test(formatted) && !/^mailto:/i.test(formatted) && !/^#/i.test(formatted)) {
+                    formatted = 'https://' + formatted;
+                  }
+                  updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, link: formatted } }));
+                  setLinkDialogOpen(false);
+                  showNotification('Image link updated');
+                }}
+                className="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl cursor-pointer"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==========================================
+// MAIN FORMATTING TOOLBAR COMPONENT
+// ==========================================
 export default function BlockFormattingToolbar() {
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const blocks = useEditorStore((s) => s.blocks);
-  const htmlModeBlockIds = useEditorStore((s) => s.htmlModeBlockIds);
-  const toggleHtmlMode = useEditorStore((s) => s.toggleHtmlMode);
-  const updateBlock = useEditorStore((s) => s.updateBlock);
-  const moveBlock = useEditorStore((s) => s.moveBlock);
-  const duplicateBlock = useEditorStore((s) => s.duplicateBlock);
-  const removeBlock = useEditorStore((s) => s.removeBlock);
-  const undo = useEditorStore((s) => s.undo);
-  const redo = useEditorStore((s) => s.redo);
+  const block = selectedIds.length === 1 ? findBlock(blocks, selectedIds[0]) : null;
+  const blockType = block?.type || 'paragraph';
+  const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
   const past = useEditorStore((s) => s.past);
   const future = useEditorStore((s) => s.future);
+  const undo = useEditorStore((s) => s.undo);
+  const redo = useEditorStore((s) => s.redo);
+  const duplicateBlock = useEditorStore((s) => s.duplicateBlock);
+  const removeBlock = useEditorStore((s) => s.removeBlock);
+  const moveBlock = useEditorStore((s) => s.moveBlock);
+  const updateBlock = useEditorStore((s) => s.updateBlock);
+  const htmlModeBlockIds = useEditorStore((s) => s.htmlModeBlockIds);
+  const toggleHtmlMode = useEditorStore((s) => s.toggleHtmlMode);
 
+  const [toast, setToast] = useState<string | null>(null);
+  const [mobileExpanded, setMobileExpanded] = useState(true);
   const [showLink, setShowLink] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [linkText, setLinkText] = useState('');
-  const [mobileExpanded, setMobileExpanded] = useState(false);
+  const savedRangeRef = useRef<Range | null>(null);
 
-  // Auto-open format tools when a block is selected on mobile
+  // Auto-expand format tools when a block is clicked/selected
   useEffect(() => {
     if (selectedIds.length > 0) {
       setMobileExpanded(true);
     }
   }, [selectedIds]);
 
-  const [toast, setToast] = useState<string | null>(null);
-
-  const savedRangeRef = useRef<Range | null>(null);
-
-  const blockId = selectedIds[0];
-  const block = blockId ? findBlock(blocks, blockId) : null;
-  const blockType = block?.type || 'paragraph';
-
   const showNotification = (msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 2500);
+    setTimeout(() => setToast(null), 2000);
   };
 
   const saveSelection = () => {
@@ -2082,45 +2665,9 @@ export default function BlockFormattingToolbar() {
     }
   };
 
-  const execCmd = (cmd: string, value?: string) => {
+  const execCmd = (cmd: string, value: string = '') => {
     restoreSelection();
-    try {
-      document.execCommand('styleWithCSS', false, 'false');
-    } catch {
-      // ignore
-    }
-
-    if (cmd === 'hiliteColor') {
-      const sel = window.getSelection();
-      let hasHighlight = false;
-      if (sel && sel.rangeCount > 0) {
-        const range = sel.getRangeAt(0);
-        let node: Node | null = range.commonAncestorContainer;
-        if (node.nodeType === 3) node = node.parentNode;
-        while (node && node !== document.body && !(node as HTMLElement).hasAttribute('contenteditable')) {
-          if (node.nodeType === 1) {
-            const bg = (node as HTMLElement).style?.backgroundColor || window.getComputedStyle(node as HTMLElement).backgroundColor;
-            if (bg && bg !== 'transparent' && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'none') {
-              hasHighlight = true;
-              break;
-            }
-          }
-          node = node.parentNode;
-        }
-      }
-
-      if (hasHighlight) {
-        document.execCommand('hiliteColor', false, 'transparent');
-        document.execCommand('backColor', false, 'transparent');
-        showNotification('Highlight removed');
-      } else {
-        document.execCommand('hiliteColor', false, value || '#fef08a');
-        showNotification('Highlight applied');
-      }
-    } else {
-      document.execCommand(cmd, false, value);
-    }
-
+    document.execCommand(cmd, false, value);
     if (block) {
       const activeEditable = (savedRangeRef.current?.commonAncestorContainer?.nodeType === 1
         ? (savedRangeRef.current.commonAncestorContainer as HTMLElement)
@@ -2135,55 +2682,26 @@ export default function BlockFormattingToolbar() {
   const openLinkPopover = () => {
     saveSelection();
     const sel = window.getSelection();
-    let existingHref = '';
-    let existingText = '';
-
-    if (sel && sel.rangeCount > 0) {
-      const range = sel.getRangeAt(0);
-      let node: Node | null = range.commonAncestorContainer;
-      if (node.nodeType === 3) node = node.parentNode;
-      const anchor = (node as HTMLElement)?.closest('a');
+    if (sel && !sel.isCollapsed) {
+      setLinkText(sel.toString());
+      const parent = sel.getRangeAt(0).commonAncestorContainer;
+      const elem = parent.nodeType === 1 ? (parent as HTMLElement) : parent.parentElement;
+      const anchor = elem?.closest('a');
       if (anchor) {
-        existingHref = anchor.getAttribute('href') || '';
-        existingText = anchor.textContent || '';
-      } else if (!sel.isCollapsed) {
-        existingText = sel.toString().trim();
+        setLinkUrl(anchor.getAttribute('href') || '');
+      } else {
+        setLinkUrl('');
       }
+    } else {
+      setLinkText('');
+      setLinkUrl('');
     }
-
-    setLinkUrl(existingHref);
-    setLinkText(existingText);
-    setShowLink((prev) => !prev);
+    setShowLink(true);
   };
 
   const removeLink = () => {
     restoreSelection();
-
-    const sel = window.getSelection();
-    if (sel && sel.rangeCount > 0) {
-      const range = sel.getRangeAt(0);
-      let node: Node | null = range.commonAncestorContainer;
-      if (node.nodeType === 3) node = node.parentNode;
-      const anchor = (node as HTMLElement)?.closest('a');
-
-      if (anchor) {
-        const parent = anchor.parentNode;
-        while (anchor.firstChild) {
-          const child = anchor.firstChild;
-          if (child.nodeType === 1) {
-            (child as HTMLElement).style.color = '';
-            (child as HTMLElement).style.textDecoration = '';
-          }
-          parent?.insertBefore(child, anchor);
-        }
-        anchor.remove();
-      } else {
-        document.execCommand('unlink', false);
-      }
-    } else {
-      document.execCommand('unlink', false);
-    }
-
+    document.execCommand('unlink', false);
     if (block) {
       const activeEditable = (savedRangeRef.current?.commonAncestorContainer?.nodeType === 1
         ? (savedRangeRef.current.commonAncestorContainer as HTMLElement)
@@ -2193,8 +2711,6 @@ export default function BlockFormattingToolbar() {
         activeEditable.dispatchEvent(new Event('input', { bubbles: true }));
       }
     }
-    setLinkUrl('');
-    setLinkText('');
     setShowLink(false);
     showNotification('Link removed');
   };
@@ -2256,7 +2772,7 @@ export default function BlockFormattingToolbar() {
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="sticky top-0 z-40 shadow-xs backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border-b border-slate-200/90 dark:border-slate-800 px-3 sm:px-4 py-1.5 sm:py-2 flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-1.5 xl:gap-2 shrink-0 transition-all select-none w-full overflow-visible"
+      className="sticky top-0 z-40 shadow-xs backdrop-blur-md bg-white/95 dark:bg-slate-900/95 border-b border-slate-200/90 dark:border-slate-800 px-3 sm:px-4 py-1.5 sm:py-2 flex flex-col shrink-0 transition-all select-none w-full overflow-visible"
     >
       {/* Toast Notification */}
       {toast && (
@@ -2265,28 +2781,19 @@ export default function BlockFormattingToolbar() {
         </div>
       )}
 
-      {/* Mobile Bar: Block Info & Open/Close Format Tools Button (Visible below 1280px) */}
-      <div className="xl:hidden flex items-center justify-between gap-2 w-full py-0.5">
-        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-          <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-          <span className="truncate">{block ? getBlockLabel(blockType) : 'Document Tools'}</span>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setMobileExpanded(!mobileExpanded)}
-          className={`flex items-center justify-center w-8 h-8 rounded-xl transition-all cursor-pointer shadow-2xs be-icon-btn ${mobileExpanded
-            ? 'bg-blue-600 text-white'
-            : 'bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-blue-600 dark:text-blue-400 border border-slate-200 dark:border-slate-700'
-            }`}
-          title={mobileExpanded ? 'Close Tools' : 'Format Tools'}
-        >
-          <Sliders size={15} />
-        </button>
+      {/* 📱 MOBILE VIEW (< 576px / xs:hidden): Two-Row Native Mobile Design */}
+      <div className="xs:hidden w-full py-0.5">
+        <MobileTwoRowToolbar
+          block={block}
+          execCmd={execCmd}
+          saveSelection={saveSelection}
+          showNotification={showNotification}
+          openLinkPopover={openLinkPopover}
+        />
       </div>
 
-      {/* Formatting & Controls Area (Collapsible on mobile < xl, always open on desktop xl) */}
-      <div className={`${mobileExpanded ? 'flex' : 'hidden xl:flex'} flex-col xl:flex-row items-stretch xl:items-center justify-between gap-1.5 xl:gap-2 w-full animate-in fade-in zoom-in-95 duration-150`}>
+      {/* 💻 TABLET & DESKTOP VIEW (>= 576px / hidden xs:flex) */}
+      <div className="hidden xs:flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-1.5 xl:gap-2 w-full animate-in fade-in zoom-in-95 duration-150">
         {/* Upper Section / Row 1: Formatting & Content Controls */}
         <div className="flex items-center gap-1 sm:gap-1.5 flex-wrap w-full xl:w-auto">
           {selectedIds.length > 1 ? (
@@ -2327,25 +2834,19 @@ export default function BlockFormattingToolbar() {
                       onChange={(e) => setLinkUrl(e.target.value)}
                       placeholder="https://example.com"
                       className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
-                      onKeyDown={(e) => e.key === 'Enter' && applyLink()}
-                      autoFocus
                     />
-                    <input
-                      value={linkText}
-                      onChange={(e) => setLinkText(e.target.value)}
-                      placeholder="Link text (optional)"
-                      className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
-                      onKeyDown={(e) => e.key === 'Enter' && applyLink()}
-                    />
+                    {linkText !== undefined && (
+                      <input
+                        value={linkText}
+                        onChange={(e) => setLinkText(e.target.value)}
+                        placeholder="Link Text (optional)"
+                        className="px-2.5 py-1.5 text-xs rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-primary-500"
+                      />
+                    )}
                     <div className="flex justify-between items-center mt-1">
                       {linkUrl ? (
-                        <button
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={removeLink}
-                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 hover:bg-red-100 transition-colors cursor-pointer"
-                        >
-                          Remove Link
+                        <button onClick={removeLink} className="px-2.5 py-1 text-xs text-red-500 hover:text-red-700 cursor-pointer">
+                          Remove
                         </button>
                       ) : (
                         <button onClick={() => setShowLink(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
