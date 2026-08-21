@@ -35,16 +35,15 @@ pnpm add react-editor-studio
 
 ```tsx
 import React, { useState } from 'react';
-import { EditorStudio, exportToHtml, BlockInstance } from 'react-editor-studio';
+import { EditorStudio, exportToHtml, type BlockInstance } from 'react-editor-studio';
 import 'react-editor-studio/dist/style.css';
 
 export default function App() {
   const [blocks, setBlocks] = useState<BlockInstance[]>([]);
 
-  const handleSave = (savedBlocks: BlockInstance[]) => {
+  const handleSave = (savedBlocks: BlockInstance[], html: string) => {
     console.log('Saved Blocks JSON:', savedBlocks);
-    const htmlOutput = exportToHtml(savedBlocks);
-    console.log('Clean HTML Output:', htmlOutput);
+    console.log('Exported Clean HTML:', html);
   };
 
   return (
@@ -54,6 +53,10 @@ export default function App() {
         initialTitle="My Breaking News Story"
         onChange={(currentBlocks) => setBlocks(currentBlocks)}
         onSave={handleSave}
+        enableLiveUpdates={true}
+        enableEmbeds={true}
+        enablePolls={true}
+        enableCharts={true}
       />
     </div>
   );
