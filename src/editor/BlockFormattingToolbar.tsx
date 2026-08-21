@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import {
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   CheckSquare, Image as ImageIcon, Smile, Columns3, Rows3, Table as TableIcon, Link as LinkIcon,
-  Undo2, Redo2, Pin, Code2, Eraser, Indent, Outdent, Crop, ExternalLink,
+  Pin, Code2, Eraser, Indent, Outdent, Crop, ExternalLink,
   Trash2, Video, Highlighter, Upload, Subtitles, Tag as TagIcon,
   Columns as ColumnsIcon, Layers, Plus, Copy as CopyIcon, CopyPlus,
   ArrowUp, ArrowDown, ChevronDown, Sliders,
@@ -2035,10 +2035,6 @@ export default function BlockFormattingToolbar() {
   const moveBlock = useEditorStore((s) => s.moveBlock);
   const duplicateBlock = useEditorStore((s) => s.duplicateBlock);
   const removeBlock = useEditorStore((s) => s.removeBlock);
-  const undo = useEditorStore((s) => s.undo);
-  const redo = useEditorStore((s) => s.redo);
-  const past = useEditorStore((s) => s.past);
-  const future = useEditorStore((s) => s.future);
 
   const [showLink, setShowLink] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
@@ -2446,33 +2442,10 @@ export default function BlockFormattingToolbar() {
             )}
           </div>
 
-          <div className="flex items-center gap-1 flex-wrap">
-            <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-1 shrink-0" />
-
-            {/* Undo */}
-            <Tooltip text="Undo (Ctrl+Z)">
-              <button
-                onClick={undo}
-                disabled={past.length === 0}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
-              >
-                <Undo2 size={15} />
-              </button>
-            </Tooltip>
-
-            {/* Redo */}
-            <Tooltip text="Redo (Ctrl+Y)">
-              <button
-                onClick={redo}
-                disabled={future.length === 0}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/40 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer shrink-0"
-              >
-                <Redo2 size={15} />
-              </button>
-            </Tooltip>
-
-            {/* Pin Block Toggle Button */}
-            {block && (
+          {/* Pin Block Toggle Button */}
+          {block && (
+            <div className="flex items-center gap-1">
+              <span className="w-px h-5 bg-gray-200 dark:bg-gray-800 mx-0.5 shrink-0" />
               <Tooltip text={block.attributes?.pinned ? 'Unpin Block' : 'Pin Block'}>
                 <button
                   onClick={() => {
@@ -2492,8 +2465,8 @@ export default function BlockFormattingToolbar() {
                   <Pin size={15} className={block.attributes?.pinned ? 'rotate-45 text-white' : ''} />
                 </button>
               </Tooltip>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
