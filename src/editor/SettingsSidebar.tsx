@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, Sliders, Plus, Trash2, Crop, RotateCcw,
   Upload, Image as ImageIcon, Layout, Layers, Palette, Square,
   Rows, Columns as ColumnsIcon, Grid, Move, Code, Maximize2,
-  Link as LinkIcon, Video, X,
+  Link as LinkIcon, Video,
 } from 'lucide-react';
 import { createId } from './utils';
 import { useEditorStore, findBlock } from './store';
@@ -638,27 +638,24 @@ export default function SettingsSidebar() {
 
   const renderContent = () => (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto be-scroll pr-1 pb-20 xs:pb-4">
-      <div className="flex items-center justify-between gap-2 mb-4 p-3 rounded-2xl bg-gradient-to-r from-primary-500/10 via-indigo-500/5 to-transparent border border-primary-100 dark:border-primary-900/30 sticky top-0 z-10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-sm shrink-0">
-            <BlockIcon size={16} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <span className="text-xs font-bold text-gray-900 dark:text-gray-100 capitalize block truncate">
-              {block ? `${block.type} Settings` : 'Block Settings'}
-            </span>
-            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium block truncate">
-              {block ? 'Customize properties' : 'Select a block to edit'}
-            </span>
-          </div>
+      <div className="flex items-center gap-2.5 mb-4 p-3 rounded-2xl bg-gradient-to-r from-primary-500/10 via-indigo-500/5 to-transparent border border-primary-100 dark:border-primary-900/30">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-white flex items-center justify-center shadow-sm shrink-0">
+          <BlockIcon size={16} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="text-xs font-bold text-gray-900 dark:text-gray-100 capitalize block truncate">
+            {block ? `${block.type} settings` : 'Block Settings'}
+          </span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium block">
+            {block ? 'Customize properties' : 'Select a block to edit'}
+          </span>
         </div>
         <button
-          type="button"
           onClick={() => setOpen(false)}
-          className="p-1.5 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
-          title="Close Settings"
+          className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/60 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
+          title="Close settings"
         >
-          <X size={18} />
+          <PanelRightClose size={18} />
         </button>
       </div>
 

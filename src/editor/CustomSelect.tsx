@@ -15,7 +15,7 @@ interface CustomSelectProps<T = string | number> {
   placeholder?: string;
   className?: string;
   buttonClassName?: string;
-  size?: 'xs' | 'sm' | 'md';
+  size?: 'sm' | 'md';
 }
 
 export default function CustomSelect<T extends string | number>({
@@ -63,8 +63,8 @@ export default function CustomSelect<T extends string | number>({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full flex items-center justify-between gap-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium outline-none transition-all shadow-2xs hover:border-primary-500 cursor-pointer ${
-          size === 'xs' ? 'h-8 px-2 py-0 text-xs' : size === 'sm' ? 'h-9 px-2.5 py-0 text-xs' : 'px-3 py-2 text-xs'
+        className={`w-full flex items-center justify-between gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium outline-none transition-all shadow-2xs hover:border-primary-500 cursor-pointer ${
+          size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-xs'
         } ${isOpen ? 'border-primary-500 ring-2 ring-primary-500/20' : ''} ${buttonClassName}`}
       >
         <div className="flex items-center gap-2 min-w-0 truncate">
