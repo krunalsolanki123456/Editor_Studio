@@ -2098,16 +2098,16 @@ function MobileTwoRowToolbar({
     <div className="flex flex-col gap-2 w-full select-none">
       <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageReplace} className="hidden" />
 
-      {/* 1. PRIMARY ROW (Essential Controls) */}
-      <div className="flex items-center justify-between gap-1.5 w-full bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 shadow-xs backdrop-blur-md">
-        {/* Block Badge */}
-        <div className="h-8 flex items-center gap-1.5 px-2.5 rounded-xl bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold text-xs shadow-xs border border-black/5 dark:border-white/5 shrink-0">
+      {/* 1. PRIMARY ROW (Essential Controls - Exact 34px Height Locked) */}
+      <div className="flex items-center justify-between gap-1.5 w-full bg-slate-100/90 dark:bg-slate-800/90 p-1 rounded-2xl border border-slate-200/70 dark:border-slate-700/70 shadow-xs backdrop-blur-md h-[44px] min-h-[44px] max-h-[44px] box-border">
+        {/* 1. Block Badge */}
+        <div className="h-[34px] min-h-[34px] max-h-[34px] box-border px-2.5 rounded-xl bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold text-xs shadow-xs border border-black/5 dark:border-white/5 inline-flex items-center gap-1.5 shrink-0 select-none">
           <BlockIcon size={14} className="text-blue-500 shrink-0" />
           <span className="truncate max-w-[76px]">{blockLabel}</span>
         </div>
 
-        {/* Alignment Segmented Control */}
-        <div className="h-8 flex items-center bg-slate-200/70 dark:bg-slate-700/70 p-0.5 rounded-xl gap-0.5 shrink-0">
+        {/* 2. Alignment Segmented Control */}
+        <div className="h-[34px] min-h-[34px] max-h-[34px] box-border inline-flex items-center bg-slate-200/80 dark:bg-slate-700/80 p-[3px] rounded-xl gap-0.5 shrink-0 select-none">
           {(['left', 'center', 'right', 'justify'] as TextAlign[]).map((al) => {
             const Icon = al === 'left' ? AlignLeft : al === 'center' ? AlignCenter : al === 'right' ? AlignRight : AlignJustify;
             const isActive = align === al;
@@ -2116,7 +2116,7 @@ function MobileTwoRowToolbar({
                 key={al}
                 type="button"
                 onClick={() => handleAlign(al)}
-                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
+                className={`w-7 h-7 min-w-[28px] max-w-[28px] min-h-[28px] max-h-[28px] box-border p-0 inline-flex items-center justify-center rounded-lg transition-all cursor-pointer ${
                   isActive
                     ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs font-bold'
                     : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
@@ -2129,9 +2129,9 @@ function MobileTwoRowToolbar({
           })}
         </div>
 
-        {/* Quick Contextual Property Selector */}
+        {/* 3. Quick Contextual Property Selector */}
         {blockType === 'image' ? (
-          <div className="w-20 shrink-0">
+          <div className="w-20 shrink-0 h-[34px] min-h-[34px] max-h-[34px] box-border">
             <CustomSelect
               value={width}
               options={[
@@ -2143,11 +2143,11 @@ function MobileTwoRowToolbar({
               ]}
               onChange={handleWidth}
               size="xs"
-              buttonClassName="!h-8 !py-0 !rounded-xl !border-black/5 dark:!border-white/5 !shadow-xs !bg-white dark:!bg-slate-700 font-bold text-xs"
+              buttonClassName="!h-[34px] !min-h-[34px] !max-h-[34px] !py-0 !px-2.5 !rounded-xl !border-black/5 dark:!border-white/5 !shadow-xs !bg-white dark:!bg-slate-700 font-bold text-xs !box-border"
             />
           </div>
         ) : blockType === 'heading' ? (
-          <div className="w-20 shrink-0">
+          <div className="w-20 shrink-0 h-[34px] min-h-[34px] max-h-[34px] box-border">
             <CustomSelect
               value={String(block.attributes?.level || 2)}
               options={[
@@ -2163,25 +2163,25 @@ function MobileTwoRowToolbar({
                 showNotification(`Heading Level ${val}`);
               }}
               size="xs"
-              buttonClassName="!h-8 !py-0 !rounded-xl !border-black/5 dark:!border-white/5 !shadow-xs !bg-white dark:!bg-slate-700 font-bold text-xs"
+              buttonClassName="!h-[34px] !min-h-[34px] !max-h-[34px] !py-0 !px-2.5 !rounded-xl !border-black/5 dark:!border-white/5 !shadow-xs !bg-white dark:!bg-slate-700 font-bold text-xs !box-border"
             />
           </div>
         ) : (
           <button
             type="button"
             onClick={() => setSettingsSidebarOpen(true)}
-            className="h-8 px-2.5 rounded-xl bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-xs border border-black/5 dark:border-white/5 flex items-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-650 transition-colors cursor-pointer shrink-0"
+            className="h-[34px] min-h-[34px] max-h-[34px] box-border px-3 p-0 rounded-xl bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-xs border border-black/5 dark:border-white/5 inline-flex items-center gap-1.5 hover:bg-slate-50 dark:hover:bg-slate-650 transition-colors cursor-pointer shrink-0"
           >
             <Sliders size={12} className="text-blue-500" />
             <span>Styles</span>
           </button>
         )}
 
-        {/* More Menu (Additional Options) Button */}
+        {/* 4. More Menu (Additional Options) Button */}
         <button
           type="button"
           onClick={() => setMoreMenuOpen(true)}
-          className="w-8 h-8 rounded-xl bg-white dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-xs border border-black/5 dark:border-white/5 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer shrink-0"
+          className="w-[34px] h-[34px] min-w-[34px] max-w-[34px] min-h-[34px] max-h-[34px] box-border p-0 rounded-xl bg-white dark:bg-slate-700 inline-flex items-center justify-center text-slate-600 dark:text-slate-300 shadow-xs border border-black/5 dark:border-white/5 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer shrink-0"
           title="More options"
         >
           <MoreVertical size={15} />
