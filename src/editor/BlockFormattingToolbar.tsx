@@ -690,7 +690,10 @@ function ImageToolbar({ block, showNotification }: CommonToolbarProps) {
       <div className="relative inline-flex items-center">
         <Tooltip text="Image Link">
           <button
-            onClick={() => setShowLinkPopover(!showLinkPopover)}
+            onClick={() => {
+              setLinkInput((block.attributes.link as string) || '');
+              setShowLinkPopover(!showLinkPopover);
+            }}
             className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${block.attributes.link ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 font-semibold' : 'bg-gray-100 dark:bg-gray-800 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-950/40 text-gray-700 dark:text-gray-200'}`}
           >
             <LinkIcon size={14} /> Link
@@ -707,13 +710,28 @@ function ImageToolbar({ block, showNotification }: CommonToolbarProps) {
               onKeyDown={(e) => e.key === 'Enter' && applyLink()}
               autoFocus
             />
-            <div className="flex justify-end gap-1.5 mt-1">
-              <button onClick={() => setShowLinkPopover(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
-                Cancel
-              </button>
-              <button onClick={applyLink} className="px-3 py-1 text-xs font-semibold rounded-lg bg-primary-600 text-white cursor-pointer">
-                Save Link
-              </button>
+            <div className="flex justify-between items-center gap-1.5 mt-1">
+              {block.attributes.link ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, link: '' } }));
+                    setShowLinkPopover(false);
+                    showNotification('Image link removed');
+                  }}
+                  className="text-xs text-red-600 hover:underline cursor-pointer"
+                >
+                  Remove
+                </button>
+              ) : <div />}
+              <div className="flex gap-1.5">
+                <button onClick={() => setShowLinkPopover(false)} className="px-2.5 py-1 text-xs text-gray-500 cursor-pointer">
+                  Cancel
+                </button>
+                <button onClick={applyLink} className="px-3 py-1 text-xs font-semibold rounded-lg bg-primary-600 text-white cursor-pointer">
+                  Save
+                </button>
+              </div>
             </div>
           </div>
         )}

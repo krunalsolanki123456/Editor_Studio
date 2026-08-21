@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Upload, Link as LinkIcon, X, Plus } from 'lucide-react';
+import { Upload, Link as LinkIcon, X, Plus, ExternalLink } from 'lucide-react';
 import RichText from '../RichText';
 import { useEditorStore } from '../store';
 import { fileToDataUrl } from '../media';
@@ -286,11 +286,20 @@ export function ImageBlock({ block, selected = false }: BlockProps) {
               href={linkUrl}
               target={linkTarget}
               rel="noopener noreferrer"
-              onClick={(e) => e.preventDefault()}
-              className="block w-full h-full cursor-pointer"
-              title={`Link: ${linkUrl}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (linkUrl && linkUrl !== '#' && !linkUrl.startsWith('javascript:')) {
+                  window.open(linkUrl, linkTarget || '_blank', 'noopener,noreferrer');
+                }
+              }}
+              className="block w-full h-full cursor-pointer relative group"
+              title={`Open link: ${linkUrl}`}
             >
               {imageContent}
+              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-900/85 backdrop-blur-xs text-white text-[11px] font-bold px-2 py-1 rounded-lg flex items-center gap-1 shadow-lg pointer-events-none z-10">
+                <ExternalLink size={12} />
+                <span className="max-w-[140px] truncate">{linkUrl.replace(/^https?:\/\//, '')}</span>
+              </div>
             </a>
           ) : (
             imageContent
