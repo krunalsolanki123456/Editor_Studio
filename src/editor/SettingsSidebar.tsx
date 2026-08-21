@@ -626,7 +626,7 @@ export default function SettingsSidebar() {
               left: `${hoveredSettingsTooltip.left}px`,
               transform: 'translate(-100%, -50%)',
             }}
-            className="px-3 py-1.5 text-xs font-bold text-white bg-slate-900/95 dark:bg-slate-800 rounded-xl shadow-2xl whitespace-nowrap pointer-events-none z-[999999] flex items-center gap-1.5 border border-slate-700/60 animate-in fade-in duration-100"
+            className="px-3 py-1.5 text-xs font-bold text-white bg-slate-900/95 dark:bg-slate-800 rounded-xl shadow-2xl whitespace-nowrap pointer-events-none z-[9999999] flex items-center gap-1.5 border border-slate-700/60 animate-in fade-in duration-100"
           >
             <span>{hoveredSettingsTooltip.label}</span>
           </div>,

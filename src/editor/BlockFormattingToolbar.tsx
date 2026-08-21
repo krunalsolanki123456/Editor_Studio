@@ -28,27 +28,23 @@ function Tooltip({
 }) {
   const alignClasses =
     align === 'left'
-      ? 'left-0 translate-x-0 items-start'
+      ? 'left-0 translate-x-0'
       : align === 'right'
-        ? 'right-0 translate-x-0 items-end'
-        : 'left-1/2 -translate-x-1/2 items-center';
+        ? 'right-0 translate-x-0'
+        : 'left-1/2 -translate-x-1/2';
 
   const arrowAlignClasses =
     align === 'left'
-      ? 'left-3.5'
+      ? 'left-3'
       : align === 'right'
-        ? 'right-3.5'
+        ? 'right-3'
         : 'left-1/2 -translate-x-1/2';
 
   return (
     <div className="relative group inline-flex items-center shrink-0">
       {children}
-      <div
-        className={`absolute top-full mt-2.5 ${alignClasses} hidden group-hover:flex flex-col pointer-events-none z-[99999]`}
-      >
-        <div
-          className={`w-2 h-2 bg-slate-900 dark:bg-slate-800 rotate-45 -mb-1 shadow-xs border-t border-l border-slate-700/60 relative z-10 ${arrowAlignClasses}`}
-        />
+      <div className={`absolute top-full mt-2.5 ${alignClasses} hidden group-hover:flex flex-col items-center pointer-events-none z-[9999999]`}>
+        <div className={`w-2 h-2 bg-slate-900 dark:bg-slate-800 rotate-45 -mb-1 shadow-xs border-t border-l border-slate-700/60 ${arrowAlignClasses}`} />
         <span className="px-2.5 py-1 text-[11px] font-semibold text-white bg-slate-900 dark:bg-slate-800 rounded-lg shadow-2xl border border-slate-700/60 whitespace-nowrap block">
           {text}
         </span>
