@@ -2107,7 +2107,7 @@ function MobileTwoRowToolbar({
         </div>
 
         {/* 2. Alignment Segmented Control */}
-        <div className="h-[34px] min-h-[34px] max-h-[34px] box-border inline-flex items-center bg-slate-200/80 dark:bg-slate-700/80 p-[3px] rounded-xl gap-0.5 shrink-0 select-none">
+        <div className="h-[34px] min-h-[34px] max-h-[34px] box-border inline-flex items-center bg-slate-200/90 dark:bg-slate-700/90 p-1 rounded-xl gap-0.5 shrink-0 select-none overflow-hidden">
           {(['left', 'center', 'right', 'justify'] as TextAlign[]).map((al) => {
             const Icon = al === 'left' ? AlignLeft : al === 'center' ? AlignCenter : al === 'right' ? AlignRight : AlignJustify;
             const isActive = align === al;
@@ -2116,7 +2116,7 @@ function MobileTwoRowToolbar({
                 key={al}
                 type="button"
                 onClick={() => handleAlign(al)}
-                className={`w-7 h-7 min-w-[28px] max-w-[28px] min-h-[28px] max-h-[28px] box-border p-0 inline-flex items-center justify-center rounded-lg transition-all cursor-pointer ${
+                className={`w-7 min-w-[28px] max-w-[28px] h-full rounded-lg box-border p-0 m-0 border-0 outline-none inline-flex items-center justify-center transition-all cursor-pointer ${
                   isActive
                     ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs font-bold'
                     : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
@@ -2404,8 +2404,8 @@ function MobileTwoRowToolbar({
                               setShowWidthDropdown(false);
                             }}
                             className={`px-2 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${width === w
-                                ? 'bg-blue-600 text-white shadow-2xs'
-                                : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-blue-50'
+                              ? 'bg-blue-600 text-white shadow-2xs'
+                              : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-blue-50'
                               }`}
                           >
                             {w}
@@ -2449,8 +2449,8 @@ function MobileTwoRowToolbar({
                                 showNotification(`Aspect Ratio: ${r}`);
                               }}
                               className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${isAct
-                                  ? 'bg-blue-600 text-white shadow-2xs'
-                                  : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-blue-50'
+                                ? 'bg-blue-600 text-white shadow-2xs'
+                                : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-blue-50'
                                 }`}
                             >
                               {r}
