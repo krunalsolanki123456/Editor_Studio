@@ -53,6 +53,7 @@ export function EditorStudio({
   const setFilterOptions = useEditorStore((s) => s.setFilterOptions);
   const [insertIndex, setInsertIndex] = useState<number | null>(null);
 
+  const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
   const setSettingsSidebarOpen = useEditorStore((s) => s.setSettingsSidebarOpen);
 
   // Sync block filter options
@@ -211,16 +212,18 @@ export function EditorStudio({
         </div>
       )}
       <div className="flex-1 min-h-0 flex overflow-hidden relative z-10">
-        <BlockInserter
-          open={inserterOpen}
-          onClose={() => setInserterOpen(false)}
-          onInsert={handleInsert}
-        />
+        {!isPreviewMode && (
+          <BlockInserter
+            open={inserterOpen}
+            onClose={() => setInserterOpen(false)}
+            onInsert={handleInsert}
+          />
+        )}
         <EditorCanvas />
-        <SettingsSidebar />
+        {!isPreviewMode && <SettingsSidebar />}
       </div>
-      <InlineToolbar />
-      <MobileBottomBar />
+      {!isPreviewMode && <InlineToolbar />}
+      {!isPreviewMode && <MobileBottomBar />}
     </div>
   );
 }

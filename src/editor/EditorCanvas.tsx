@@ -307,15 +307,6 @@ export default function EditorCanvas() {
           className="p-3 sm:p-6 pb-10 xs:pb-4 transition-transform duration-150 origin-top"
           style={{ transform: zoomLevel !== 100 ? `scale(${zoomLevel / 100})` : undefined }}
         >
-          {/* Full-canvas read-only overlay in preview mode */}
-          {isPreviewMode && (
-            <div
-              className="absolute inset-0 z-[9999] cursor-default"
-              onClick={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
-              style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
-            />
-          )}
           <div
             className={`${getCanvasContainerClass()} ${isPreviewMode ? 'cursor-default select-none' : 'cursor-text'} mb-20`}
             onClick={isPreviewMode ? undefined : handleCanvasClick}
