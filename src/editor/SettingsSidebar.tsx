@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Range, getTrackBackground } from 'react-range';
 import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
-  Type as TypeIcon, Sparkles, PanelRightClose, PanelRightOpen,
+  Type as TypeIcon, Sparkles, PanelRightOpen, X,
   ChevronDown, ChevronUp, Sliders, Plus, Trash2, Crop, RotateCcw,
   Upload, Image as ImageIcon, Layout, Layers, Palette, Square,
   Rows, Columns as ColumnsIcon, Grid, Move, Code, Maximize2,
@@ -651,11 +651,12 @@ export default function SettingsSidebar() {
           </span>
         </div>
         <button
+          type="button"
           onClick={() => setOpen(false)}
-          className="p-1.5 rounded-xl text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/60 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
-          title="Close settings"
+          className="p-1.5 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0 flex items-center justify-center"
+          title="Close Settings"
         >
-          <PanelRightClose size={18} />
+          <X size={18} />
         </button>
       </div>
 
