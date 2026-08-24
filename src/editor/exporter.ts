@@ -856,7 +856,8 @@ function renderBlock(block: BlockInstance): string {
             const raw = (rawEmbed || '').trim();
             if (isTwitterUrl(raw)) {
               const tweetUrl = normalizeTwitterUrl(raw);
-              return `<div style="max-width:550px;width:100%;margin-bottom:12px;"><blockquote class="twitter-tweet"><a href="${escapeHtml(tweetUrl)}"></a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></div>`;
+              const twAlign = u.mediaAlign === 'left' ? 'left' : u.mediaAlign === 'right' ? 'right' : 'center';
+              return `<div style="max-width:550px;width:100%;margin-bottom:12px;"><blockquote class="twitter-tweet" data-align="${twAlign}"><a href="${escapeHtml(tweetUrl)}"></a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></div>`;
             } else if (isInstagramUrl(raw)) {
               const igEmbedUrl = normalizeInstagramUrl(raw);
               return `<div style="max-width:650px;width:100%;min-height:720px;height:860px;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.12);margin-bottom:16px;"><iframe src="${escapeHtml(igEmbedUrl)}" width="100%" height="860" style="border:0;width:100%;height:100%;min-height:720px;" allowtransparency="true" allowfullscreen scrolling="auto"></iframe></div>`;

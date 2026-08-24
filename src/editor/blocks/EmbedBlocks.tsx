@@ -182,7 +182,7 @@ export function ensureInstagramWidgets(): Promise<void> {
   return instagramWidgetsPromise;
 }
 
-export function TwitterEmbed({ url }: { url: string }) {
+export function TwitterEmbed({ url, align = 'center' }: { url: string; align?: 'left' | 'center' | 'right' }) {
   const ref = useRef<HTMLDivElement>(null);
   const normalizedUrl = normalizeTwitterUrl(url);
   const tweetIdMatch = normalizedUrl.match(/status\/(\d+)/i);
@@ -202,12 +202,13 @@ export function TwitterEmbed({ url }: { url: string }) {
         if (tweetId && widgets?.createTweet) {
           widgets.createTweet(tweetId, ref.current, {
             theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
-            align: 'center',
+            align: align || 'center',
             dnt: true,
           });
         } else if (widgets?.load) {
           const bq = document.createElement('blockquote');
           bq.className = 'twitter-tweet';
+          bq.setAttribute('data-align', align || 'center');
           const a = document.createElement('a');
           a.href = normalizedUrl;
           bq.appendChild(a);
@@ -223,12 +224,14 @@ export function TwitterEmbed({ url }: { url: string }) {
     return () => {
       active = false;
     };
-  }, [normalizedUrl, tweetId]);
+  }, [normalizedUrl, tweetId, align]);
+
+  const justifyClass = align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center';
 
   return (
     <div
       ref={ref}
-      className="twitter-embed w-full min-h-[140px] flex items-center justify-center overflow-hidden rounded-2xl bg-transparent"
+      className={`twitter-embed w-full min-h-[140px] flex items-center ${justifyClass} overflow-hidden rounded-2xl bg-transparent`}
     />
   );
 }

@@ -3,6 +3,8 @@ import type { BlockInstance } from './types';
 import { createBlock, BlockFilterOptions } from './blocks/registry';
 import { cloneBlock, deepClone, createId } from './utils';
 import { parseRichPasteToBlocks } from './richPasteEngine';
+import type { PlanSlug, BlockPermissionsConfig } from './permissions/types';
+import { canUseBlock, filterBlocksByPermission } from './permissions/permissionEngine';
 
 export type DeviceView = 'desktop' | 'tablet' | 'mobile';
 
@@ -32,6 +34,10 @@ export interface EditorStore {
   slashMenu: { open: boolean; blockId: string | null; anchor: { x: number; y: number } | null };
   filterOptions?: BlockFilterOptions;
 
+  /** Permission system state — null means system is inactive (backward compat) */
+  currentPlan: PlanSlug | null;
+  blockPermissions: BlockPermissionsConfig | null;
+
   setPages: (pages: PageItem[]) => void;
   setCurrentPageId: (id: string) => void;
   addPage: (name?: string) => string;
@@ -42,6 +48,9 @@ export interface EditorStore {
   setZoomLevel: (zoom: number) => void;
 
   setFilterOptions: (options?: BlockFilterOptions) => void;
+  setPlan: (plan: PlanSlug | null) => void;
+  setBlockPermissions: (permissions: BlockPermissionsConfig | null) => void;
+  canInsertBlock: (blockType: string) => boolean;
   insertBlock: (type: string, index?: number | null) => string | null;
   insertBlockInto: (targetId: string, type: string, index?: number | null) => string | null;
   insertBlockInstance: (block: BlockInstance, index?: number | null) => void;
@@ -412,6 +421,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   settingsSidebarOpen: true,
   slashMenu: { open: false, blockId: null, anchor: null },
   filterOptions: undefined,
+  currentPlan: null,
+  blockPermissions: null,
 
   setPages: (pages) => set({ pages }),
   setCurrentPageId: (id) => {
@@ -521,6 +532,12 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   },
 
   setFilterOptions: (options) => set({ filterOptions: options }),
+  setPlan: (plan) => set({ currentPlan: plan }),
+  setBlockPermissions: (permissions) => set({ blockPermissions: permissions }),
+  canInsertBlock: (blockType) => {
+    const { currentPlan, blockPermissions } = get();
+    return canUseBlock(blockType, currentPlan, blockPermissions);
+  },
   openInserterAtIndex: (index) => set({ inserterOpen: true, inserterTargetIndex: index }),
 
   toggleHtmlMode: (id) => {
@@ -584,6 +601,13 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   setDeviceView: (device) => set({ deviceView: device }),
 
   insertBlock: (type, index = null) => {
+    // ── Permission Guard ──────────────────────────────────────────────────────
+    const { currentPlan, blockPermissions } = get();
+    if (!canUseBlock(type, currentPlan, blockPermissions)) {
+      console.warn(`[EditorStudio] Block '${type}' is not allowed for plan '${currentPlan ?? 'none'}'. Insert rejected.`);
+      return null;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
     const block = createBlock(type);
     if (!block) return null;
     set((state) => {
@@ -611,6 +635,13 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   },
 
   insertBlockInto: (targetId, type, index = null) => {
+    // ── Permission Guard ──────────────────────────────────────────────────────
+    const { currentPlan, blockPermissions } = get();
+    if (!canUseBlock(type, currentPlan, blockPermissions)) {
+      console.warn(`[EditorStudio] Block '${type}' is not allowed for plan '${currentPlan ?? 'none'}'. InsertInto rejected.`);
+      return null;
+    }
+    // ─────────────────────────────────────────────────────────────────────────
     const targetBlock = findBlock(get().blocks, targetId);
     if (targetBlock?.type === 'cover' && type !== 'heading' && type !== 'paragraph') {
       return null;
@@ -636,6 +667,11 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
   addBlocks: (newBlocks, targetId = null) => {
     if (!newBlocks || newBlocks.length === 0) return;
+    // ── Permission Guard — filter restricted block types from paste/programmatic inserts ──
+    const { currentPlan, blockPermissions } = get();
+    const allowedBlocks = filterBlocksByPermission(newBlocks, currentPlan, blockPermissions);
+    if (allowedBlocks.length === 0) return;
+    // ─────────────────────────────────────────────────────────────────────────
     set((state) => {
       const selectedId = targetId || (state.selectedIds.length > 0 ? state.selectedIds[0] : null);
 
@@ -647,7 +683,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
           const inheritedTextColor = targetBlock.attributes.textColor;
 
           if (inheritedFontFamily) {
-            newBlocks.forEach((nb) => {
+            allowedBlocks.forEach((nb) => {
               if (nb.attributes) {
                 if (!nb.attributes.fontFamily) {
                   nb.attributes.fontFamily = inheritedFontFamily;
@@ -665,8 +701,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
           const containerTypes = ['column', 'group', 'cover', 'stack'];
           if (containerTypes.includes(targetBlock.type)) {
             const filteredNewBlocks = targetBlock.type === 'cover'
-              ? newBlocks.filter((b) => b.type === 'heading' || b.type === 'paragraph')
-              : newBlocks;
+              ? allowedBlocks.filter((b) => b.type === 'heading' || b.type === 'paragraph')
+              : allowedBlocks;
             if (filteredNewBlocks.length === 0) return {};
             const updated = updateInTree(state.blocks, selectedId, (b) => ({
               ...b,
@@ -684,7 +720,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
               if (idx !== -1) {
                 inserted = true;
                 const copy = [...tree];
-                copy.splice(idx + 1, 0, ...newBlocks);
+                copy.splice(idx + 1, 0, ...allowedBlocks);
                 return copy;
               }
               return tree.map((b) => {
@@ -698,24 +734,29 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
               return {
                 ...pushHistory(state),
                 blocks: updated,
-                selectedIds: newBlocks.map((b) => b.id),
+                selectedIds: allowedBlocks.map((b) => b.id),
               };
             }
           }
         }
       }
 
-      const blocks = [...state.blocks, ...newBlocks];
+      const blocks = [...state.blocks, ...allowedBlocks];
       return {
         ...pushHistory(state),
         blocks,
-        selectedIds: newBlocks.map((b) => b.id),
+        selectedIds: allowedBlocks.map((b) => b.id),
       };
     });
   },
 
   replaceBlockWithBlocks: (targetId, newBlocks) => {
     if (!newBlocks || newBlocks.length === 0) return;
+    // ── Permission Guard — filter restricted block types from paste/replace ──
+    const { currentPlan, blockPermissions } = get();
+    const allowedBlocks = filterBlocksByPermission(newBlocks, currentPlan, blockPermissions);
+    if (allowedBlocks.length === 0) return;
+    // ─────────────────────────────────────────────────────────────────────────
     set((state) => {
       const targetBlock = findBlock(state.blocks, targetId);
       if (targetBlock && targetBlock.attributes) {
@@ -723,7 +764,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         const inheritedFontFamilyLabel = targetBlock.attributes.fontFamilyLabel;
         const inheritedTextColor = targetBlock.attributes.textColor;
         if (inheritedFontFamily) {
-          newBlocks.forEach((nb) => {
+          allowedBlocks.forEach((nb) => {
             if (nb.attributes) {
               if (!nb.attributes.fontFamily) nb.attributes.fontFamily = inheritedFontFamily;
               if (!nb.attributes.fontFamilyLabel && inheritedFontFamilyLabel) nb.attributes.fontFamilyLabel = inheritedFontFamilyLabel;
@@ -739,7 +780,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         if (idx !== -1) {
           replaced = true;
           const copy = [...tree];
-          copy.splice(idx, 1, ...newBlocks);
+          copy.splice(idx, 1, ...allowedBlocks);
           return copy;
         }
         return tree.map((b) => {
@@ -753,14 +794,14 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         return {
           ...pushHistory(state),
           blocks: updated,
-          selectedIds: newBlocks.map((b) => b.id),
+          selectedIds: allowedBlocks.map((b) => b.id),
         };
       }
 
       return {
         ...pushHistory(state),
-        blocks: [...state.blocks, ...newBlocks],
-        selectedIds: newBlocks.map((b) => b.id),
+        blocks: [...state.blocks, ...allowedBlocks],
+        selectedIds: allowedBlocks.map((b) => b.id),
       };
     });
   },
@@ -837,10 +878,18 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   pasteBlocks: (index) => {
     const state = get();
     if (!state.clipboard) return;
+    // ── Permission Guard — filter clipboard items restricted for current plan ──
+    const allowedClipboard = filterBlocksByPermission(
+      state.clipboard,
+      state.currentPlan,
+      state.blockPermissions,
+    );
+    if (allowedClipboard.length === 0) return;
+    // ─────────────────────────────────────────────────────────────────────────
     const blocks = [...state.blocks];
     let insertAt = index ?? blocks.length;
     const newIds: string[] = [];
-    for (const block of state.clipboard) {
+    for (const block of allowedClipboard) {
       const copy = cloneBlock(block, true);
       blocks.splice(insertAt, 0, copy);
       newIds.push(copy.id);

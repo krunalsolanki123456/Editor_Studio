@@ -1,18 +1,21 @@
 import { useState } from 'react';
-import { Trash2, CopyPlus, ArrowUp, ArrowDown, Pin, GripVertical, Plus } from 'lucide-react';
+import { Trash2, CopyPlus, ArrowUp, ArrowDown, Pin, GripVertical, Plus, Lock } from 'lucide-react';
 import { useEditorStore } from './store';
 import { getBlockLabel, getBlockIcon } from './blocks/registry';
 import type { BlockInstance } from './types';
 import BlockRenderer from './blocks/BlockRenderer';
 import HtmlCodeEditor from './HtmlCodeEditor';
+import type { UpgradeRequiredPayload } from './permissions/types';
+import { getBlockAccessStatus, getUpgradePlan } from './permissions/permissionEngine';
 
 interface BlockWrapperProps {
   block: BlockInstance;
   index: number;
   total: number;
+  onUpgradeRequired?: (payload: UpgradeRequiredPayload) => void;
 }
 
-export default function BlockWrapper({ block, index, total }: BlockWrapperProps) {
+export default function BlockWrapper({ block, index, total, onUpgradeRequired }: BlockWrapperProps) {
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
   const openInserterAtIndex = useEditorStore((s) => s.openInserterAtIndex);
@@ -24,6 +27,11 @@ export default function BlockWrapper({ block, index, total }: BlockWrapperProps)
   const moveBlock = useEditorStore((s) => s.moveBlock);
   const duplicateBlock = useEditorStore((s) => s.duplicateBlock);
   const removeBlock = useEditorStore((s) => s.removeBlock);
+  const currentPlan = useEditorStore((s) => s.currentPlan);
+  const blockPermissions = useEditorStore((s) => s.blockPermissions);
+
+  const accessStatus = getBlockAccessStatus(block.type, currentPlan, blockPermissions);
+  const isLocked = accessStatus === 'locked';
 
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -123,6 +131,14 @@ export default function BlockWrapper({ block, index, total }: BlockWrapperProps)
         </div>
       )}
 
+      {/* Subtle Premium Read-Only Banner for locked blocks in existing docs */}
+      {!isPreviewMode && isLocked && (
+        <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 px-2.5 py-1 rounded-lg select-none w-fit shadow-2xs">
+          <Lock size={12} className="text-amber-500 shrink-0" />
+          <span>Premium Block · Read Only</span>
+        </div>
+      )}
+
       {/* Visual Highlight Badge when Text/Block is Pinned */}
       {!isPreviewMode && isPinnedBlock && (
         <div className="mb-2.5 flex items-center gap-2 text-xs font-bold tracking-wide text-amber-900 dark:text-amber-100 bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200 dark:from-amber-900 dark:via-amber-950 dark:to-amber-900 border-2 border-amber-400 dark:border-amber-600 px-3.5 py-1.5 rounded-xl shadow-md select-none w-fit">
@@ -202,11 +218,30 @@ export default function BlockWrapper({ block, index, total }: BlockWrapperProps)
 
           <button
             type="button"
-            onClick={(e) => { e.stopPropagation(); duplicateBlock(block.id); }}
-            className="h-5 w-5 flex items-center justify-center rounded text-gray-300 hover:text-blue-300 hover:bg-blue-500/20 cursor-pointer transition-colors shrink-0"
-            title="Duplicate"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isLocked) {
+                const reqPlan = currentPlan ? getUpgradePlan(block.type, currentPlan, blockPermissions) : 'pro';
+                if (onUpgradeRequired) {
+                  onUpgradeRequired({
+                    blockType: block.type,
+                    blockLabel: getBlockLabel(block.type),
+                    currentPlan: currentPlan ?? 'free',
+                    requiredPlan: reqPlan ?? 'pro',
+                  });
+                }
+                return;
+              }
+              duplicateBlock(block.id);
+            }}
+            className={`h-5 w-5 flex items-center justify-center rounded transition-colors shrink-0 ${
+              isLocked
+                ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/20 cursor-pointer'
+                : 'text-gray-300 hover:text-blue-300 hover:bg-blue-500/20 cursor-pointer'
+            }`}
+            title={isLocked ? 'Duplicate disabled for premium block (Upgrade required)' : 'Duplicate'}
           >
-            <CopyPlus size={12} />
+            {isLocked ? <Lock size={10} /> : <CopyPlus size={12} />}
           </button>
 
           <button

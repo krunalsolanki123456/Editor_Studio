@@ -8,8 +8,13 @@ import BlockFormattingToolbar from './BlockFormattingToolbar';
 import { parseRichPasteToBlocks } from './richPasteEngine';
 import { detectContentPattern, applyAISmartStructure } from './aiSmartPaste';
 import { focusBlockId } from './utils';
+import type { UpgradeRequiredPayload } from './permissions/types';
 
-export default function EditorCanvas() {
+interface EditorCanvasProps {
+  onUpgradeRequired?: (payload: UpgradeRequiredPayload) => void;
+}
+
+export default function EditorCanvas({ onUpgradeRequired }: EditorCanvasProps = {}) {
   const blocks = useEditorStore((s) => s.blocks);
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const clearSelection = useEditorStore((s) => s.clearSelection);
@@ -311,7 +316,13 @@ export default function EditorCanvas() {
           >
             <div>
               {blocks.map((block, index) => (
-                <BlockWrapper key={block.id} block={block} index={index} total={blocks.length} />
+                <BlockWrapper
+                  key={block.id}
+                  block={block}
+                  index={index}
+                  total={blocks.length}
+                  onUpgradeRequired={onUpgradeRequired}
+                />
               ))}
             </div>
 
@@ -387,7 +398,15 @@ export default function EditorCanvas() {
           </div>
         </div>
 
-        {!isPreviewMode && <SlashMenu open={slashMenu.open} blockId={slashMenu.blockId} anchor={slashMenu.anchor} onClose={closeSlashMenu} />}
+        {!isPreviewMode && (
+          <SlashMenu
+            open={slashMenu.open}
+            blockId={slashMenu.blockId}
+            anchor={slashMenu.anchor}
+            onClose={closeSlashMenu}
+            onUpgradeRequired={onUpgradeRequired}
+          />
+        )}
       </div>
 
       {/* Floating Bottom Document Stats & Zoom Bar */}

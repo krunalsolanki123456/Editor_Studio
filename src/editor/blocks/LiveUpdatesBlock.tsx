@@ -39,18 +39,24 @@ export function renderLiveEmbedComponent(rawCode: string, align: 'left' | 'cente
   const trimmed = (rawCode || '').trim();
   if (!trimmed) return null;
 
+  const alignJustify = align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center';
+
   if (isTwitterUrl(trimmed)) {
     return (
-      <div className="w-full max-w-[550px]">
-        <TwitterEmbed url={trimmed} />
+      <div className={`w-full flex ${alignJustify}`}>
+        <div className="w-full max-w-[550px]">
+          <TwitterEmbed url={trimmed} align={align} />
+        </div>
       </div>
     );
   }
 
   if (isInstagramUrl(trimmed)) {
     return (
-      <div className="w-full max-w-2xl">
-        <InstagramEmbed url={trimmed} align={align} />
+      <div className={`w-full flex ${alignJustify}`}>
+        <div className="w-full max-w-2xl">
+          <InstagramEmbed url={trimmed} align={align} />
+        </div>
       </div>
     );
   }
@@ -58,28 +64,32 @@ export function renderLiveEmbedComponent(rawCode: string, align: 'left' | 'cente
   if (isSpotifyUrl(trimmed)) {
     const spotifySrc = normalizeSpotifyUrl(trimmed);
     return (
-      <div className="w-full max-w-[560px] rounded-xl overflow-hidden shadow-sm">
-        <iframe
-          src={spotifySrc}
-          width="100%"
-          height="152"
-          style={{ border: 0 }}
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          loading="lazy"
-        />
+      <div className={`w-full flex ${alignJustify}`}>
+        <div className="w-full max-w-[560px] rounded-xl overflow-hidden shadow-sm">
+          <iframe
+            src={spotifySrc}
+            width="100%"
+            height="152"
+            style={{ border: 0 }}
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+          />
+        </div>
       </div>
     );
   }
 
   const embedSrc = extractEmbedSrc(trimmed);
   return (
-    <div className="w-full max-w-2xl aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700 bg-black">
-      <iframe
-        src={embedSrc}
-        className="w-full h-full border-0"
-        allowFullScreen
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      />
+    <div className={`w-full flex ${alignJustify}`}>
+      <div className="w-full max-w-2xl aspect-video rounded-xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700 bg-black">
+        <iframe
+          src={embedSrc}
+          className="w-full h-full border-0"
+          allowFullScreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        />
+      </div>
     </div>
   );
 }
@@ -89,11 +99,12 @@ export function renderLiveEmbedList(rawCode: string | string[] | undefined, alig
   if (list.length === 0) return null;
 
   const alignClass = align === 'left' ? 'items-start' : align === 'right' ? 'items-end' : 'items-center';
+  const itemJustify = align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center';
 
   return (
     <div className={`w-full flex flex-col ${alignClass} gap-3`}>
       {list.map((code, idx) => (
-        <div key={idx} className="w-full flex justify-center">
+        <div key={idx} className={`w-full flex ${itemJustify}`}>
           {renderLiveEmbedComponent(code, align)}
         </div>
       ))}

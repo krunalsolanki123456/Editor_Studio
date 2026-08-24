@@ -1,22 +1,28 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { getBlockIcon, createBlock, getFilteredBlockDefinitions } from './blocks/registry';
+import { getBlockIcon, createBlock, getFilteredBlockDefinitions, getBlockLabel } from './blocks/registry';
 import { useEditorStore } from './store';
 import { blockToHtmlCode } from './utils';
+import { Lock } from 'lucide-react';
+import type { UpgradeRequiredPayload } from './permissions/types';
+import { getBlockAccessStatus, getUpgradePlan } from './permissions/permissionEngine';
 
 interface SlashMenuProps {
   open: boolean;
   blockId: string | null;
   anchor: { x: number; y: number } | null;
   onClose: () => void;
+  onUpgradeRequired?: (payload: UpgradeRequiredPayload) => void;
 }
 
-export default function SlashMenu({ open, blockId, anchor, onClose }: SlashMenuProps) {
+export default function SlashMenu({ open, blockId, anchor, onClose, onUpgradeRequired }: SlashMenuProps) {
   const [query, setQuery] = useState('');
   const [highlighted, setHighlighted] = useState(0);
   const insertBlock = useEditorStore((s) => s.insertBlock);
   const removeBlock = useEditorStore((s) => s.removeBlock);
   const blocks = useEditorStore((s) => s.blocks);
   const filterOptions = useEditorStore((s) => s.filterOptions);
+  const currentPlan = useEditorStore((s) => s.currentPlan);
+  const blockPermissions = useEditorStore((s) => s.blockPermissions);
   const listRef = useRef<HTMLDivElement>(null);
 
   const availableDefinitions = useMemo(() => {
@@ -28,18 +34,46 @@ export default function SlashMenu({ open, blockId, anchor, onClose }: SlashMenuP
   }, [open]);
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return availableDefinitions;
+    const defs = availableDefinitions.filter((b) => {
+      // Hide globally disabled blocks from slash menu
+      const status = getBlockAccessStatus(b.type, currentPlan, blockPermissions);
+      return status !== 'disabled';
+    });
+    if (!query.trim()) return defs;
     const q = query.toLowerCase();
-    return availableDefinitions.filter((b) =>
+    return defs.filter((b) =>
       b.label.toLowerCase().includes(q) || b.keywords.some((k: string) => k.includes(q)),
     );
-  }, [availableDefinitions, query]);
+  }, [availableDefinitions, query, currentPlan, blockPermissions]);
 
   useEffect(() => { setHighlighted(0); }, [query]);
 
   if (!open || !anchor) return null;
 
   const handleSelect = (type: string) => {
+    // ── Permission Check ──────────────────────────────────────────────────────
+    const accessStatus = getBlockAccessStatus(type, currentPlan, blockPermissions);
+    if (accessStatus === 'locked') {
+      const requiredPlan = currentPlan
+        ? getUpgradePlan(type, currentPlan, blockPermissions)
+        : null;
+      if (onUpgradeRequired) {
+        onUpgradeRequired({
+          blockType: type,
+          blockLabel: getBlockLabel(type),
+          currentPlan: currentPlan ?? 'free',
+          requiredPlan: requiredPlan ?? 'pro',
+        });
+      }
+      onClose();
+      return; // DO NOT insert
+    }
+    if (accessStatus === 'disabled') {
+      onClose();
+      return; // Silently rejected
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
     const blockIndex = blocks.findIndex((b) => b.id === blockId);
     let insertIndex = blockIndex;
 
@@ -110,14 +144,38 @@ export default function SlashMenu({ open, blockId, anchor, onClose }: SlashMenuP
       <div ref={listRef} className="max-h-72 overflow-y-auto be-scroll p-1">
         {filtered.map((block, i) => {
           const Icon = getBlockIcon(block.type);
+          const accessStatus = getBlockAccessStatus(block.type, currentPlan, blockPermissions);
+          const isLocked = accessStatus === 'locked';
+          const reqPlan = isLocked && currentPlan
+            ? getUpgradePlan(block.type, currentPlan, blockPermissions)
+            : null;
+
           return (
             <button key={block.type} onClick={() => handleSelect(block.type)} onMouseEnter={() => setHighlighted(i)}
               className={`w-full flex items-center gap-3 p-2 rounded-lg text-left transition-colors ${i === highlighted ? 'bg-primary-50 dark:bg-primary-900/30' : ''}`}>
-              <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-700 flex-shrink-0">
-                <Icon size={16} className="text-gray-500 dark:text-gray-400" />
+              <div className={`w-8 h-8 flex items-center justify-center rounded-lg flex-shrink-0 ${
+                isLocked
+                  ? 'bg-amber-100 dark:bg-amber-950/50'
+                  : 'bg-gray-100 dark:bg-gray-700'
+              }`}>
+                {isLocked
+                  ? <Lock size={14} className="text-amber-500 dark:text-amber-400" />
+                  : <Icon size={16} className="text-gray-500 dark:text-gray-400" />
+                }
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate">{block.label}</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-medium truncate">{block.label}</span>
+                  {reqPlan && (
+                    <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded leading-none ${
+                      reqPlan === 'enterprise'
+                        ? 'bg-violet-100 dark:bg-violet-950/60 text-violet-600 dark:text-violet-400'
+                        : 'bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                    }`}>
+                      {reqPlan}
+                    </span>
+                  )}
+                </div>
                 <div className="text-xs text-gray-400 truncate">{block.description}</div>
               </div>
             </button>
