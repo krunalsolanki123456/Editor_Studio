@@ -425,7 +425,7 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
               title="Layout Presets"
             >
               <Layout size={13} />
-              <span>Layout</span>
+              <span className="hidden xs:inline">Layout</span>
               <ChevronDown size={11} />
             </button>
 
@@ -855,11 +855,11 @@ export function RowBlock({ block, selected = false }: BlockProps) {
               ref={layoutBtnRef}
               type="button"
               onClick={toggleLayoutMenu}
-              className="p-1 px-2.5 rounded-lg text-xs font-bold text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+              className="p-1 px-1.5 xs:px-2.5 rounded-lg text-xs font-bold text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1 xs:gap-1.5 shrink-0"
               title="Row Layout Presets"
             >
               <Columns size={13} className="text-blue-400" />
-              <span>Layout ({inner.length} Cols)</span>
+              <span className="hidden xs:inline">Layout ({inner.length} Cols)</span>
               <ChevronDown size={11} />
             </button>
 
