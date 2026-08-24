@@ -238,6 +238,24 @@ export function TwitterEmbed({ url, align = 'center' }: { url: string; align?: '
 
 export function InstagramEmbed({ url, align = 'center' }: { url: string; align?: 'left' | 'center' | 'right' }) {
   const embedUrl = normalizeInstagramUrl(url);
+  const [frameHeight, setFrameHeight] = useState<number>(680);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        if (data?.type === 'MEASURE' && typeof data?.details?.height === 'number') {
+          setFrameHeight(Math.max(450, data.details.height));
+        } else if (data?.height && typeof data.height === 'number') {
+          setFrameHeight(Math.max(450, data.height));
+        }
+      } catch {
+        // ignore JSON parse error
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   const flexAlignClass =
     align === 'left'
@@ -248,13 +266,17 @@ export function InstagramEmbed({ url, align = 'center' }: { url: string; align?:
 
   return (
     <div className={`instagram-embed w-full flex ${flexAlignClass}`}>
-      <div className="w-full max-w-2xl min-h-[720px] sm:min-h-[820px] h-[860px] rounded-2xl overflow-hidden shadow-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+      <div
+        style={{ height: `${frameHeight}px` }}
+        className="w-full max-w-[540px] rounded-2xl overflow-hidden shadow-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-all duration-200"
+      >
         <iframe
           src={embedUrl}
-          className="w-full h-full border-0"
+          className="w-full h-full border-0 overflow-hidden"
+          style={{ border: 0, overflow: 'hidden' }}
           allowTransparency
           allowFullScreen
-          scrolling="auto"
+          scrolling="no"
           title="Instagram Post"
         />
       </div>

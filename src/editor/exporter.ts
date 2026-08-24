@@ -860,7 +860,7 @@ function renderBlock(block: BlockInstance): string {
               return `<div style="max-width:550px;width:100%;margin-bottom:12px;"><blockquote class="twitter-tweet" data-align="${twAlign}"><a href="${escapeHtml(tweetUrl)}"></a></blockquote><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></div>`;
             } else if (isInstagramUrl(raw)) {
               const igEmbedUrl = normalizeInstagramUrl(raw);
-              return `<div style="max-width:650px;width:100%;min-height:720px;height:860px;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.12);margin-bottom:16px;"><iframe src="${escapeHtml(igEmbedUrl)}" width="100%" height="860" style="border:0;width:100%;height:100%;min-height:720px;" allowtransparency="true" allowfullscreen scrolling="auto"></iframe></div>`;
+              return `<div style="max-width:540px;width:100%;min-height:600px;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);margin-bottom:16px;"><iframe src="${escapeHtml(igEmbedUrl)}" width="100%" height="680" style="border:0;width:100%;height:680px;overflow:hidden;" allowtransparency="true" allowfullscreen scrolling="no"></iframe></div>`;
             } else if (isSpotifyUrl(raw)) {
               const spotifyUrl = normalizeSpotifyUrl(raw);
               return `<div style="max-width:560px;width:100%;margin-bottom:12px;"><iframe src="${escapeHtml(spotifyUrl)}" width="100%" height="152" style="border:0;border-radius:12px;" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe></div>`;

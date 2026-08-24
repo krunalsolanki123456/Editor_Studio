@@ -54,7 +54,7 @@ export function renderLiveEmbedComponent(rawCode: string, align: 'left' | 'cente
   if (isInstagramUrl(trimmed)) {
     return (
       <div className={`w-full flex ${alignJustify}`}>
-        <div className="w-full max-w-2xl">
+        <div className="w-full max-w-[540px]">
           <InstagramEmbed url={trimmed} align={align} />
         </div>
       </div>
