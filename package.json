@@ -1,6 +1,6 @@
 {
   "name": "react-editor-studio",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Next-generation block-based rich text and interactive media editor for React, Next.js, and TypeScript. Features Notion-style blocks, live polls, election charts, live update timelines, responsive HTML export, and Tailwind CSS styling.",
   "type": "module",
   "main": "./dist/editor-studio.umd.cjs",
