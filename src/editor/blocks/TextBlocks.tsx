@@ -524,25 +524,19 @@ export function ListBlock({ block }: BlockProps) {
     return true;
   };
 
-  const isBullet = style === 'bullet';
   const isChecklist = style === 'checklist';
 
   return (
-    <div className="be-list py-1.5 my-1 w-full">
+    <div className="be-list py-1 my-1 w-full">
       <Tag
         style={{ ...typography }}
         className={`w-full ${
-          isBullet
-            ? 'bg-[#f8f9fa] dark:bg-gray-800/60 border border-gray-200/60 dark:border-gray-700/60 rounded-xl px-5 py-2.5 list-none shadow-sm'
-            : isChecklist
-            ? 'pl-6 space-y-1.5'
-            : 'pl-6 space-y-1.5'
+          isChecklist ? 'pl-2 space-y-1.5 list-none' : 'pl-6 space-y-1.5'
         } ${alignClass(align)}`}
       >
-        {items.map((item, index) => {
+        {items.map((item) => {
           const itemLevel = item.level || 0;
           const checked = item.checked || false;
-          const isLast = index === items.length - 1;
 
           const currentListStyle = isChecklist
             ? 'none'
@@ -556,7 +550,7 @@ export function ListBlock({ block }: BlockProps) {
                 key={item.id}
                 data-list-item={item.id}
                 style={{ marginLeft: `${itemLevel * 20}px`, listStyleType: 'none' }}
-                className="py-0.5 flex items-start gap-2.5 -ml-6"
+                className="py-0.5 flex items-start gap-2.5"
               >
                 <input
                   type="checkbox"
@@ -592,44 +586,6 @@ export function ListBlock({ block }: BlockProps) {
                   onPasteText={(text) => handlePasteListText(text, item.id)}
                   onSlash={(rect) => window.dispatchEvent(new CustomEvent('be-slash', { detail: { blockId: block.id, rect } }))}
                 />
-              </li>
-            );
-          }
-
-          if (isBullet) {
-            return (
-              <li
-                key={item.id}
-                data-list-item={item.id}
-                style={{
-                  listStyleType: 'none',
-                  marginLeft: `${itemLevel * 20}px`,
-                }}
-                className={`relative flex items-start gap-3 py-3 pl-1 pr-2 transition-colors ${
-                  !isLast ? 'border-b border-dotted border-gray-300 dark:border-gray-700' : ''
-                }`}
-              >
-                <span
-                  className="mt-2 h-2.5 w-2.5 rounded-full bg-red-500 shrink-0 shadow-[0_0_6px_rgba(239,68,68,0.55)] select-none"
-                  aria-hidden="true"
-                />
-                <div className="flex-1 min-w-0">
-                  <RichText
-                    value={item.content}
-                    onChange={(v) => updateItem(item.id, v)}
-                    placeholder="List item"
-                    align={align}
-                    className="inline-block w-full min-h-[1.5em] text-base font-semibold leading-relaxed align-top focus:outline-none text-gray-900 dark:text-gray-100"
-                    tagName="span"
-                    style={typography}
-                    onEnter={() => handleItemEnter(item.id)}
-                    onBackspaceEmpty={() => removeItem(item.id)}
-                    onIndent={() => indentItem(item.id)}
-                    onOutdent={() => outdentItem(item.id)}
-                    onPasteText={(text) => handlePasteListText(text, item.id)}
-                    onSlash={(rect) => window.dispatchEvent(new CustomEvent('be-slash', { detail: { blockId: block.id, rect } }))}
-                  />
-                </div>
               </li>
             );
           }

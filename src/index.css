@@ -78,62 +78,6 @@ body {
   color: #60a5fa !important;
 }
 
-/* Custom Bullet List (UL LI) UI */
-.be-list ul:not([class*="list-decimal"]) {
-  background-color: #f8f9fa;
-  border-radius: 12px;
-  padding: 8px 16px;
-  list-style: none;
-}
-
-.dark .be-list ul:not([class*="list-decimal"]) {
-  background-color: rgba(30, 41, 59, 0.5);
-  border-color: rgba(55, 65, 81, 0.6);
-}
-
-[contenteditable] ul:not(.no-custom-list) {
-  list-style: none;
-  background-color: #f8f9fa;
-  border-radius: 12px;
-  padding: 12px 20px;
-  margin: 12px 0;
-}
-
-[contenteditable] ul:not(.no-custom-list) > li {
-  position: relative;
-  padding: 12px 0 12px 24px;
-  border-bottom: 1px dotted #d1d5db;
-  font-weight: 600;
-  line-height: 1.8;
-  color: #111827;
-}
-
-[contenteditable] ul:not(.no-custom-list) > li:last-child {
-  border-bottom: none;
-}
-
-[contenteditable] ul:not(.no-custom-list) > li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 22px;
-  transform: translateY(-50%);
-  width: 9px;
-  height: 9px;
-  background-color: #ef4444;
-  border-radius: 50%;
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
-}
-
-.dark [contenteditable] ul:not(.no-custom-list) {
-  background-color: rgba(30, 41, 59, 0.5);
-}
-
-.dark [contenteditable] ul:not(.no-custom-list) > li {
-  color: #f3f4f6;
-  border-bottom-color: rgba(75, 85, 99, 0.6);
-}
-
 /* Global Button Cursor Pointer & Interactive Click Rules */
 button,
 [role="button"],
