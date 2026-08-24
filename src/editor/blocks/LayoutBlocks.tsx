@@ -348,29 +348,30 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
         selectBlock(block.id);
       }}
     >
+      {/* FLOATING GLASSMORPHISM GROUP/COLUMN TOOLBAR */}
       {selected && (
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900/95 dark:bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/80 rounded-full px-3 py-1.5 shadow-2xl flex items-center gap-1 z-50 pointer-events-auto transition-all animate-fade-in whitespace-nowrap">
-          <div className="cursor-grab active:cursor-grabbing p-1 text-slate-400 hover:text-white" title="Drag Group">
-            <GripVertical size={15} />
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-slate-900/95 dark:bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/80 rounded-full px-2.5 xs:px-3 py-1 xs:py-1.5 shadow-2xl flex items-center gap-0.5 xs:gap-1 z-50 pointer-events-auto transition-all animate-fade-in whitespace-nowrap overflow-x-auto no-scrollbar">
+          <div className="cursor-grab active:cursor-grabbing p-1 text-slate-400 hover:text-white shrink-0" title="Drag Group">
+            <GripVertical size={14} />
           </div>
-          <div className="w-px h-4 bg-slate-700 mx-0.5" />
+          <div className="w-px h-4 bg-slate-700 mx-0.5 shrink-0" />
           <button
             type="button"
             onClick={() => moveBlock(block.id, 'up')}
-            className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
             title="Move Up"
           >
-            <ArrowUp size={14} />
+            <ArrowUp size={13} />
           </button>
           <button
             type="button"
             onClick={() => moveBlock(block.id, 'down')}
-            className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
             title="Move Down"
           >
-            <ArrowDown size={14} />
+            <ArrowDown size={13} />
           </button>
-          <div className="w-px h-4 bg-slate-700 mx-0.5" />
+          <div className="w-px h-4 bg-slate-700 mx-0.5 shrink-0" />
           <button
             type="button"
             onClick={() => {
@@ -378,26 +379,26 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
               const nextDir = currentDir === 'row' ? 'column' : 'row';
               updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, flexDirection: nextDir } }));
             }}
-            className={`p-1 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${(a.flexDirection as string) === 'row'
+            className={`p-1 px-1.5 xs:px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${(a.flexDirection as string) === 'row'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             title="Toggle Flex Direction (Row / Column)"
           >
             {(a.flexDirection as string) === 'row' ? <MoveHorizontal size={13} /> : <MoveVertical size={13} />}
-            <span>{(a.flexDirection as string) === 'row' ? 'Row' : 'Column'}</span>
+            <span className="hidden xs:inline">{(a.flexDirection as string) === 'row' ? 'Row' : 'Column'}</span>
           </button>
 
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => setShowLayoutMenu(!showLayoutMenu)}
-              className="p-1 px-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1"
+              className="p-1 px-1.5 xs:px-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1 shrink-0"
               title="Layout Presets"
             >
-              <Layout size={14} />
-              <span>Layout</span>
-              <ChevronDown size={12} />
+              <Layout size={13} />
+              <span className="hidden xs:inline">Layout</span>
+              <ChevronDown size={11} />
             </button>
 
             {showLayoutMenu && (
@@ -423,44 +424,42 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
             )}
           </div>
 
-          <div className="w-px h-4 bg-slate-700 mx-0.5" />
-
-
+          <div className="w-px h-4 bg-slate-700 mx-0.5 shrink-0" />
 
           <button
             type="button"
             onClick={() => duplicateBlock(block.id)}
-            className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
             title="Duplicate Group"
           >
-            <CopyPlus size={14} />
+            <CopyPlus size={13} />
           </button>
 
           <button
             type="button"
             onClick={() => copyBlocks([block.id])}
-            className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
             title="Copy Group"
           >
-            <Copy size={14} />
+            <Copy size={13} />
           </button>
 
           <button
             type="button"
             onClick={() => ungroupSelectedBlocks()}
-            className="p-1.5 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-amber-400 hover:text-amber-300 hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
             title="Ungroup (Ctrl+Shift+G)"
           >
-            <Ungroup size={14} />
+            <Ungroup size={13} />
           </button>
 
           <button
             type="button"
             onClick={() => removeBlock(block.id)}
-            className="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
             title="Delete Group"
           >
-            <Trash2 size={14} />
+            <Trash2 size={13} />
           </button>
         </div>
       )}
@@ -751,17 +750,17 @@ export function RowBlock({ block, selected = false }: BlockProps) {
         }
       }}
     >
-      {/* FLOATING GLASSMOPHISM ROW TOOLBAR (Single Unified Toolbar) */}
+      {/* FLOATING GLASSMORPHISM ROW TOOLBAR (Single Unified Toolbar) */}
       {selected && (
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900/95 dark:bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/80 rounded-full px-3.5 py-1.5 shadow-2xl flex items-center gap-1.5 z-50 pointer-events-auto transition-all animate-fade-in whitespace-nowrap">
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-slate-900/95 dark:bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/80 rounded-full px-2.5 xs:px-3.5 py-1 xs:py-1.5 shadow-2xl flex items-center gap-1 xs:gap-1.5 z-50 pointer-events-auto transition-all animate-fade-in whitespace-nowrap overflow-x-auto no-scrollbar">
           {/* Block Label Badge & Drag Handle */}
-          <div className="flex items-center gap-1.5 pr-1 border-r border-slate-700/80">
+          <div className="flex items-center gap-1.5 pr-1 border-r border-slate-700/80 shrink-0">
             <div className="cursor-grab active:cursor-grabbing p-0.5 text-slate-400 hover:text-white" title="Drag Row">
               <GripVertical size={14} />
             </div>
             <span className="text-xs font-bold text-slate-200 flex items-center gap-1">
               <Layout size={13} className="text-blue-400" />
-              <span>Row</span>
+              <span className="hidden xs:inline">Row</span>
             </span>
           </div>
 
@@ -769,34 +768,34 @@ export function RowBlock({ block, selected = false }: BlockProps) {
           <button
             type="button"
             onClick={() => moveBlock(block.id, 'up')}
-            className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
             title="Move Up"
           >
-            <ArrowUp size={14} />
+            <ArrowUp size={13} />
           </button>
 
           <button
             type="button"
             onClick={() => moveBlock(block.id, 'down')}
-            className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
             title="Move Down"
           >
-            <ArrowDown size={14} />
+            <ArrowDown size={13} />
           </button>
 
-          <div className="w-px h-4 bg-slate-700 mx-0.5" />
+          <div className="w-px h-4 bg-slate-700 mx-0.5 shrink-0" />
 
           {/* Layout Ratio Presets Dropdown */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               type="button"
               onClick={() => setShowLayoutMenu(!showLayoutMenu)}
-              className="p-1 px-2.5 rounded-lg text-xs font-bold text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1.5"
+              className="p-1 px-1.5 xs:px-2.5 rounded-lg text-xs font-bold text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1 xs:gap-1.5"
               title="Row Layout Presets"
             >
               <Columns size={13} className="text-blue-400" />
-              <span>Layout ({inner.length} Cols)</span>
-              <ChevronDown size={12} />
+              <span className="hidden xs:inline">Layout ({inner.length} Cols)</span>
+              <ChevronDown size={11} />
             </button>
 
             {showLayoutMenu && (
