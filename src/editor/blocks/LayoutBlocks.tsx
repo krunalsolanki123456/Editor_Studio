@@ -1,4 +1,5 @@
-import { useState, useContext, useEffect } from 'react';
+import { useState, useContext, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Plus, Columns, Layout, GripVertical, ArrowUp, ArrowDown,
   Copy, CopyPlus, Trash2, Ungroup, MoveHorizontal, MoveVertical,
@@ -256,6 +257,32 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
+  const [menuCoords, setMenuCoords] = useState<{ top: number; left: number } | null>(null);
+  const layoutBtnRef = useRef<HTMLButtonElement>(null);
+
+  const toggleLayoutMenu = () => {
+    if (!showLayoutMenu && layoutBtnRef.current) {
+      const rect = layoutBtnRef.current.getBoundingClientRect();
+      setMenuCoords({
+        top: rect.bottom + 8,
+        left: Math.max(12, Math.min(rect.left, window.innerWidth - 260)),
+      });
+      setShowLayoutMenu(true);
+    } else {
+      setShowLayoutMenu(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!showLayoutMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (layoutBtnRef.current && !layoutBtnRef.current.contains(e.target as Node)) {
+        setShowLayoutMenu(false);
+      }
+    };
+    window.addEventListener('mousedown', handleClickOutside);
+    return () => window.removeEventListener('mousedown', handleClickOutside);
+  }, [showLayoutMenu]);
 
   const a = block.attributes || {};
 
@@ -350,7 +377,7 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
     >
       {/* FLOATING GLASSMORPHISM GROUP/COLUMN TOOLBAR */}
       {selected && (
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 max-w-[calc(100vw-20px)] bg-slate-900/95 dark:bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/80 rounded-full px-3 py-1.5 shadow-2xl flex items-center gap-1 z-50 pointer-events-auto transition-all animate-fade-in whitespace-nowrap overflow-visible">
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-slate-900/95 dark:bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/80 rounded-full px-2.5 xs:px-3 py-1 xs:py-1.5 shadow-2xl flex items-center gap-0.5 xs:gap-1 z-50 pointer-events-auto transition-all animate-fade-in whitespace-nowrap overflow-x-auto no-scrollbar">
           <div className="cursor-grab active:cursor-grabbing p-1 text-slate-400 hover:text-white shrink-0" title="Drag Group">
             <GripVertical size={14} />
           </div>
@@ -379,7 +406,7 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
               const nextDir = currentDir === 'row' ? 'column' : 'row';
               updateBlock(block.id, (b) => ({ ...b, attributes: { ...b.attributes, flexDirection: nextDir } }));
             }}
-            className={`p-1 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${(a.flexDirection as string) === 'row'
+            className={`p-1 px-1.5 xs:px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${(a.flexDirection as string) === 'row'
               ? 'bg-blue-600 text-white shadow-xs'
               : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
@@ -391,9 +418,10 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
 
           <div className="relative shrink-0">
             <button
+              ref={layoutBtnRef}
               type="button"
-              onClick={() => setShowLayoutMenu(!showLayoutMenu)}
-              className="p-1 px-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1 shrink-0"
+              onClick={toggleLayoutMenu}
+              className="p-1 px-1.5 xs:px-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1 shrink-0"
               title="Layout Presets"
             >
               <Layout size={13} />
@@ -401,8 +429,16 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
               <ChevronDown size={11} />
             </button>
 
-            {showLayoutMenu && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 xs:left-0 xs:translate-x-0 mt-2.5 w-60 max-w-[calc(100vw-2rem)] p-2 bg-[#0f172a] text-slate-100 border border-slate-700/90 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] grid grid-cols-1 gap-1 z-[99999] animate-in fade-in zoom-in-95 duration-100">
+            {showLayoutMenu && menuCoords && typeof document !== 'undefined' && createPortal(
+              <div
+                style={{
+                  position: 'fixed',
+                  top: `${menuCoords.top}px`,
+                  left: `${menuCoords.left}px`,
+                  zIndex: 9999999,
+                }}
+                className="w-60 max-w-[calc(100vw-2rem)] p-2 bg-[#0f172a] text-slate-100 border border-slate-700/90 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] grid grid-cols-1 gap-1 animate-in fade-in zoom-in-95 duration-100"
+              >
                 {GROUP_LAYOUT_PRESETS.map((p) => (
                   <button
                     key={p.id}
@@ -420,7 +456,8 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
                     </div>
                   </button>
                 ))}
-              </div>
+              </div>,
+              document.body
             )}
           </div>
 
@@ -582,6 +619,33 @@ export function RowBlock({ block, selected = false }: BlockProps) {
   const { isMobile, isTablet } = useResponsive();
 
   const [showLayoutMenu, setShowLayoutMenu] = useState(false);
+  const [menuCoords, setMenuCoords] = useState<{ top: number; left: number } | null>(null);
+  const layoutBtnRef = useRef<HTMLButtonElement>(null);
+
+  const toggleLayoutMenu = () => {
+    if (!showLayoutMenu && layoutBtnRef.current) {
+      const rect = layoutBtnRef.current.getBoundingClientRect();
+      setMenuCoords({
+        top: rect.bottom + 8,
+        left: Math.max(12, Math.min(rect.left, window.innerWidth - 270)),
+      });
+      setShowLayoutMenu(true);
+    } else {
+      setShowLayoutMenu(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!showLayoutMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (layoutBtnRef.current && !layoutBtnRef.current.contains(e.target as Node)) {
+        setShowLayoutMenu(false);
+      }
+    };
+    window.addEventListener('mousedown', handleClickOutside);
+    return () => window.removeEventListener('mousedown', handleClickOutside);
+  }, [showLayoutMenu]);
+
   const a = block.attributes || {};
 
   // Ensure row always has columns by default
@@ -752,7 +816,7 @@ export function RowBlock({ block, selected = false }: BlockProps) {
     >
       {/* FLOATING GLASSMORPHISM ROW TOOLBAR (Single Unified Toolbar) */}
       {selected && (
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 max-w-[calc(100vw-20px)] bg-slate-900/95 dark:bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/80 rounded-full px-3.5 py-1.5 shadow-2xl flex items-center gap-1.5 z-50 pointer-events-auto transition-all animate-fade-in whitespace-nowrap overflow-visible">
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-slate-900/95 dark:bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/80 rounded-full px-2.5 xs:px-3.5 py-1 xs:py-1.5 shadow-2xl flex items-center gap-1 xs:gap-1.5 z-50 pointer-events-auto transition-all animate-fade-in whitespace-nowrap overflow-x-auto no-scrollbar">
           {/* Block Label Badge & Drag Handle */}
           <div className="flex items-center gap-1.5 pr-1 border-r border-slate-700/80 shrink-0">
             <div className="cursor-grab active:cursor-grabbing p-0.5 text-slate-400 hover:text-white" title="Drag Row">
@@ -788,9 +852,10 @@ export function RowBlock({ block, selected = false }: BlockProps) {
           {/* Layout Ratio Presets Dropdown */}
           <div className="relative shrink-0">
             <button
+              ref={layoutBtnRef}
               type="button"
-              onClick={() => setShowLayoutMenu(!showLayoutMenu)}
-              className="p-1 px-2.5 rounded-lg text-xs font-bold text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1.5"
+              onClick={toggleLayoutMenu}
+              className="p-1 px-2.5 rounded-lg text-xs font-bold text-slate-200 hover:text-white bg-slate-800/80 hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
               title="Row Layout Presets"
             >
               <Columns size={13} className="text-blue-400" />
@@ -798,8 +863,16 @@ export function RowBlock({ block, selected = false }: BlockProps) {
               <ChevronDown size={11} />
             </button>
 
-            {showLayoutMenu && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 xs:left-0 xs:translate-x-0 mt-2.5 w-64 max-w-[calc(100vw-2rem)] p-2 bg-[#0f172a] text-slate-100 border border-slate-700/90 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] grid grid-cols-1 gap-1.5 z-[99999] animate-in fade-in zoom-in-95 duration-100">
+            {showLayoutMenu && menuCoords && typeof document !== 'undefined' && createPortal(
+              <div
+                style={{
+                  position: 'fixed',
+                  top: `${menuCoords.top}px`,
+                  left: `${menuCoords.left}px`,
+                  zIndex: 9999999,
+                }}
+                className="w-64 max-w-[calc(100vw-2rem)] p-2 bg-[#0f172a] text-slate-100 border border-slate-700/90 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] grid grid-cols-1 gap-1.5 animate-in fade-in zoom-in-95 duration-100"
+              >
                 <div className="px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase text-slate-400 border-b border-slate-800 pb-1.5 mb-0.5">
                   Select Layout Preset
                 </div>
@@ -825,7 +898,8 @@ export function RowBlock({ block, selected = false }: BlockProps) {
                     {a.layoutRatio === p.id && <Check size={15} className="text-white shrink-0" />}
                   </button>
                 ))}
-              </div>
+              </div>,
+              document.body
             )}
           </div>
 
