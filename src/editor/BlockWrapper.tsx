@@ -151,7 +151,7 @@ export default function BlockWrapper({ block, index, total, onUpgradeRequired }:
       )}
 
       {/* Action Control Badge for Block - Fixed Ultra-Slim Single-Line Height on ALL screens */}
-      {!isPreviewMode && !isMultiSelect && selected && (
+      {!isPreviewMode && !isMultiSelect && selected && block.type !== 'group' && block.type !== 'row' && (
         <div className="absolute -top-3.5 right-1 sm:right-3 max-w-[calc(100vw-20px)] h-7 sm:h-8 flex items-center flex-nowrap shrink-0 whitespace-nowrap gap-0.5 sm:gap-1 bg-slate-900/95 text-white backdrop-blur-md border border-white/20 rounded-full px-2 sm:px-2.5 shadow-xl z-50 ring-2 ring-blue-500/80 pointer-events-auto select-none animate-in fade-in zoom-in-95 duration-150">
           {/* Drag Handle Icon */}
           <div
