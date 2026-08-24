@@ -91,7 +91,7 @@ export default function BlockWrapper({ block, index, total, onUpgradeRequired }:
     ? 'ring-2 ring-amber-400 dark:ring-amber-500 rounded-2xl bg-amber-50/40 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-600/60 p-3.5 shadow-md backdrop-blur-2xs transition-all my-2'
     : '';
 
-  const wrapperClasses = 'relative group transition-all mb-2.5 w-full';
+  const wrapperClasses = `relative group transition-all mb-2.5 w-full ${selected && !isPreviewMode ? 'mt-7' : ''}`;
 
   return (
     <div

@@ -377,7 +377,7 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
     >
       {/* FLOATING GLASSMORPHISM GROUP/COLUMN TOOLBAR */}
       {selected && (
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-slate-900/95 dark:bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/80 rounded-full px-2.5 xs:px-3 py-1 xs:py-1.5 shadow-2xl flex items-center gap-0.5 xs:gap-1 z-50 pointer-events-auto transition-all animate-fade-in whitespace-nowrap overflow-x-auto no-scrollbar">
+        <div className="absolute -top-10 sm:-top-11 left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-slate-900/95 dark:bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/80 rounded-full px-2.5 xs:px-3 py-1 xs:py-1.5 shadow-2xl flex items-center gap-0.5 xs:gap-1 z-50 pointer-events-auto transition-all animate-fade-in whitespace-nowrap overflow-x-auto no-scrollbar">
           <div className="cursor-grab active:cursor-grabbing p-1 text-slate-400 hover:text-white shrink-0" title="Drag Group">
             <GripVertical size={14} />
           </div>
@@ -413,7 +413,7 @@ export function GroupBlock({ block, selected = false }: BlockProps) {
             title="Toggle Flex Direction (Row / Column)"
           >
             {(a.flexDirection as string) === 'row' ? <MoveHorizontal size={13} /> : <MoveVertical size={13} />}
-            <span>{(a.flexDirection as string) === 'row' ? 'Row' : 'Column'}</span>
+            <span className="hidden xs:inline">{(a.flexDirection as string) === 'row' ? 'Row' : 'Column'}</span>
           </button>
 
           <div className="relative shrink-0">
@@ -816,7 +816,7 @@ export function RowBlock({ block, selected = false }: BlockProps) {
     >
       {/* FLOATING GLASSMORPHISM ROW TOOLBAR (Single Unified Toolbar) */}
       {selected && (
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-slate-900/95 dark:bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/80 rounded-full px-2.5 xs:px-3.5 py-1 xs:py-1.5 shadow-2xl flex items-center gap-1 xs:gap-1.5 z-50 pointer-events-auto transition-all animate-fade-in whitespace-nowrap overflow-x-auto no-scrollbar">
+        <div className="absolute -top-10 sm:-top-11 left-1/2 -translate-x-1/2 max-w-[calc(100vw-24px)] bg-slate-900/95 dark:bg-slate-900/95 text-white backdrop-blur-md border border-slate-700/80 rounded-full px-2.5 xs:px-3.5 py-1 xs:py-1.5 shadow-2xl flex items-center gap-1 xs:gap-1.5 z-50 pointer-events-auto transition-all animate-fade-in whitespace-nowrap overflow-x-auto no-scrollbar">
           {/* Block Label Badge & Drag Handle */}
           <div className="flex items-center gap-1.5 pr-1 border-r border-slate-700/80 shrink-0">
             <div className="cursor-grab active:cursor-grabbing p-0.5 text-slate-400 hover:text-white" title="Drag Row">
@@ -824,7 +824,7 @@ export function RowBlock({ block, selected = false }: BlockProps) {
             </div>
             <span className="text-xs font-bold text-slate-200 flex items-center gap-1">
               <Layout size={13} className="text-blue-400" />
-              <span>Row</span>
+              <span className="hidden xs:inline">Row</span>
             </span>
           </div>
 
