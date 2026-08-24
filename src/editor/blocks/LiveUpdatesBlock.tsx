@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Radio, Plus, Trash2, Pin, X, Check, Edit2,
   Upload, AlignLeft, AlignCenter, AlignRight,
-  FileText, Download, Code2, Link2
+  Download, Code2, Link2, ExternalLink
 } from 'lucide-react';
 import { useEditorStore } from '../store';
 import { fileToDataUrl } from '../media';
@@ -33,6 +33,77 @@ export interface LiveUpdateItem {
   embedCode?: string;
   isPinned?: boolean;
   author?: string;
+}
+
+export function LivePdfViewer({
+  url,
+  fileName,
+  fileSize,
+  align = 'center',
+}: {
+  url: string;
+  fileName?: string;
+  fileSize?: string;
+  align?: 'left' | 'center' | 'right';
+}) {
+  const alignJustify = align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center';
+
+  return (
+    <div className={`w-full flex ${alignJustify}`}>
+      <div className="w-full max-w-2xl rounded-2xl overflow-hidden border border-red-200 dark:border-red-950/60 bg-white dark:bg-gray-900 shadow-sm transition-all">
+        {/* Top Header Bar */}
+        <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 bg-gradient-to-r from-red-50 via-white to-red-50/40 dark:from-red-950/40 dark:via-gray-900 dark:to-gray-900 border-b border-red-100 dark:border-red-950/50">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs font-black text-[10px] tracking-wider">
+              PDF
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
+                {fileName || 'Document.pdf'}
+              </p>
+              <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-gray-400">
+                <span className="font-semibold text-red-600 dark:text-red-400 uppercase tracking-wider">Document Preview</span>
+                {fileSize && <span>· {fileSize}</span>}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors"
+              title="Open PDF in new tab"
+            >
+              <ExternalLink size={13} />
+              <span className="hidden sm:inline">Open</span>
+            </a>
+            <a
+              href={url}
+              download={fileName || 'Document.pdf'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-xs transition-all cursor-pointer"
+            >
+              <Download size={13} />
+              <span>Download</span>
+            </a>
+          </div>
+        </div>
+
+        {/* Embedded Interactive PDF Viewer */}
+        <div className="w-full h-[450px] sm:h-[520px] bg-slate-100 dark:bg-slate-800 relative">
+          <iframe
+            src={`${url}#toolbar=0&navpanes=0`}
+            title={fileName || 'PDF Preview'}
+            className="w-full h-full border-0 bg-white"
+            loading="lazy"
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function renderLiveEmbedComponent(rawCode: string, align: 'left' | 'center' | 'right' = 'center') {
@@ -609,15 +680,12 @@ export function LiveUpdatesBlock({ block, selected = false }: BlockProps) {
             {newMediaUrl && (
               <div className={`w-full flex ${newMediaAlign === 'left' ? 'justify-start' : newMediaAlign === 'right' ? 'justify-end' : 'justify-center'} pt-2`}>
                 {newMediaType === 'pdf' ? (
-                  <div className="flex items-center gap-2.5 p-3 rounded-xl border border-red-200 dark:border-red-900 bg-white dark:bg-gray-800 shadow-xs max-w-md w-full">
-                    <div className="w-9 h-9 rounded-lg bg-red-100 text-red-600 flex items-center justify-center shrink-0">
-                      <FileText size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.2 bg-red-600 text-white rounded">PDF DOCUMENT</span>
-                      <p className="text-xs font-bold text-gray-900 dark:text-white truncate mt-0.5">{newMediaFileName || 'Document.pdf'}</p>
-                    </div>
-                  </div>
+                  <LivePdfViewer
+                    url={newMediaUrl}
+                    fileName={newMediaFileName}
+                    fileSize={newMediaFileSize}
+                    align={newMediaAlign}
+                  />
                 ) : (
                   <div className="relative inline-block rounded-xl overflow-hidden max-h-56 shadow-sm border border-gray-200 dark:border-gray-700">
                     {newMediaType === 'video' ? (
@@ -844,10 +912,30 @@ export function LiveUpdatesBlock({ block, selected = false }: BlockProps) {
                         </div>
                       </div>
 
-                      {/* Edit Embed Live Preview */}
+                      {/* Edit Embed / Media Live Preview */}
                       {editEmbedList.some((u) => u.trim()) && (
                         <div className={`w-full flex ${editMediaAlign === 'left' ? 'justify-start' : editMediaAlign === 'right' ? 'justify-end' : 'justify-center'} pt-2`}>
                           {renderLiveEmbedList(editEmbedList, editMediaAlign)}
+                        </div>
+                      )}
+                      {editMediaUrl && (
+                        <div className={`w-full flex ${editMediaAlign === 'left' ? 'justify-start' : editMediaAlign === 'right' ? 'justify-end' : 'justify-center'} pt-2`}>
+                          {editMediaType === 'pdf' ? (
+                            <LivePdfViewer
+                              url={editMediaUrl}
+                              fileName={editMediaFileName}
+                              fileSize={editMediaFileSize}
+                              align={editMediaAlign}
+                            />
+                          ) : (
+                            <div className="relative inline-block rounded-xl overflow-hidden max-h-56 shadow-sm border border-gray-200 dark:border-gray-700">
+                              {editMediaType === 'video' ? (
+                                <video src={editMediaUrl} className="max-h-56 w-auto object-contain rounded-xl" controls />
+                              ) : (
+                                <img src={editMediaUrl} alt="Preview" className="max-h-56 w-auto object-contain rounded-xl" />
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -928,38 +1016,12 @@ export function LiveUpdatesBlock({ block, selected = false }: BlockProps) {
                       {item.mediaUrl && !item.embedCode && (
                         <div className={`mt-2 w-full flex ${alignJustify}`}>
                           {item.mediaType === 'pdf' ? (
-                            /* Interactive PDF Card */
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-xl border border-red-200 dark:border-red-900/60 bg-gradient-to-r from-red-50/70 via-white to-red-50/30 dark:from-red-950/40 dark:via-gray-900 dark:to-gray-900 shadow-2xs hover:shadow-xs transition-all w-full max-w-lg">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-10 rounded-xl bg-red-600 text-white flex items-center justify-center shrink-0 shadow-xs font-black text-xs">
-                                  PDF
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
-                                      Official PDF Document
-                                    </span>
-                                    {item.mediaFileSize && (
-                                      <span className="text-[11px] text-gray-400">· {item.mediaFileSize}</span>
-                                    )}
-                                  </div>
-                                  <p className="text-xs sm:text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
-                                    {item.mediaFileName || 'Document.pdf'}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <a
-                                href={item.mediaUrl}
-                                download={item.mediaFileName || 'Document.pdf'}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-xs transition-all shrink-0 cursor-pointer"
-                              >
-                                <Download size={13} />
-                                <span>Download PDF</span>
-                              </a>
-                            </div>
+                            <LivePdfViewer
+                              url={item.mediaUrl}
+                              fileName={item.mediaFileName}
+                              fileSize={item.mediaFileSize}
+                              align={item.mediaAlign}
+                            />
                           ) : (
                             <div className={`${mediaContainerWidth} overflow-hidden rounded-xl`}>
                               {item.mediaType === 'video' ? (

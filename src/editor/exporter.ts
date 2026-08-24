@@ -878,15 +878,23 @@ function renderBlock(block: BlockInstance): string {
         } else if (u.mediaUrl) {
           if (u.mediaType === 'pdf') {
             mediaHtml = `<div style="display:flex;justify-content:${alignJustify};margin-top:10px;width:100%;">
-              <div style="max-width:520px;width:100%;border:1px solid #fecaca;background:linear-gradient(to right, #fef2f2, #ffffff);border-radius:14px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
-                <div style="display:flex;align-items:center;gap:12px;min-width:0;flex:1;">
-                  <div style="width:38px;height:38px;border-radius:10px;background:#dc2626;color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;letter-spacing:0.05em;flex-shrink:0;">PDF</div>
-                  <div style="min-width:0;flex:1;">
-                    <div style="font-size:13px;font-weight:700;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(u.mediaFileName || 'Official Document.pdf')}</div>
-                    <div style="font-size:11px;color:#dc2626;margin-top:2px;font-weight:600;">PDF Document ${u.mediaFileSize ? `· <span style="color:#6b7280">${escapeHtml(u.mediaFileSize)}</span>` : ''}</div>
+              <div style="max-width:680px;width:100%;border:1px solid #fecaca;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);box-sizing:border-box;">
+                <div style="background:linear-gradient(to right, #fef2f2, #ffffff);padding:10px 14px;border-bottom:1px solid #fee2e2;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+                  <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
+                    <div style="width:32px;height:32px;border-radius:8px;background:#dc2626;color:#ffffff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:10px;letter-spacing:0.05em;flex-shrink:0;">PDF</div>
+                    <div style="min-width:0;flex:1;">
+                      <div style="font-size:13px;font-weight:700;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(u.mediaFileName || 'Document.pdf')}</div>
+                      <div style="font-size:10px;color:#dc2626;font-weight:600;">PDF Document ${u.mediaFileSize ? `· <span style="color:#6b7280">${escapeHtml(u.mediaFileSize)}</span>` : ''}</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <a href="${escapeHtml(u.mediaUrl)}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#f3f4f6;color:#374151;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none;">Open</a>
+                    <a href="${escapeHtml(u.mediaUrl)}" download="${escapeHtml(u.mediaFileName || 'document.pdf')}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;background:#dc2626;color:#ffffff;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;text-decoration:none;">Download</a>
                   </div>
                 </div>
-                <a href="${escapeHtml(u.mediaUrl)}" download="${escapeHtml(u.mediaFileName || 'document.pdf')}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:#dc2626;color:#ffffff;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;text-decoration:none;flex-shrink:0;box-shadow:0 1px 2px rgba(220,38,38,0.2);">Download PDF</a>
+                <div style="width:100%;height:480px;background:#f9fafb;">
+                  <iframe src="${escapeHtml(u.mediaUrl)}#toolbar=0&navpanes=0" title="${escapeHtml(u.mediaFileName || 'PDF Preview')}" style="width:100%;height:100%;border:0;background:#ffffff;"></iframe>
+                </div>
               </div>
             </div>`;
           } else if (u.mediaType === 'video') {
