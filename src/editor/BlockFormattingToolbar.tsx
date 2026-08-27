@@ -173,36 +173,34 @@ function BlockTypeSelector({ block }: { block: BlockInstance }) {
   };
 
   return (
-    <Tooltip text="Block type">
-      <div className="w-36 min-w-[135px] max-w-[155px]">
-        <CustomSelect
-          value={
-            block.type === 'heading'
-              ? `h${block.attributes.level || 2}`
-              : block.type === 'list'
-                ? `list-${block.attributes.style || 'bullet'}`
-                : block.type || 'paragraph'
+    <div className="w-36 min-w-[135px] max-w-[155px] shrink-0">
+      <CustomSelect
+        value={
+          block.type === 'heading'
+            ? `h${block.attributes.level || 2}`
+            : block.type === 'list'
+              ? `list-${block.attributes.style || 'bullet'}`
+              : block.type || 'paragraph'
+        }
+        options={blockTypeOptions}
+        onChange={(val) => {
+          const strVal = String(val);
+          if (strVal.startsWith('h')) {
+            const lvl = parseInt(strVal.replace('h', ''), 10);
+            changeBlockTypeAndLevel('heading', lvl);
+          } else if (strVal === 'list-bullet') {
+            changeBlockTypeAndLevel('list', undefined, 'bullet');
+          } else if (strVal === 'list-number') {
+            changeBlockTypeAndLevel('list', undefined, 'number');
+          } else if (strVal === 'list-checklist') {
+            changeBlockTypeAndLevel('list', undefined, 'checklist');
+          } else {
+            changeBlockTypeAndLevel(strVal);
           }
-          options={blockTypeOptions}
-          onChange={(val) => {
-            const strVal = String(val);
-            if (strVal.startsWith('h')) {
-              const lvl = parseInt(strVal.replace('h', ''), 10);
-              changeBlockTypeAndLevel('heading', lvl);
-            } else if (strVal === 'list-bullet') {
-              changeBlockTypeAndLevel('list', undefined, 'bullet');
-            } else if (strVal === 'list-number') {
-              changeBlockTypeAndLevel('list', undefined, 'number');
-            } else if (strVal === 'list-checklist') {
-              changeBlockTypeAndLevel('list', undefined, 'checklist');
-            } else {
-              changeBlockTypeAndLevel(strVal);
-            }
-          }}
-          size="sm"
-        />
-      </div>
-    </Tooltip>
+        }}
+        size="sm"
+      />
+    </div>
   );
 }
 

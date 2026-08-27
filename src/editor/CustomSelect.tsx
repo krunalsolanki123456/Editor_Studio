@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Check } from 'lucide-react';
 
 export interface SelectOption<T = string | number> {
@@ -28,48 +29,81 @@ export default function CustomSelect<T extends string | number>({
   size = 'md',
 }: CustomSelectProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
-  const [openUpward, setOpenUpward] = useState(false);
-  const [alignRight, setAlignRight] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{
+    top?: number;
+    bottom?: number;
+    left: number;
+    minWidth: number;
+    openUpward: boolean;
+  } | null>(null);
+
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedOption = options.find((opt) => opt.value === value);
 
   useEffect(() => {
+    if (!isOpen) {
+      setCoords(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      if (!buttonRef.current) return;
+      const rect = buttonRef.current.getBoundingClientRect();
+      const dropdownEstimatedHeight = Math.min(options.length * 36 + 20, 240);
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const shouldOpenUpward = spaceBelow < dropdownEstimatedHeight && spaceAbove > spaceBelow;
+
+      const minWidth = Math.max(rect.width, 165);
+      let left = rect.left;
+      if (left + minWidth > window.innerWidth - 12) {
+        left = Math.max(12, window.innerWidth - minWidth - 12);
+      }
+
+      setCoords({
+        top: shouldOpenUpward ? undefined : rect.bottom + 6,
+        bottom: shouldOpenUpward ? window.innerHeight - rect.top + 6 : undefined,
+        left,
+        minWidth,
+        openUpward: shouldOpenUpward,
+      });
+    };
+
+    updatePosition();
+
+    const handleScrollOrResize = () => {
+      updatePosition();
+    };
+
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        buttonRef.current &&
+        !buttonRef.current.contains(target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     };
+
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
-  useEffect(() => {
-    if (isOpen && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      if (spaceBelow < 230 && rect.top > 230) {
-        setOpenUpward(true);
-      } else {
-        setOpenUpward(false);
-      }
-
-      // Check horizontal space: if not enough space on the right, open to the left (alignRight)
-      const dropdownWidth = 190;
-      if (rect.left + dropdownWidth > window.innerWidth - 12) {
-        setAlignRight(true);
-      } else {
-        setAlignRight(false);
-      }
-    }
-  }, [isOpen]);
+    return () => {
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen, options.length]);
 
   return (
-    <div
-      ref={containerRef}
-      className={`relative inline-block w-full text-left ${isOpen ? 'z-[999]' : 'z-auto'} ${className}`}
-    >
+    <div className={`relative inline-block w-full text-left ${className}`}>
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full flex items-center justify-between gap-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-medium outline-none transition-all shadow-2xs hover:border-primary-500 cursor-pointer ${
@@ -86,12 +120,19 @@ export default function CustomSelect<T extends string | number>({
         />
       </button>
 
-      {isOpen && (
+      {isOpen && coords && typeof document !== 'undefined' && createPortal(
         <div
-          className={`absolute ${
-            alignRight ? 'right-0 left-auto' : 'left-0 right-auto min-w-full'
-          } min-w-[170px] max-w-[calc(100vw-1.5rem)] p-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl z-[9999] max-h-56 overflow-y-auto be-scroll animate-scale-in ${
-            openUpward ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'
+          ref={dropdownRef}
+          style={{
+            position: 'fixed',
+            top: coords.top !== undefined ? `${coords.top}px` : undefined,
+            bottom: coords.bottom !== undefined ? `${coords.bottom}px` : undefined,
+            left: `${coords.left}px`,
+            minWidth: `${coords.minWidth}px`,
+            maxWidth: 'calc(100vw - 24px)',
+          }}
+          className={`z-[9999999] p-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl max-h-60 overflow-y-auto be-scroll animate-scale-in ${
+            coords.openUpward ? 'origin-bottom' : 'origin-top'
           }`}
         >
           {options.map((opt) => {
@@ -119,7 +160,8 @@ export default function CustomSelect<T extends string | number>({
               </button>
             );
           })}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
