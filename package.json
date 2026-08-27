@@ -1,12 +1,12 @@
 {
   "name": "react-editor-studio",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Next-generation block-based rich text and interactive media editor for React, Next.js, and TypeScript. Features Notion-style blocks, live polls, election charts, live update timelines, responsive HTML export, and Tailwind CSS styling.",
   "type": "module",
   "main": "./dist/editor-studio.umd.cjs",
   "module": "./dist/editor-studio.js",
   "types": "./dist/types/index.d.ts",
-  "homepage": "https://editor-studio.vercel.app",
+  "homepage": "https://editor-studio-beige.vercel.app",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/krunalsolanki123456/Editor_Studio.git"
