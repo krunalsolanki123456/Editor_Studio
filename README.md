@@ -1,5 +1,6 @@
 # React Editor Studio 🚀
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-editor--studio.vercel.app-success.svg?style=flat-square&logo=vercel)](https://editor-studio-beige.vercel.app)
 [![NPM Version](https://img.shields.io/npm/v/react-editor-studio.svg?style=flat-square&color=blue)](https://www.npmjs.com/package/react-editor-studio)
 [![NPM Downloads](https://img.shields.io/npm/dm/react-editor-studio.svg?style=flat-square&color=green)](https://www.npmjs.com/package/react-editor-studio)
 [![Bundle Size](https://img.shields.io/bundlephobia/minzip/react-editor-studio?style=flat-square&color=purple)](https://bundlephobia.com/package/react-editor-studio)
@@ -8,6 +9,9 @@
 [![React 18 & 19 Compatible](https://img.shields.io/badge/React-18%20%26%2019-61dafb.svg?style=flat-square)](https://react.dev/)
 
 > **The next-generation block-based rich text and interactive media editor for React, Next.js, and TypeScript.** Build Notion-style documents, live election dashboards, interactive opinion polls, breaking news timelines, and export 100% standalone, responsive HTML with zero runtime dependencies.
+>
+> 🌐 **Live Interactive Demo:** [https://editor-studio-beige.vercel.app](https://editor-studio-beige.vercel.app)
+> 📦 **NPM Package:** [https://www.npmjs.com/package/react-editor-studio](https://www.npmjs.com/package/react-editor-studio)
 
 ---
 
